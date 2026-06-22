@@ -362,6 +362,8 @@ footer {
 }
 .filter-btn.active { border-color: var(--accent1); color: var(--accent1); background: var(--accent1-dim); }
 .filter-btn:hover:not(.active) { color: var(--text); border-color: var(--border-hover); background: var(--surface2); }
+.filter-btn-critical.active { border-color: var(--red); color: var(--red); background: rgba(244,63,94,0.12); }
+.filter-btn-critical.active .filter-count { background: var(--red); color: #fff; }
 .filter-count {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 20px; height: 18px; padding: 0 5px;
@@ -418,6 +420,24 @@ footer {
 .task-row.hidden { display: none; }
 .task-row.dragging { opacity: 0.4; }
 .task-row.drag-over { border-top: 2px solid var(--accent1); }
+.task-row.task-row-settling { background: rgba(16, 185, 129, 0.06); transition: background 0.3s ease; }
+
+.completed-divider {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 24px; user-select: none;
+  cursor: pointer; transition: background 0.2s;
+}
+.completed-divider:hover { background: var(--surface2); }
+.completed-divider-line { flex: 1; height: 1px; background: var(--border); }
+.completed-divider-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--accent1); white-space: nowrap;
+}
+.completed-divider-arrow {
+  display: inline-block; font-size: 10px; transition: transform 0.2s;
+}
+.completed-divider.expanded .completed-divider-arrow { transform: rotate(90deg); }
 
 .task-sn { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; text-align: center; }
 .task-name { font-size: 14px; color: var(--text); padding: 16px 0; cursor: grab; font-weight: 400; line-height: 1.4; }
@@ -449,28 +469,66 @@ footer {
 
 /* task deadline icon (sits beside notes icon) */
 .task-icons-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
-.task-deadline-indicator {
+
+/* Deadline icon button: a purely visual wrapper div (drawn with our own
+   ::before calendar glyph) with the *real* <input type="date"> stretched
+   fully transparent on top of it. The browser's native picker-indicator
+   icon is irrelevant because the whole input — text, fields, and its own
+   calendar glyph alike — is invisible; only our ::before glyph is ever
+   painted. This avoids relying on hiding native sub-parts (some Android/
+   WebView browsers ignore those overrides and paint their own icon
+   underneath ours, causing a double-icon look).
+*/
+.task-deadline-wrap {
+  position: relative;
   width: 32px; height: 32px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
   border: 1px solid var(--border); background: var(--surface);
-  color: var(--text-muted); transition: all 0.2s;
+  color: var(--text-muted);
+  cursor: pointer; transition: all 0.2s;
 }
-.task-deadline-indicator::before {
+.task-deadline-wrap::before {
   content: '';
-  display: block; width: 16px; height: 16px;
+  display: block;
+  flex: none;
+  width: 16px; height: 16px;
   background-color: currentColor;
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
   mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
   -webkit-mask-size: contain; mask-size: contain;
+  pointer-events: none;
 }
-.task-deadline-indicator:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--border-hover); }
-.task-deadline-indicator.has-date { color: var(--bg); border-color: var(--accent2); background: var(--accent2); }
-.task-deadline-indicator.has-date:hover { filter: brightness(1.1); }
-.task-deadline-indicator.is-overdue { color: var(--bg); border-color: var(--red); background: var(--red); }
-.task-deadline-indicator.is-overdue:hover { filter: brightness(1.1); }
+.task-deadline-wrap.has-date { color: var(--bg); border-color: var(--accent2); background: var(--accent2); }
+.task-deadline-wrap.is-overdue { color: var(--bg); border-color: var(--red); background: var(--red); }
+.task-deadline-wrap:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--border-hover); }
+.task-deadline-wrap.has-date:hover, .task-deadline-wrap.is-overdue:hover { filter: brightness(1.1); }
+/* The task-deadline-wrap is now a pure button — no hidden input inside */
+
+/* Model-level "Set Deadline" header button — same approach as the per-task
+   deadline icon: a normal-looking button (label) with a fully invisible,
+   fully functional <input type="date"> stretched on top, so the very first
+   click opens the native date picker directly (no modal hop). */
+.hdr-deadline-btn { position: relative; }
+/* hdr-deadline-native removed — Set Deadline button now opens a modal */
+.hdr-deadline-btn.has-date { color: var(--accent2); border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.08); }
+.hdr-deadline-btn.has-date:hover { background: rgba(96,165,250,0.14); border-color: var(--accent2); }
+.hdr-deadline-btn.is-overdue { color: var(--red); border-color: rgba(244,63,94,0.3); background: rgba(244,63,94,0.08); }
+.hdr-deadline-btn.is-overdue:hover { background: rgba(244,63,94,0.14); border-color: var(--red); }
+.hdr-deadline-clear {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  font-size: 9px; line-height: 1;
+  background: rgba(255,255,255,0.1); color: inherit;
+  position: relative; z-index: 1;
+  margin-left: 2px;
+}
+.hdr-deadline-btn.has-date .hdr-deadline-clear,
+.hdr-deadline-btn.is-overdue .hdr-deadline-clear { display: flex; }
+.hdr-deadline-clear:hover { background: rgba(255,255,255,0.2); }
+
 
 /* status chip */
 .status-chip {
@@ -1013,7 +1071,7 @@ kbd {
       <span class="user-badge-caret">▾</span>
       <div class="user-menu" id="userMenu">
         <button class="menu-item" id="archiveViewBtn" title="View archived models"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg><span>Archived</span><span class="archive-count-badge" id="archiveCountBadge" style="display:none;">0</span></button>
-        <button class="menu-item" id="undoBtn" title="Undo last change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3.51 13a9 9 0 1 0 2.13-9.36L3 7"/></svg><span>Undo</span></button>
+        <button class="menu-item" id="undoBtn" title="Undo last change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span>Undo</span></button>
         <div class="menu-divider"></div>
         <button class="logout-btn" id="logoutBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Sign Out</span></button>
       </div>
@@ -1079,7 +1137,9 @@ kbd {
     <div class="tab-bar" id="tabBar"></div>
   </div>
   <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <button class="hdr-btn" id="setDeadlineBtn" title="Set deadline for current model"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Set Deadline</button>
+    <button class="hdr-btn hdr-deadline-btn" id="setDeadlineBtn" title="Set deadline for current model"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> <span id="setDeadlineBtnLabel">Set Deadline</span>
+      <span class="hdr-deadline-clear" id="clearModelDeadlineBtn" title="Clear deadline">✕</span>
+    </button>
     <button class="hdr-btn" id="exportExcelBtn" title="Export current model's tasks to Excel">📤 <span>Export Excel</span></button>
     <label class="hdr-btn" id="importExcelLabel" title="Import tasks from Excel into the current model" style="cursor:pointer;">
       📥 <span>Import Excel</span>
@@ -1098,6 +1158,7 @@ kbd {
   <button class="filter-btn" data-filter="high">High Priority<span class="filter-count" id="fc-high">0</span></button>
   <button class="filter-btn" data-filter="med">Medium<span class="filter-count" id="fc-med">0</span></button>
   <button class="filter-btn" data-filter="low">Low<span class="filter-count" id="fc-low">0</span></button>
+  <button class="filter-btn filter-btn-critical" data-filter="critical">⚠ Critical<span class="filter-count" id="fc-critical">0</span></button>
   <div class="kbd-hint">Shortcuts: <kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</div>
 </div>
 
@@ -1250,20 +1311,6 @@ kbd {
   </div>
 </div>
 
-<!-- DEADLINE MODAL -->
-<div class="modal-overlay" id="deadlineModal">
-  <div class="modal-box">
-    <div class="modal-title">Target Launch Date</div>
-    <div class="modal-subtitle" id="deadlineModelName"></div>
-    <input type="date" class="deadline-input" id="deadlinePicker" style="margin-top:4px;">
-    <div class="modal-actions" style="margin-top:24px;">
-      <button class="modal-btn secondary" id="deadlineClearBtn">Clear Date</button>
-      <button class="modal-btn secondary" id="deadlineCancelBtn">Cancel</button>
-      <button class="modal-btn primary" id="deadlineSaveBtn">Save Changes</button>
-    </div>
-  </div>
-</div>
-
 <!-- TASK DEADLINE MODAL -->
 <div class="modal-overlay" id="taskDeadlineModal">
   <div class="modal-box">
@@ -1274,6 +1321,20 @@ kbd {
       <button class="modal-btn secondary" id="taskDeadlineClearBtn">Clear Date</button>
       <button class="modal-btn secondary" id="taskDeadlineCancelBtn">Cancel</button>
       <button class="modal-btn primary" id="taskDeadlineSaveBtn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODEL DEADLINE MODAL -->
+<div class="modal-overlay" id="modelDeadlineModal">
+  <div class="modal-box">
+    <div class="modal-title">Model Deadline</div>
+    <div class="modal-subtitle" id="modelDeadlineModelName"></div>
+    <input type="date" class="deadline-input" id="modelDeadlinePickerModal" style="margin-top:4px;">
+    <div class="modal-actions" style="margin-top:24px;">
+      <button class="modal-btn secondary" id="modelDeadlineClearBtn">Clear Date</button>
+      <button class="modal-btn secondary" id="modelDeadlineCancelBtn">Cancel</button>
+      <button class="modal-btn primary" id="modelDeadlineSaveBtn">Save Changes</button>
     </div>
   </div>
 </div>
@@ -1846,6 +1907,9 @@ let searchQuery = '';
 let editingIdx = null;
 let selectedTasks = new Set();
 let dragSrcIdx = null;
+// Tracks which models currently have their "Completed" section expanded.
+// Collapsed by default — clicking the divider toggles it per model.
+let expandedCompletedSet = new Set();
 
 function refreshModelsList(){models=Object.keys(state).filter(m=>!archivedModelsSet.has(m));}
 // save() is defined above in the Firebase section
@@ -1889,6 +1953,13 @@ function taskDeadlineLabel(dl){
   if(diff===0) return{text:'Due today',cls:'has-date'};
   if(diff<=7) return{text:`${diff}d left`,cls:'has-date'};
   return{text:`Due ${dl}`,cls:'has-date'};
+}
+// "Critical" = still pending AND its deadline has already passed.
+function isOverdueTask(task){
+  if(task.done||!task.taskDeadline) return false;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const d=new Date(task.taskDeadline+'T00:00:00');
+  return d<today;
 }
 
 // ── KPI ───────────────────────────────────────────────────────────────────────
@@ -2046,6 +2117,7 @@ function renderTabs(){
 function matchesFilter(task){
   if(activeFilter==='done'&&!task.done) return false;
   if(activeFilter==='pending'&&task.done) return false;
+  if(activeFilter==='critical'&&!isOverdueTask(task)) return false;
   if(activeFilter==='high'&&task.priority!=='high') return false;
   if(activeFilter==='med'&&task.priority!=='med') return false;
   if(activeFilter==='low'&&task.priority!=='low') return false;
@@ -2079,6 +2151,7 @@ function renderTaskList(){
   searchBoxEl.style.display='';filterBarEl.style.display='';
   compare.style.display='none';
   document.getElementById('newTaskInput').placeholder=`Add a new task to ${activeTab}…`;
+  syncModelDeadlineBtn();
 
   const tbody=document.getElementById('taskRows');
   tbody.innerHTML='';
@@ -2089,6 +2162,7 @@ function renderTaskList(){
     all: tasks.length,
     done: tasks.filter(t=>t.done).length,
     pending: tasks.filter(t=>!t.done).length,
+    critical: tasks.filter(isOverdueTask).length,
     high: tasks.filter(t=>t.priority==='high').length,
     med: tasks.filter(t=>t.priority==='med').length,
     low: tasks.filter(t=>t.priority==='low').length,
@@ -2122,19 +2196,39 @@ function renderTaskList(){
     if(tableHeaderEl) tableHeaderEl.style.display='';
   }
 
+  // ── SPLIT INTO PENDING / COMPLETED SECTIONS ──
+  // We keep each task's true index into state[activeTab] (idx) for every
+  // action (edit/move/delete/select/etc), but render pending tasks first,
+  // then a "Completed" divider, then done tasks — so finishing a task visibly
+  // sinks it below the pending list without touching its underlying position.
+  const pendingEntries=[];
+  const doneEntries=[];
   tasks.forEach((task,idx)=>{
+    (task.done?doneEntries:pendingEntries).push({task,idx});
+  });
+
+  function buildRow(task,idx){
     const row=document.createElement('div');
     row.className='task-row'+(matchesFilter(task)?'':' hidden');
     row.draggable=true;
     const isEditing=editingIdx===idx;
     const checked=selectedTasks.has(idx);
+    // While a just-completed task is in its 1s settle window, it's still
+    // physically in the pending section/array, but should *look* done.
+    const isSettlingDone=pendingDoneTimers.has(task);
+    const showAsDone=task.done||isSettlingDone;
 
     const prioMap={high:'HIGH',med:'MED',low:'LOW'};
     const prioClass={high:'prio-high',med:'prio-med',low:'prio-low'};
 
     const nameCell=isEditing
       ?`<input class="task-name-edit" id="editInput" type="text" value="${task.name.replace(/"/g,'&quot;')}">`
-      :`<div class="task-name ${task.done?'done-name':''}">${task.name}</div>`;
+      :`<div class="task-name ${showAsDone?'done-name':''}">${task.name}</div>`;
+
+    const sectionEntries=task.done?doneEntries:pendingEntries;
+    const posInSection=sectionEntries.findIndex(e=>e.idx===idx);
+    const isFirstInSection=posInSection===0;
+    const isLastInSection=posInSection===sectionEntries.length-1;
 
     const actionsCell=isEditing
       ?`<div class="row-actions">
@@ -2143,8 +2237,8 @@ function renderTaskList(){
         </div>`
       :`<div class="row-actions">
           <button class="row-action-btn edit" title="Edit">✎</button>
-          <button class="row-action-btn move-up" title="Move up" ${idx===0?'disabled':''}>↑</button>
-          <button class="row-action-btn move-down" title="Move down" ${idx===tasks.length-1?'disabled':''}>↓</button>
+          <button class="row-action-btn move-up" title="Move up" ${isFirstInSection?'disabled':''}>↑</button>
+          <button class="row-action-btn move-down" title="Move down" ${isLastInSection?'disabled':''}>↓</button>
           <button class="row-action-btn delete" title="Delete">✕</button>
         </div>`;
 
@@ -2157,12 +2251,15 @@ function renderTaskList(){
       <div><input type="checkbox" class="task-checkbox row-chk" ${checked?'checked':''}></div>
       ${nameCell}
       <div><button class="priority-badge ${prioClass[task.priority||'med']}" data-idx="${idx}">${prioMap[task.priority||'med']}</button></div>
-      <div><button class="status-chip ${task.done?'done':'pending'}" data-idx="${idx}"><span class="chip-dot"></span>${task.done?'Done':'Pending'}</button></div>
+      <div><button class="status-chip ${showAsDone?'done':'pending'}" data-idx="${idx}"><span class="chip-dot"></span>${showAsDone?'Done':'Pending'}</button></div>
       <div class="task-icons-cell">
         <div class="notes-indicator ${task.notes?'has-note':''}" data-idx="${idx}" title="${task.notes?'View/edit note':'Add note'}">📝</div>
-        <div class="task-deadline-indicator ${dlIconCls}" data-idx="${idx}" title="${dlTitle}"></div>
+        <div class="task-deadline-wrap ${dlIconCls}" data-idx="${idx}" title="${dlTitle}" style="cursor:pointer;">
+        </div>
       </div>
       ${actionsCell}`;
+
+    if(isSettlingDone) row.classList.add('task-row-settling');
 
     row.addEventListener('dragstart',()=>{dragSrcIdx=idx;row.classList.add('dragging');});
     row.addEventListener('dragend',()=>{row.classList.remove('dragging');document.querySelectorAll('.drag-over').forEach(r=>r.classList.remove('drag-over'));});
@@ -2209,10 +2306,35 @@ function renderTaskList(){
       row.querySelector('.move-down').onclick=e=>{e.stopPropagation();moveTask(activeTab,idx,1);};
       row.querySelector('.delete').onclick=e=>{e.stopPropagation();deleteTask(activeTab,idx);};
       row.querySelector('.notes-indicator').onclick=e=>{e.stopPropagation();openNotesModal(activeTab,idx);};
-      row.querySelector('.task-deadline-indicator').onclick=e=>{e.stopPropagation();openTaskDeadlineModal(activeTab,idx);};
+      row.querySelector('.task-deadline-wrap').onclick=e=>{e.stopPropagation();openTaskDeadlineModal(activeTab,idx);};
     }
-    tbody.appendChild(row);
-  });
+    return row;
+  }
+
+  pendingEntries.forEach(({task,idx})=>tbody.appendChild(buildRow(task,idx)));
+
+  // ── COMPLETED DIVIDER (collapsible) ──
+  // Only shown when there's at least one done task that's currently visible
+  // under the active filter/search, so it doesn't float alone when a filter
+  // hides every completed row. Clicking it toggles whether the done rows
+  // below are rendered; state is kept per model in expandedCompletedSet.
+  const visibleDoneCount=doneEntries.filter(e=>matchesFilter(e.task)).length;
+  const isExpanded=expandedCompletedSet.has(activeTab);
+  if(visibleDoneCount>0){
+    const divider=document.createElement('div');
+    divider.className='completed-divider'+(isExpanded?' expanded':'');
+    divider.innerHTML=`<span class="completed-divider-line"></span><span class="completed-divider-label"><span class="completed-divider-arrow">▸</span>✓ Completed (${visibleDoneCount})</span><span class="completed-divider-line"></span>`;
+    divider.onclick=()=>{
+      if(expandedCompletedSet.has(activeTab)) expandedCompletedSet.delete(activeTab);
+      else expandedCompletedSet.add(activeTab);
+      renderTaskList();
+    };
+    tbody.appendChild(divider);
+  }
+
+  if(isExpanded){
+    doneEntries.forEach(({task,idx})=>tbody.appendChild(buildRow(task,idx)));
+  }
 
   if(editingIdx!==null){
     const input=document.getElementById('editInput');
@@ -2299,14 +2421,44 @@ function renderCompare(){
 }
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
+// Tasks currently in their "just marked done, about to move" delay window —
+// keyed by task object identity so a fast tab switch / re-render can't lose
+// track of which row is mid-transition.
+const pendingDoneTimers=new Map();
+
 function toggleTask(model,idx){
   const task=state[model][idx];
-  task.done=!task.done;
-  save();renderAll();
-  toast(task.done?'✓':'↺',task.done?`Marked done: ${task.name.slice(0,28)}`:`Reopened: ${task.name.slice(0,28)}`);
-  if(task.done){
-    const s=stats(model);
-    if(s.pct===100&&!archivedModelsSet.has(model)) maybePromptArchive(model);
+
+  if(pendingDoneTimers.has(task)){
+    // Clicked again while still in the "about to move" preview window —
+    // treat as cancel: revert to pending immediately, no delay needed
+    // since nothing has actually moved yet.
+    clearTimeout(pendingDoneTimers.get(task));
+    pendingDoneTimers.delete(task);
+    renderTaskList();
+    return;
+  }
+
+  if(!task.done){
+    // Marking done: render the completed look immediately in place, then
+    // actually move it into the Completed section after a short delay so
+    // the change is visible before the row relocates — instead of the row
+    // instantly vanishing from under the cursor.
+    const timer=setTimeout(()=>{
+      pendingDoneTimers.delete(task);
+      task.done=true;
+      save();renderAll();
+      toast('✓',`Marked done: ${task.name.slice(0,28)}`);
+      const s=stats(model);
+      if(s.pct===100&&!archivedModelsSet.has(model)) maybePromptArchive(model);
+    },1000);
+    pendingDoneTimers.set(task,timer);
+    renderTaskList(); // re-render now so buildRow shows the done preview immediately
+  } else {
+    // Reopening a task is instant — no settle delay needed in this direction.
+    task.done=false;
+    save();renderAll();
+    toast('↺',`Reopened: ${task.name.slice(0,28)}`);
   }
 }
 async function maybePromptArchive(model){
@@ -2353,6 +2505,7 @@ async function deleteTask(model,idx){
   const task=state[model][idx];
   const ok=await showConfirm({title:'Delete task?',message:`"${task.name}" will be permanently removed from this checklist.`,confirmText:'Delete',danger:true,icon:'🗑'});
   if(!ok)return;
+  if(pendingDoneTimers.has(task)){ clearTimeout(pendingDoneTimers.get(task)); pendingDoneTimers.delete(task); }
   state[model].splice(idx,1);renumber(state[model]);
   // Removing a row shifts every later index down by one — rebuild the
   // selection set accordingly instead of just dropping the deleted index,
@@ -2371,7 +2524,16 @@ async function deleteTask(model,idx){
   toast('×',`Deleted: ${task.name.slice(0,28)}`);
 }
 function moveTask(model,idx,dir){
-  const tasks=state[model];const newIdx=idx+dir;
+  const tasks=state[model];
+  const task=tasks[idx];
+  // Move within the task's own section (pending vs completed) by skipping
+  // over any interleaved tasks of the other status — sections are rendered
+  // separately now, so a "move up/down" should only reorder inside the
+  // section the user sees the task in.
+  let newIdx=idx+dir;
+  while(newIdx>=0&&newIdx<tasks.length&&tasks[newIdx].done!==task.done){
+    newIdx+=dir;
+  }
   if(newIdx<0||newIdx>=tasks.length)return;
   [tasks[idx],tasks[newIdx]]=[tasks[newIdx],tasks[idx]];
   renumber(tasks);
@@ -2424,35 +2586,77 @@ document.getElementById('notesSaveBtn').onclick=()=>{
 document.getElementById('notesCancelBtn').onclick=()=>document.getElementById('notesModal').classList.remove('open');
 document.getElementById('notesModal').onclick=e=>{if(e.target===document.getElementById('notesModal'))document.getElementById('notesModal').classList.remove('open');};
 
-function openDeadlineModal(model){
-  document.getElementById('deadlineModelName').textContent=model;
-  document.getElementById('deadlinePicker').value=deadlines[model]||'';
-  document.getElementById('deadlineModal').classList.add('open');
+// ── MODEL DEADLINE (header "Set Deadline" button) ─────────────────────────────
+// Real, fully-functional <input type="date"> stretched invisibly over the
+// header button — clicking the button opens the native picker directly on
+// the first click (no modal hop), matching the per-task deadline icon.
+function syncModelDeadlineBtn(){
+  const btn=document.getElementById('setDeadlineBtn');
+  const labelEl=document.getElementById('setDeadlineBtnLabel');
+  if(!btn||!activeTab||activeTab==='Compare Models') return;
+  const dl=deadlineLabel(activeTab);
+  btn.classList.remove('has-date','is-overdue');
+  if(dl){
+    btn.classList.add(dl.cls==='deadline-overdue'?'is-overdue':'has-date');
+    labelEl.textContent=dl.text;
+  } else {
+    labelEl.textContent='Set Deadline';
+  }
 }
-document.getElementById('deadlineSaveBtn').onclick=()=>{
+function openModelDeadlineModal(){
+  if(!activeTab||activeTab==='Compare Models') return;
+  document.getElementById('modelDeadlineModelName').textContent=activeTab;
+  const picker=document.getElementById('modelDeadlinePickerModal');
+  picker.value=deadlines[activeTab]||'';
+  document.getElementById('modelDeadlineModal').classList.add('open');
+  setTimeout(()=>{ try{ if(picker.showPicker) picker.showPicker(); else picker.focus(); }catch(err){ picker.focus(); } },320);
+}
+document.getElementById('setDeadlineBtn').onclick=e=>{
+  e.preventDefault();e.stopPropagation();
+  openModelDeadlineModal();
+};
+document.getElementById('modelDeadlineSaveBtn').onclick=()=>{
   const model=activeTab;
-  const val=document.getElementById('deadlinePicker').value;
-  if(val)deadlines[model]=val; else delete deadlines[model];
-  save();renderModelCards();
-  document.getElementById('deadlineModal').classList.remove('open');
+  const val=document.getElementById('modelDeadlinePickerModal').value;
+  if(val) deadlines[model]=val; else delete deadlines[model];
+  save();renderModelCards();syncModelDeadlineBtn();
+  document.getElementById('modelDeadlineModal').classList.remove('open');
   toast(CAL_ICON,`Deadline ${val?'set':'cleared'}`);
 };
-document.getElementById('deadlineClearBtn').onclick=()=>{
-  delete deadlines[activeTab];save();renderModelCards();
-  document.getElementById('deadlineModal').classList.remove('open');
+document.getElementById('modelDeadlineClearBtn').onclick=()=>{
+  delete deadlines[activeTab];
+  document.getElementById('modelDeadlinePickerModal').value='';
+  save();renderModelCards();syncModelDeadlineBtn();
+  document.getElementById('modelDeadlineModal').classList.remove('open');
   toast(CAL_ICON,'Deadline cleared');
 };
-document.getElementById('deadlineCancelBtn').onclick=()=>document.getElementById('deadlineModal').classList.remove('open');
-document.getElementById('deadlineModal').onclick=e=>{if(e.target===document.getElementById('deadlineModal'))document.getElementById('deadlineModal').classList.remove('open');};
-document.getElementById('setDeadlineBtn').onclick=()=>openDeadlineModal(activeTab);
+document.getElementById('modelDeadlineCancelBtn').onclick=()=>{
+  document.getElementById('modelDeadlineModal').classList.remove('open');
+};
+document.getElementById('modelDeadlineModal').onclick=e=>{
+  if(e.target===document.getElementById('modelDeadlineModal'))
+    document.getElementById('modelDeadlineModal').classList.remove('open');
+};
+document.getElementById('clearModelDeadlineBtn').onclick=e=>{
+  e.preventDefault();e.stopPropagation();
+  delete deadlines[activeTab];
+  save();renderModelCards();syncModelDeadlineBtn();
+  toast(CAL_ICON,'Deadline cleared');
+};
 
 let taskDeadlineCtx={model:null,idx:null};
 function openTaskDeadlineModal(model,idx){
   taskDeadlineCtx={model,idx};
   const task=state[model][idx];
   document.getElementById('taskDeadlineTaskName').textContent=task.name;
-  document.getElementById('taskDeadlinePicker').value=task.taskDeadline||'';
+  const picker=document.getElementById('taskDeadlinePicker');
+  picker.value=task.taskDeadline||'';
   document.getElementById('taskDeadlineModal').classList.add('open');
+  // Wait for the modal's 0.3s open animation to finish before opening the
+  // native date picker — firing it mid-animation made the calendar appear
+  // to "stack" at the wrong position. Once settled, open it automatically
+  // so a single click sets the deadline.
+  setTimeout(()=>{ try{ if(picker.showPicker) picker.showPicker(); else picker.focus(); }catch(err){} },320);
 }
 document.getElementById('taskDeadlineSaveBtn').onclick=()=>{
   const{model,idx}=taskDeadlineCtx;
@@ -2761,6 +2965,11 @@ document.querySelectorAll('.filter-btn').forEach(btn=>{
   btn.onclick=()=>{
     document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');activeFilter=btn.dataset.filter;
+    // "Done" implies the user wants to see completed tasks, so auto-expand
+    // the Completed section for the active model. Any other filter implies
+    // they're not focused on completed tasks, so auto-collapse it again.
+    if(activeFilter==='done') expandedCompletedSet.add(activeTab);
+    else expandedCompletedSet.delete(activeTab);
     editingIdx=null;renderTaskList();
   };
 });
@@ -2813,7 +3022,8 @@ document.addEventListener('keydown',e=>{
     updateBulkBar();
     renderTaskList();
     document.getElementById('notesModal').classList.remove('open');
-    document.getElementById('deadlineModal').classList.remove('open');
+    document.getElementById('taskDeadlineModal').classList.remove('open');
+    document.getElementById('modelDeadlineModal').classList.remove('open');
     document.getElementById('userBadge').classList.remove('menu-open');
     hideAuthGate();
     if (document.activeElement) document.activeElement.blur();
