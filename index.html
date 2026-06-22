@@ -504,14 +504,32 @@ footer {
 .task-deadline-wrap.is-overdue { color: var(--bg); border-color: var(--red); background: var(--red); }
 .task-deadline-wrap:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--border-hover); }
 .task-deadline-wrap.has-date:hover, .task-deadline-wrap.is-overdue:hover { filter: brightness(1.1); }
-/* The task-deadline-wrap is now a pure button — no hidden input inside */
+/* The real, fully-functional date input — stretched over the whole wrapper
+   and made completely invisible (zero opacity), so whatever the browser
+   draws for it (text, fields, its own calendar glyph) is never seen. Only
+   its hit area and click->showPicker() behavior matter. */
+.task-deadline-native {
+  position: absolute !important; inset: 0;
+  width: 100%; height: 100%;
+  margin: 0; padding: 0; border: none; background: transparent;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
 
 /* Model-level "Set Deadline" header button — same approach as the per-task
    deadline icon: a normal-looking button (label) with a fully invisible,
    fully functional <input type="date"> stretched on top, so the very first
    click opens the native date picker directly (no modal hop). */
 .hdr-deadline-btn { position: relative; }
-/* hdr-deadline-native removed — Set Deadline button now opens a modal */
+.hdr-deadline-native {
+  position: absolute !important; inset: 0;
+  width: 100%; height: 100%;
+  margin: 0; padding: 0; border: none; background: transparent;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
 .hdr-deadline-btn.has-date { color: var(--accent2); border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.08); }
 .hdr-deadline-btn.has-date:hover { background: rgba(96,165,250,0.14); border-color: var(--accent2); }
 .hdr-deadline-btn.is-overdue { color: var(--red); border-color: rgba(244,63,94,0.3); background: rgba(244,63,94,0.08); }
@@ -2254,7 +2272,8 @@ function renderTaskList(){
       <div><button class="status-chip ${showAsDone?'done':'pending'}" data-idx="${idx}"><span class="chip-dot"></span>${showAsDone?'Done':'Pending'}</button></div>
       <div class="task-icons-cell">
         <div class="notes-indicator ${task.notes?'has-note':''}" data-idx="${idx}" title="${task.notes?'View/edit note':'Add note'}">📝</div>
-        <div class="task-deadline-wrap ${dlIconCls}" data-idx="${idx}" title="${dlTitle}" style="cursor:pointer;">
+        <div class="task-deadline-wrap ${dlIconCls}" data-idx="${idx}" title="${dlTitle}">
+          <input type="date" class="task-deadline-native" tabindex="-1" value="${task.taskDeadline||''}">
         </div>
       </div>
       ${actionsCell}`;
@@ -2306,7 +2325,15 @@ function renderTaskList(){
       row.querySelector('.move-down').onclick=e=>{e.stopPropagation();moveTask(activeTab,idx,1);};
       row.querySelector('.delete').onclick=e=>{e.stopPropagation();deleteTask(activeTab,idx);};
       row.querySelector('.notes-indicator').onclick=e=>{e.stopPropagation();openNotesModal(activeTab,idx);};
-      row.querySelector('.task-deadline-wrap').onclick=e=>{e.stopPropagation();openTaskDeadlineModal(activeTab,idx);};
+      const dlInput=row.querySelector('.task-deadline-native');
+      dlInput.onclick=e=>e.stopPropagation();
+      dlInput.onchange=e=>{
+        e.stopPropagation();
+        const val=e.target.value;
+        state[activeTab][idx].taskDeadline=val;
+        save();renderAll();
+        toast(CAL_ICON,`Task deadline ${val?'set':'cleared'}`);
+      };
     }
     return row;
   }
@@ -3022,8 +3049,6 @@ document.addEventListener('keydown',e=>{
     updateBulkBar();
     renderTaskList();
     document.getElementById('notesModal').classList.remove('open');
-    document.getElementById('taskDeadlineModal').classList.remove('open');
-    document.getElementById('modelDeadlineModal').classList.remove('open');
     document.getElementById('userBadge').classList.remove('menu-open');
     hideAuthGate();
     if (document.activeElement) document.activeElement.blur();
