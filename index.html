@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Model Launch Dashboard</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#09090b">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Launch Dash">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -946,6 +953,28 @@ footer {
 .menu-item:active { background: var(--surface2); }
 .menu-item .archive-count-badge { margin-left: auto; }
 .menu-divider { height: 1px; background: var(--border); margin: 6px 6px; }
+
+/* ── EXPORT FORMAT DROPDOWN ── */
+.export-dropdown { position: relative; }
+.export-menu {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.35), var(--shadow-md);
+  padding: 8px; min-width: 168px; z-index: 50;
+  opacity: 0; visibility: hidden; transform: translateY(-6px) scale(0.98);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+/* Invisible bridge over the gap between the button and the menu so moving
+   the cursor diagonally between them doesn't momentarily leave :hover and
+   cause the menu to flicker closed. */
+.export-menu::before {
+  content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 10px;
+}
+.export-dropdown:hover .export-menu,
+.export-dropdown.menu-open .export-menu { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+.export-dropdown .hdr-btn-caret { font-size: 9px; opacity: 0.6; transition: transform 0.2s ease; margin-left: -2px; }
+.export-dropdown:hover .hdr-btn-caret,
+.export-dropdown.menu-open .hdr-btn-caret { transform: rotate(180deg); }
 .logout-btn {
   display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
   padding: 9px 10px; border-radius: 9px; border: none;
@@ -1076,6 +1105,45 @@ input, textarea, [contenteditable="true"] {
   user-select: text;
 }
 img { -webkit-user-drag: none; }
+
+/* ── PRINT / PDF EXPORT ── */
+#printArea { display: none; }
+@media print {
+  body * { visibility: hidden; }
+  html, body { background: #fff !important; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea {
+    display: block !important;
+    position: absolute; left: 0; top: 0; width: 100%;
+    color: #111; font-family: 'Sora', sans-serif; background: #fff;
+  }
+  .print-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 18px;
+  }
+  .print-header h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .print-header .print-meta { font-size: 11px; color: #555; }
+  .print-summary {
+    display: flex; gap: 24px; margin-bottom: 18px;
+    font-size: 12px; color: #333;
+  }
+  .print-summary b { color: #111; }
+  .print-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .print-table th, .print-table td {
+    border: 1px solid #bbb; padding: 6px 8px; text-align: left; vertical-align: top;
+  }
+  .print-table th { background: #eee; font-weight: 600; }
+  .print-table .pt-sn { width: 30px; text-align: center; }
+  .print-table .pt-status { width: 70px; text-align: center; }
+  .print-table .pt-priority { width: 60px; text-align: center; text-transform: uppercase; }
+  .print-table .pt-deadline { width: 90px; }
+  .print-table tr.pt-done td { color: #777; }
+  .print-table tr.pt-overdue td.pt-deadline { color: #b00020; font-weight: 600; }
+  .print-footer { margin-top: 16px; font-size: 10px; color: #777; text-align: right; }
+  .print-model-section { page-break-after: always; }
+  .print-model-section:last-child { page-break-after: auto; }
+  @page { margin: 18mm 14mm; }
+}
 </style>
 </head>
 <body>
@@ -1173,7 +1241,13 @@ document.addEventListener('keydown', e => {
     </div>
     <button class="hdr-btn accent" id="loginOpenBtn">✦ <span>Login</span></button>
     <button class="hdr-btn" id="themeToggleBtn" title="Toggle dark/light mode">✧ <span>Theme</span></button>
-    <button class="hdr-btn accent" id="exportBtn" title="Export all models to Excel (.xlsx)">↓ <span>Export</span></button>
+    <div class="export-dropdown" id="exportAllDropdown">
+      <button class="hdr-btn accent" id="exportAllToggleBtn" title="Export all models">↓ <span>Export</span> <span class="hdr-btn-caret">▾</span></button>
+      <div class="export-menu" id="exportAllMenu">
+        <button class="menu-item" id="exportAllExcelBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#21a366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="11" x2="10" y2="19"/></svg><span>Export as Excel</span></button>
+        <button class="menu-item" id="exportAllPdfBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#e5484d" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="#e5484d" stroke-width="2"/><rect x="6" y="13" width="12" height="6" rx="1" fill="#e5484d" stroke="none"/><text x="12" y="17.6" font-size="5.2" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle" fill="#fff">PDF</text></svg><span>Export as PDF</span></button>
+      </div>
+    </div>
     <label class="hdr-btn accent" title="Import from Excel — adds new models/tasks, keeps existing data" style="cursor:pointer;">
       ↑ <span>Import</span>
       <input type="file" id="importFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none;">
@@ -1235,7 +1309,13 @@ document.addEventListener('keydown', e => {
     <button class="hdr-btn hdr-deadline-btn" id="setDeadlineBtn" title="Set deadline for current model"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> <span id="setDeadlineBtnLabel">Set Deadline</span>
       <span class="hdr-deadline-clear" id="clearModelDeadlineBtn" title="Clear deadline">✕</span>
     </button>
-    <button class="hdr-btn" id="exportExcelBtn" title="Export current model's tasks to Excel">📤 <span>Export Excel</span></button>
+    <div class="export-dropdown" id="exportModelDropdown">
+      <button class="hdr-btn" id="exportModelToggleBtn" title="Export current model's checklist">📤 <span>Export</span> <span class="hdr-btn-caret">▾</span></button>
+      <div class="export-menu" id="exportModelMenu">
+        <button class="menu-item" id="exportExcelBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#21a366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="11" x2="10" y2="19"/></svg><span>Export as Excel</span></button>
+        <button class="menu-item" id="exportPdfBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#e5484d" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="#e5484d" stroke-width="2"/><rect x="6" y="13" width="12" height="6" rx="1" fill="#e5484d" stroke="none"/><text x="12" y="17.6" font-size="5.2" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle" fill="#fff">PDF</text></svg><span>Export as PDF</span></button>
+      </div>
+    </div>
     <label class="hdr-btn" id="importExcelLabel" title="Import tasks from Excel into the current model" style="cursor:pointer;">
       📥 <span>Import Excel</span>
       <input type="file" id="importExcelFile" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display:none;">
@@ -1382,6 +1462,9 @@ document.addEventListener('keydown', e => {
 </footer>
 
 </div><!-- /wrap -->
+
+<!-- PRINT-ONLY CHECKLIST (populated on demand, hidden on screen, shown only when printing) -->
+<div id="printArea"></div>
 
 
 <!-- TOAST -->
@@ -1611,8 +1694,26 @@ document.getElementById('userBadge').addEventListener('click',(e)=>{
   e.stopPropagation();
   document.getElementById('userBadge').classList.toggle('menu-open');
 });
+
+// Export format dropdowns: hover reveals the menu on desktop. On touch
+// devices (no real hover), tap the Export button to toggle it instead.
+document.getElementById('exportAllToggleBtn').addEventListener('click',(e)=>{
+  if(window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  e.stopPropagation();
+  document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  document.getElementById('exportAllDropdown').classList.toggle('menu-open');
+});
+document.getElementById('exportModelToggleBtn').addEventListener('click',(e)=>{
+  if(window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  e.stopPropagation();
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  document.getElementById('exportModelDropdown').classList.toggle('menu-open');
+});
+
 document.addEventListener('click',()=>{
   document.getElementById('userBadge').classList.remove('menu-open');
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  document.getElementById('exportModelDropdown').classList.remove('menu-open');
 });
 
 // Friendly error messages
@@ -1807,6 +1908,7 @@ function enterPreviewMode(){
   resetUndo();
   renderAll();
   hideLoading();
+  setTimeout(checkDeadlinesAndNotify,1200);
   if (typeof refreshStickyBarOrigin === 'function') setTimeout(refreshStickyBarOrigin, 100);
 }
 
@@ -1842,6 +1944,7 @@ refreshModelsList();
     resetUndo();
     renderAll();
     hideLoading();
+    setTimeout(checkDeadlinesAndNotify,1200);
     if(typeof refreshStickyBarOrigin==='function') setTimeout(refreshStickyBarOrigin,100);
   } else {
     // Signed out (or never signed in) — fall back to the local preview
@@ -2011,6 +2114,76 @@ let expandedCompletedSet = new Set();
 
 function refreshModelsList(){models=Object.keys(state).filter(m=>!archivedModelsSet.has(m));}
 // save() is defined above in the Firebase section
+
+// ── DEADLINE NOTIFICATIONS ────────────────────────────────────────────────────
+// Runs once per page load, after real data is in place (preview or signed-in).
+// Surfaces overdue tasks/models and anything due within the next 2 days,
+// via a native browser Notification when permitted, falling back to an
+// in-app toast otherwise so nothing is silently missed either way.
+let _deadlineCheckDone=false;
+function checkDeadlinesAndNotify(){
+  if(_deadlineCheckDone) return;
+  _deadlineCheckDone=true;
+
+  const today=new Date(); today.setHours(0,0,0,0);
+  const overdueTasks=[]; const dueSoonTasks=[];
+  const overdueModels=[]; const dueSoonModels=[];
+
+  models.forEach(m=>{
+    (state[m]||[]).forEach(t=>{
+      if(t.done||!t.taskDeadline) return;
+      const d=new Date(t.taskDeadline+'T00:00:00');
+      const diff=Math.round((d-today)/(1000*60*60*24));
+      if(diff<0) overdueTasks.push({model:m,task:t});
+      else if(diff<=2) dueSoonTasks.push({model:m,task:t});
+    });
+    const mdl=deadlines[m];
+    if(mdl){
+      const d=new Date(mdl+'T00:00:00');
+      const diff=Math.round((d-today)/(1000*60*60*24));
+      if(diff<0) overdueModels.push(m);
+      else if(diff<=2) dueSoonModels.push(m);
+    }
+  });
+
+  const totalFlags=overdueTasks.length+dueSoonTasks.length+overdueModels.length+dueSoonModels.length;
+  if(totalFlags===0) return;
+
+  const titleParts=[];
+  if(overdueTasks.length) titleParts.push(`${overdueTasks.length} overdue task${overdueTasks.length>1?'s':''}`);
+  if(overdueModels.length) titleParts.push(`${overdueModels.length} overdue model${overdueModels.length>1?'s':''}`);
+  if(dueSoonTasks.length) titleParts.push(`${dueSoonTasks.length} task${dueSoonTasks.length>1?'s':''} due soon`);
+  if(dueSoonModels.length) titleParts.push(`${dueSoonModels.length} model${dueSoonModels.length>1?'s':''} due soon`);
+  const summary=titleParts.join(' · ');
+
+  const fireNotification=()=>{
+    try{
+      const n=new Notification('Model Launch Dashboard',{
+        body:summary,
+        icon:undefined,
+        tag:'mld-deadline-check'
+      });
+      n.onclick=()=>{ window.focus(); n.close(); };
+    }catch(e){ toast('⏰',summary,false); }
+  };
+
+  if(!('Notification' in window)){
+    toast('⏰',summary,false);
+    return;
+  }
+  if(Notification.permission==='granted'){
+    fireNotification();
+  } else if(Notification.permission==='default'){
+    // Ask once per session — if denied or ignored, fall back to a toast
+    // so the person still sees the same information either way.
+    Notification.requestPermission().then(perm=>{
+      if(perm==='granted') fireNotification();
+      else toast('⏰',summary,false);
+    });
+  } else {
+    toast('⏰',summary,false);
+  }
+}
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
 function stats(model){
@@ -2206,6 +2379,87 @@ function scrollToTaskChecklist(){
   if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+// ── PDF / PRINT EXPORT ───────────────────────────────────────────────────────
+function _printEsc(s){
+  return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// Builds the print-ready HTML for one model's checklist (header, summary, table).
+// Shared by both the single-model export and the combined all-models export.
+function _buildModelPrintSection(modelName){
+  const tasks=state[modelName]||[];
+  const prioMap={high:'High',med:'Med',low:'Low'};
+  const doneCount=tasks.filter(t=>t.done).length;
+  const pct=tasks.length?Math.round((doneCount/tasks.length)*100):0;
+  const dl=deadlines[modelName];
+  const dlText=dl?new Date(dl+'T00:00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):'No deadline set';
+
+  const rows=tasks.map(t=>{
+    const overdue=isOverdueTask(t);
+    const dlLabel=t.taskDeadline
+      ? new Date(t.taskDeadline+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})
+      : '—';
+    return `<tr class="${t.done?'pt-done':''}${overdue?' pt-overdue':''}">
+      <td class="pt-sn">${t.sn}</td>
+      <td>${_printEsc(t.name)}</td>
+      <td class="pt-priority">${prioMap[t.priority||'med']}</td>
+      <td class="pt-status">${t.done?'✓ Done':'Pending'}</td>
+      <td class="pt-deadline">${dlLabel}${overdue?' (overdue)':''}</td>
+      <td>${_printEsc(t.notes||'')}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" style="text-align:center;color:#888;">No tasks in this model</td></tr>`;
+
+  return `
+    <div class="print-header">
+      <div>
+        <h2>${_printEsc(modelName)} — Launch Checklist</h2>
+        <div class="print-meta">Model deadline: ${dlText}</div>
+      </div>
+      <div class="print-meta">Generated ${new Date().toLocaleString()}</div>
+    </div>
+    <div class="print-summary">
+      <div><b>${tasks.length}</b> total tasks</div>
+      <div><b>${doneCount}</b> completed</div>
+      <div><b>${tasks.length-doneCount}</b> pending</div>
+      <div><b>${pct}%</b> complete</div>
+    </div>
+    <table class="print-table">
+      <thead><tr>
+        <th class="pt-sn">#</th><th>Task Description</th><th class="pt-priority">Priority</th>
+        <th class="pt-status">Status</th><th class="pt-deadline">Due</th><th>Notes</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="print-footer">Model Launch Dashboard</div>
+  `;
+}
+
+function exportChecklistToPdf(){
+  if(!activeTab || !state[activeTab] || activeTab==='Compare Models'){
+    toast('⚠','Select a model first to export its checklist',false);
+    return;
+  }
+  if(!(state[activeTab]||[]).length){
+    toast('⚠','This model has no tasks to export',false);
+    return;
+  }
+  const printArea=document.getElementById('printArea');
+  printArea.innerHTML=`<div class="print-model-section">${_buildModelPrintSection(activeTab)}</div>`;
+  window.print();
+}
+
+function exportAllModelsToPdf(){
+  if(!models.length){
+    toast('⚠','Add at least one model before exporting',false);
+    return;
+  }
+  const printArea=document.getElementById('printArea');
+  printArea.innerHTML=models
+    .map(m=>`<div class="print-model-section">${_buildModelPrintSection(m)}</div>`)
+    .join('');
+  window.print();
+  toast('🖨️',`Prepared ${models.length} model${models.length===1?'':'s'} for PDF export`,false);
+}
+
 function renderTabs(){
   const bar=document.getElementById('tabBar');
   bar.innerHTML='';
@@ -2239,7 +2493,7 @@ function renderTaskList(){
   const delBtn=document.getElementById('deleteModelBtn');
   const archBtn=document.getElementById('archiveModelBtn');
   const setDlBtn=document.getElementById('setDeadlineBtn');
-  const exportBtn=document.getElementById('exportExcelBtn');
+  const exportBtn=document.getElementById('exportModelDropdown');
   const importLbl=document.getElementById('importExcelLabel');
   const searchBoxEl=document.getElementById('searchBox');
   const filterBarEl=document.getElementById('filterBar');
@@ -2934,7 +3188,8 @@ function excelSafeSheetName(name){
   // Excel sheet names: max 31 chars, no \ / ? * [ ] : characters
   return name.replace(/[\\/?*\[\]:]/g,' ').slice(0,31).trim()||'Model';
 }
-document.getElementById('exportBtn').onclick=async()=>{
+document.getElementById('exportAllExcelBtn').onclick=async()=>{
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
   if(!models.length){await showAlert({title:'Nothing to export',message:'Add at least one model before exporting.',tone:'warn'});return;}
   try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   const prioMap={high:'High',med:'Med',low:'Low'};
@@ -3058,6 +3313,7 @@ function loadXLSX(){
 
 // ── EXCEL EXPORT (current model's tasks) ──────────────────────────────────────
 document.getElementById('exportExcelBtn').onclick=async()=>{
+  document.getElementById('exportModelDropdown').classList.remove('menu-open');
   if(activeTab==='Compare Models'){await showAlert({title:'Select a model first',message:'Switch to a model tab before exporting.',tone:'warn'});return;}
   try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   const tasks=state[activeTab];
@@ -3073,6 +3329,15 @@ document.getElementById('exportExcelBtn').onclick=async()=>{
   const fname=`${activeTab.replace(/[^a-z0-9]+/gi,'_')}_tasks.xlsx`;
   XLSX.writeFile(wb,fname);
   toast('📤',`Exported ${tasks.length} tasks to Excel`,false);
+};
+
+document.getElementById('exportPdfBtn').onclick=()=>{
+  document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  exportChecklistToPdf();
+};
+document.getElementById('exportAllPdfBtn').onclick=()=>{
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  exportAllModelsToPdf();
 };
 
 // ── EXCEL IMPORT (append tasks to current model) ─────────────────────────────
@@ -3465,6 +3730,15 @@ const backToTopBtn=document.getElementById('backToTopBtn');
 backToTopBtn.onclick=()=>{window.scrollTo({top:0,behavior:'smooth'});};
 
 // ── BOOTSTRAP ─────────────────────────────────────────────────────────────────
+// Register the service worker for PWA installability + offline app-shell
+// loading. Purely additive — if it fails (unsupported browser, blocked,
+// not served over https) the dashboard works exactly as it did before.
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{/* PWA install just won't be offered — no functional impact */});
+  });
+}
+
 // Show the dashboard with seed data right away rather than waiting on
 // Firebase. Once Firebase resolves, handleAuthState swaps in real data
 // for a signed-in user, or re-enters preview mode if nobody is signed in.
