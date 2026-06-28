@@ -3724,7 +3724,11 @@ function renderModelCards(){
       const toIdx=models.indexOf(m);
       if(fromIdx<0||toIdx<0) return;
       models.splice(fromIdx,1);
-      models.splice(toIdx,0,_cardDragSrc);
+      // Removing the source shifts everything after it left by one, so when
+      // dragging forward (toIdx was after fromIdx) the insert index needs to
+      // shift back by one to land exactly on the drop target's old slot.
+      const insertIdx=toIdx>fromIdx?toIdx-1:toIdx;
+      models.splice(insertIdx,0,_cardDragSrc);
       modelOrder=[...models];
       _cardDragSrc=null;
       save(); // persist the new card order
@@ -3901,7 +3905,10 @@ function renderRecycleView(){
   const emptyState=document.getElementById('recycleEmptyState');
   const emptyBinBtn=document.getElementById('emptyRecycleBinBtn');
   if(!listEl) return;
-  purgeExpiredRecycleItems();
+  // Purge any items that aged past 30 days while the bin wasn't open, and
+  // persist that removal — otherwise it only happens in memory and the
+  // expired items can come back after a reload.
+  if(purgeExpiredRecycleItems()) save();
   listEl.innerHTML='';
   const entries=[];
   Object.keys(recycleBin).forEach(bucket=>{
@@ -4183,7 +4190,9 @@ function renderTabs(){
         const toIdx=models.indexOf(m);
         if(fromIdx<0||toIdx<0) return;
         models.splice(fromIdx,1);
-        models.splice(toIdx,0,_tabDragSrc);
+        // Same shift-after-removal correction as the model card drag handler.
+        const insertIdx=toIdx>fromIdx?toIdx-1:toIdx;
+        models.splice(insertIdx,0,_tabDragSrc);
         modelOrder=[...models];
         _tabDragSrc=null;
         save();renderTabs();renderModelCards();
@@ -4426,7 +4435,11 @@ function renderTaskList(){
       if(dragSrcIdx===null||dragSrcIdx===idx)return;
       const tasks2=state[activeTab];
       const[moved]=tasks2.splice(dragSrcIdx,1);
-      tasks2.splice(idx,0,moved);
+      // Removing the source shifts everything after it left by one, so when
+      // dragging forward (idx was after dragSrcIdx) the insert index needs
+      // to shift back by one to land exactly on the drop target's old row.
+      const insertIdx=idx>dragSrcIdx?idx-1:idx;
+      tasks2.splice(insertIdx,0,moved);
       renumber(tasks2);dragSrcIdx=null;
       // Selections are stored by array index, which this reorder invalidates —
       // clear rather than risk the checkbox marking the wrong task as selected.
@@ -4669,7 +4682,11 @@ function renderTaskList(){
         dragSrcSubCtx=null;
         if(fromI===sIdx) return;
         const[moved]=subs.splice(fromI,1);
-        subs.splice(sIdx,0,moved);
+        // Removing the source shifts everything after it left by one, so when
+        // dragging forward (sIdx was after fromI) the insert index needs to
+        // shift back by one to land exactly on the drop target's old row.
+        const insertIdx=sIdx>fromI?sIdx-1:sIdx;
+        subs.splice(insertIdx,0,moved);
         // Reorder invalidates this task's subtask-index-based selections —
         // clear them rather than risk acting on the wrong subtask.
         clearSubSelectionsForTask(activeTab,idx);
@@ -5455,9 +5472,11 @@ document.getElementById('selectAllChk').onchange=e=>{
 // One sheet per model, same column layout as the Excel import expects:
 // Name, Priority, Status, Notes, Deadline. This is the single, only export
 // format offered from the header — re-importing this file via the header
-// Import button reconstructs the dashboard (deadlines are kept only for
-// models whose name matches a sheet name; everything else, including
-// deletedModelsSet, is reset — same as any other header import).
+// Import button merges it into the existing dashboard rather than replacing
+// it: a sheet matching an existing model only appends its new tasks (that
+// model's deadline, notes, and completion status are left untouched), and a
+// sheet with no matching model becomes a new model. Nothing is reset or
+// deleted by importing — see the import handler below for the exact rules.
 function excelSafeSheetName(name){
   // Excel sheet names: max 31 chars, no \ / ? * [ ] : characters
   return name.replace(/[\\/?*\[\]:]/g,' ').slice(0,31).trim()||'Model';
