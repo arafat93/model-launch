@@ -71,6 +71,36 @@
   --shadow-md: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
 }
 
+[data-theme="midnight"] {
+  /* Midnight Blue Theme (deep navy base with Royal Blue accents) */
+  --bg: #07090f;
+  --surface: #0d1220;
+  --surface2: #161d30;
+  --surface3: #1f283f;
+  --border: rgba(147, 178, 255, 0.08);
+  --border-hover: rgba(147, 178, 255, 0.16);
+  
+  /* Premium Accents — blue takes the role gold plays elsewhere */
+  --accent1: #5b8def; /* Royal Blue */
+  --accent1-hover: #7da6f5;
+  --accent1-dim: rgba(91, 141, 239, 0.12);
+  --accent2: #38bdf8; /* Sky */
+  --accent3: #a78bfa; /* Violet, unchanged */
+  
+  /* Refined Status Colors */
+  --green: #34d399;
+  --red: #fb7185;
+  --yellow: #fbbf24;
+  
+  --text: #eef2ff;
+  --text-muted: #8a93b8;
+  
+  --card-glow1: rgba(91, 141, 239, 0.06);
+  --card-glow2: rgba(56, 189, 248, 0.04);
+  --shadow-sm: 0 4px 12px rgba(0, 0, 4, 0.35);
+  --shadow-md: 0 10px 40px -10px rgba(0, 0, 4, 0.55);
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* ── DATE INPUT CALENDAR ICON ── */
@@ -92,6 +122,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 0.75; }
 [data-theme="light"] input[type="date"] { color-scheme: light; }
 [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b48600' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
+}
+[data-theme="midnight"] input[type="date"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b8def' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
 }
 
 /* custom placeholder overlay for date inputs (native date inputs ignore placeholder attr) */
@@ -373,6 +406,37 @@ footer {
 .archive-card-actions { display: flex; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
 .archive-card-actions button { flex: 1; }
 
+/* ── RECYCLE BIN ── */
+.recycle-bin-note { font-size: 13px; color: var(--text-muted); font-weight: 300; margin: -8px 0 24px; }
+.recycle-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 44px; }
+.recycle-row {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px 20px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.recycle-row:hover { border-color: var(--border-hover); background: var(--surface2); }
+.recycle-row-icon {
+  width: 38px; height: 38px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; border-radius: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.recycle-row-main { flex: 1; min-width: 0; }
+.recycle-row-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recycle-row-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); }
+.recycle-row-model { font-weight: 600; color: var(--accent1); text-transform: uppercase; letter-spacing: 0.3px; }
+.recycle-row-sub { font-style: italic; }
+.recycle-row-expiry { color: var(--yellow); }
+.recycle-row-actions { display: flex; gap: 10px; flex-shrink: 0; }
+.recycle-row-actions .row-action-btn { width: auto; height: 36px; padding: 0 14px; font-size: 12px; font-weight: 600; white-space: nowrap; gap: 6px; }
+@media (max-width: 640px) {
+  .recycle-row { flex-wrap: wrap; }
+  .recycle-row-actions { width: 100%; }
+  .recycle-row-actions .row-action-btn { flex: 1; }
+}
+
 /* ── SECTION LABEL ── */
 .section-label {
   font-size: 16px; font-weight: 600; color: var(--text);
@@ -512,6 +576,95 @@ footer {
 .task-row.task-row-settling { background: rgba(16, 185, 129, 0.06); transition: background 0.3s ease; }
 .task-row.task-row-settling-pending { background: rgba(244, 63, 94, 0.05); transition: background 0.3s ease; }
 
+/* ── SUBTASK TOGGLE BUTTON ── */
+.subtask-toggle-btn {
+  width: 20px; height: 20px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text-muted); cursor: pointer; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; line-height: 1;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  margin-right: 5px; vertical-align: middle;
+}
+.subtask-toggle-btn:hover { border-color: var(--accent1); color: var(--accent1); background: var(--accent1-dim); }
+.subtask-toggle-btn.open { background: var(--accent1-dim); border-color: var(--accent1); color: var(--accent1); transform: rotate(90deg); }
+
+.subtask-count-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 16px; padding: 0 5px;
+  border-radius: 100px; font-size: 10px; font-weight: 700;
+  background: var(--surface3); color: var(--text-muted);
+  margin-left: 5px; vertical-align: middle;
+  transition: background 0.2s, color 0.2s;
+}
+.subtask-count-pill.has { background: var(--accent1-dim); color: var(--accent1); }
+.subtask-count-pill.all-done { background: rgba(16,185,129,0.12); color: var(--green); }
+
+/* ── SUBTASK PANEL — grid-template-rows trick for perfect smooth animation ── */
+.subtask-panel-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.32s cubic-bezier(0.4,0,0.2,1);
+}
+.subtask-panel-wrap.open { grid-template-rows: 1fr; }
+.subtask-panel-inner { overflow: hidden; min-height: 0; }
+
+.subtask-panel {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0 14px;
+}
+.subtask-title-row {
+  display: grid; grid-template-columns: 36px 56px 1fr;
+  align-items: center;
+  padding: 0 24px; margin-bottom: 9px;
+}
+.subtask-panel-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--text-muted);
+  display: block; grid-column: 3;
+}
+.subtask-title-row .subtask-select-all-chk { grid-column: 2; }
+.subtask-add-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; padding: 0 24px 0 116px; }
+.subtask-add-input {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 13px; color: var(--text);
+  font-family: inherit; font-size: 13px; outline: none; transition: all 0.2s;
+}
+.subtask-add-input:focus { border-color: var(--accent1); box-shadow: 0 0 0 2px var(--accent1-dim); }
+.subtask-add-input::placeholder { color: var(--text-muted); font-weight: 300; }
+.subtask-add-btn {
+  padding: 7px 15px; border-radius: 8px; border: 1px solid var(--accent1);
+  background: var(--accent1); color: var(--bg);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.2s;
+}
+.subtask-add-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+.subtask-row {
+  display: grid;
+  grid-template-columns: 36px 56px 1fr 110px 130px 90px 96px 160px;
+  padding: 0 24px; border-bottom: 1px solid var(--border);
+  align-items: center; min-height: 56px; transition: background 0.15s;
+  border-radius: 6px;
+}
+.subtask-row:last-child { border-bottom: none; }
+.subtask-row:hover { background: rgba(255,255,255,0.03); }
+.subtask-row.dragging { opacity: 0.4; }
+.subtask-row.drag-over { border-top: 2px solid var(--accent1); }
+.subtask-row > div:nth-child(5) { display: flex; justify-content: center; }
+.subtask-num { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; text-align: center; font-weight: 500; }
+.subtask-chk { width: 15px; height: 15px; border-radius: 4px; cursor: pointer; flex-shrink: 0; accent-color: var(--accent1); }
+.subtask-name { flex: 1; font-size: 13px; color: var(--text); font-weight: 400; line-height: 1.4; min-width: 0; cursor: grab; }
+.subtask-name.done { text-decoration: line-through; color: var(--text-muted); opacity: 0.6; }
+.subtask-name-edit {
+  flex: 1; width: 100%; background: var(--surface); border: 1px solid var(--accent1);
+  border-radius: 6px; padding: 4px 9px; color: var(--text);
+  font-family: inherit; font-size: 13px; outline: none;
+  box-shadow: 0 0 0 2px var(--accent1-dim);
+}
+.subtask-name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.subtask-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; justify-content: flex-end; }
 .completed-divider {
   display: flex; align-items: center; gap: 12px;
   padding: 14px 24px; user-select: none;
@@ -803,6 +956,12 @@ footer {
 .bulk-btn.bulk-btn-copy-model { color: var(--accent2); border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.07); }
 .bulk-btn.bulk-btn-copy-model:hover { background: rgba(96,165,250,0.14); border-color: var(--accent2); color: var(--accent2); }
 
+.bulk-bar.subtask-bulk-bar {
+  margin: 0 24px 10px; padding: 10px 14px; border-radius: 10px;
+}
+.bulk-bar.subtask-bulk-bar .bulk-btn { padding: 6px 12px; font-size: 11.5px; }
+.bulk-bar.subtask-bulk-bar .bulk-count { font-size: 12px; }
+
 /* ── BULK MOVE DROPDOWN (consolidates Move to Top/Bottom/Model) ── */
 .bulk-move-dropdown { position: relative; }
 .bulk-move-caret { font-size: 9px; opacity: 0.6; transition: transform 0.2s ease; margin-left: 2px; display: inline-block; }
@@ -951,6 +1110,53 @@ footer {
 .modal-btn.danger { background: var(--red); color: #fff; box-shadow: 0 4px 14px rgba(244, 63, 94, 0.3); }
 .modal-btn.danger:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
+/* ── NOTES: SCREENSHOTS GALLERY ── */
+.notes-shots-section { margin-top: 18px; }
+.notes-shots-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.notes-shots-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.notes-shots-hint { font-size: 12px; color: var(--text-muted); font-weight: 300; }
+.notes-shots-add-btn {
+  margin-left: auto; padding: 6px 14px; border-radius: 8px; font-family: inherit;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+  background: var(--surface2); color: var(--accent1); border: 1px solid var(--accent1-dim);
+}
+.notes-shots-add-btn:hover { background: var(--accent1-dim); border-color: var(--accent1); }
+.notes-shots-gallery {
+  display: flex; flex-wrap: wrap; gap: 10px;
+}
+.notes-shots-gallery:empty { display: none; }
+.notes-shot-thumb {
+  position: relative; width: 84px; height: 84px; border-radius: 10px;
+  overflow: hidden; border: 1px solid var(--border); cursor: pointer;
+  background: var(--surface2); flex-shrink: 0; transition: border-color 0.2s ease;
+}
+.notes-shot-thumb:hover { border-color: var(--border-hover); }
+.notes-shot-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.notes-shot-remove {
+  position: absolute; top: 3px; right: 3px; width: 20px; height: 20px;
+  border-radius: 50%; background: rgba(0,0,0,0.65); color: #fff; border: none;
+  font-size: 11px; line-height: 1; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; transition: background 0.2s ease;
+}
+.notes-shot-remove:hover { background: var(--red); }
+.notes-shots-empty { font-size: 12px; color: var(--text-muted); font-weight: 300; font-style: italic; }
+.notes-shots-empty.hide { display: none; }
+.notes-shots-dropzone-active { outline: 2px dashed var(--accent1); outline-offset: 4px; border-radius: 12px; }
+
+/* ── SCREENSHOT LIGHTBOX ── */
+.shot-lightbox-inner { position: relative; max-width: 90vw; max-height: 90vh; }
+.shot-lightbox-inner img {
+  max-width: 90vw; max-height: 90vh; border-radius: 12px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.8); display: block;
+}
+.shot-lightbox-close {
+  position: absolute; top: -14px; right: -14px; width: 32px; height: 32px;
+  border-radius: 50%; background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);
+}
+.shot-lightbox-close:hover { background: var(--surface2); }
+
 /* ── CONFIRM/ALERT MODAL ── */
 .confirm-box { width: min(420px, 90vw); text-align: center; }
 .confirm-icon {
@@ -1055,7 +1261,7 @@ footer {
   position: relative;
   display: flex; align-items: center; gap: 8px; padding: 6px 12px;
   border-radius: 10px; border: 1px solid var(--border);
-  background: var(--surface); font-size: 12px; color: var(--text-muted);
+  background: var(--surface); font-size: 12px; color: var(--text);
   cursor: pointer; transition: all 0.2s ease; user-select: none;
 }
 .user-badge:hover { border-color: var(--border-hover); color: var(--text); }
@@ -1117,6 +1323,20 @@ footer {
 .export-dropdown .hdr-btn-caret { font-size: 9px; opacity: 0.6; transition: transform 0.2s ease; margin-left: -2px; }
 .export-dropdown:hover .hdr-btn-caret,
 .export-dropdown.menu-open .hdr-btn-caret { transform: rotate(180deg); }
+
+/* ── THEME PICKER DROPDOWN ── */
+.theme-menu-item { position: relative; }
+.theme-swatch {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.15); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+}
+.theme-swatch-dark { background: linear-gradient(135deg, #09090b 50%, #d4af37 50%); }
+.theme-swatch-light { background: linear-gradient(135deg, #f8f9fa 50%, #b48600 50%); }
+.theme-swatch-midnight { background: linear-gradient(135deg, #07090f 50%, #5b8def 50%); }
+.theme-menu-item.theme-active { color: var(--text); background: var(--accent1-dim); }
+.theme-menu-item.theme-active::after {
+  content: '✓'; margin-left: auto; color: var(--accent1); font-size: 12px; font-weight: 700;
+}
 .logout-btn {
   display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
   padding: 9px 10px; border-radius: 9px; border: none;
@@ -1199,14 +1419,16 @@ kbd {
 
 /* ── RESPONSIVE ── */
 @media(max-width: 1200px) {
-  .table-header, .task-row { grid-template-columns: 30px 48px 1fr 100px 120px 80px 80px 150px; }
+  .table-header, .task-row, .subtask-row { grid-template-columns: 30px 48px 1fr 100px 120px 80px 80px 150px; }
+  .subtask-panel-title, .subtask-add-bar { padding-left: 102px; }
+  .subtask-title-row { grid-template-columns: 30px 48px 1fr; }
 }
 @media(max-width: 900px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .models-grid { grid-template-columns: 1fr; }
   .table-header { grid-template-columns: 26px 40px 1fr 100px 110px; }
   .table-header > *:nth-child(6), .table-header > *:nth-child(7), .table-header > *:nth-child(8) { display: none; }
-  .task-row {
+  .task-row, .subtask-row {
     grid-template-columns: 26px 40px 1fr 100px 110px;
     grid-template-rows: auto auto;
     grid-template-areas:
@@ -1214,14 +1436,16 @@ kbd {
       "spacer1 spacer2 icons actions actions";
     row-gap: 8px; padding-top: 12px; padding-bottom: 12px;
   }
-  .task-row > *:nth-child(1) { grid-area: sn; }
-  .task-row > *:nth-child(2) { grid-area: chk; }
-  .task-row > *:nth-child(3) { grid-area: name; }
-  .task-row > *:nth-child(4) { grid-area: prio; }
-  .task-row > *:nth-child(5) { grid-area: status; }
-  .task-row > *:nth-child(6) { display: none; } /* Due column */
-  .task-row > .task-icons-cell { grid-area: icons; justify-content: flex-start; }
-  .task-row > .row-actions { grid-area: actions; justify-content: flex-end; }
+  .task-row > *:nth-child(1), .subtask-row > *:nth-child(1) { grid-area: sn; }
+  .task-row > *:nth-child(2), .subtask-row > *:nth-child(2) { grid-area: chk; }
+  .task-row > *:nth-child(3), .subtask-row > *:nth-child(3) { grid-area: name; }
+  .task-row > *:nth-child(4), .subtask-row > *:nth-child(4) { grid-area: prio; }
+  .task-row > *:nth-child(5), .subtask-row > *:nth-child(5) { grid-area: status; }
+  .task-row > *:nth-child(6), .subtask-row > *:nth-child(6) { display: none; } /* Due column */
+  .task-row > .task-icons-cell, .subtask-row > .task-icons-cell { grid-area: icons; justify-content: flex-start; }
+  .task-row > .row-actions, .subtask-row > .row-actions { grid-area: actions; justify-content: flex-end; }
+  .subtask-panel-title, .subtask-add-bar { padding-left: 90px; }
+  .subtask-title-row { grid-template-columns: 26px 40px 1fr; }
   .compare-header, .compare-row { grid-template-columns: 40px 1fr 140px; }
   .compare-header > *:last-child, .compare-row > *:last-child { display: none; }
 }
@@ -1257,11 +1481,11 @@ kbd {
 
   /* Task table: drop the serial-number column entirely (least essential
      on a phone) and shrink padding so the remaining columns fit. */
-  .table-header, .task-row { padding: 0 12px; }
+  .table-header, .task-row, .subtask-row { padding: 0 12px; }
   .table-header { grid-template-columns: 32px 1fr 72px; }
   .table-header > *:nth-child(1) { display: none; } /* # column header */
   .table-header > *:nth-child(5) { display: none; } /* status column header */
-  .task-row {
+  .task-row, .subtask-row {
     grid-template-columns: 32px 1fr 72px;
     grid-template-areas:
       "chk name prio"
@@ -1269,14 +1493,20 @@ kbd {
       "spacer status status";
     row-gap: 6px;
   }
-  .task-row > *:nth-child(1) { display: none; } /* serial number cell */
-  .task-row > *:nth-child(2) { grid-area: chk; }
-  .task-row > *:nth-child(3) { grid-area: name; }
-  .task-row > *:nth-child(4) { grid-area: prio; justify-self: end; }
-  .task-row > *:nth-child(5) { grid-area: status; justify-self: start; margin-top: 2px; }
-  .task-row > .task-icons-cell { grid-area: icons; justify-content: flex-start; }
-  .task-row > .row-actions { grid-area: actions; justify-content: flex-end; }
+  .task-row > *:nth-child(1) { display: none; } /* serial number cell (task rows only — subtask numbering stays visible) */
+  .subtask-row > *:nth-child(1) { grid-area: chk; justify-self: start; }
+  .subtask-row > *:nth-child(2) { display: none; } /* checkbox hidden on phone to make room; tap status chip to toggle */
+  .task-row > *:nth-child(2), .subtask-row > *:nth-child(2) { grid-area: chk; }
+  .task-row > *:nth-child(3), .subtask-row > *:nth-child(3) { grid-area: name; }
+  .task-row > *:nth-child(4), .subtask-row > *:nth-child(4) { grid-area: prio; justify-self: end; }
+  .task-row > *:nth-child(5), .subtask-row > *:nth-child(5) { grid-area: status; justify-self: start; margin-top: 2px; }
+  .task-row > .task-icons-cell, .subtask-row > .task-icons-cell { grid-area: icons; justify-content: flex-start; }
+  .task-row > .row-actions, .subtask-row > .row-actions { grid-area: actions; justify-content: flex-end; }
   .priority-badge { width: auto; padding: 6px 10px; }
+  .subtask-panel-title, .subtask-add-bar { padding: 0 12px; }
+  .subtask-title-row { display: flex; align-items: center; gap: 10px; grid-template-columns: unset; padding: 0 12px 0 44px; }
+  .subtask-title-row .subtask-panel-title { grid-column: unset; }
+  .bulk-bar.subtask-bulk-bar { margin: 0 12px 10px; }
 
   /* Toast: full-width banner instead of a fixed min-width box that can
      clip or sit awkwardly close to the viewport edge. */
@@ -1336,6 +1566,12 @@ img { -webkit-user-drag: none; }
   .print-table .pt-deadline { width: 90px; }
   .print-table tr.pt-done td { color: #777; }
   .print-table tr.pt-overdue td.pt-deadline { color: #b00020; font-weight: 600; }
+  .print-table .pt-shots { width: 130px; }
+  .pt-shots-row { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pt-shots-row img {
+    width: 38px; height: 38px; object-fit: cover; border-radius: 3px;
+    border: 1px solid #bbb; display: block;
+  }
   .print-footer { margin-top: 16px; font-size: 10px; color: #777; text-align: right; }
   .print-model-section { page-break-after: always; }
   .print-model-section:last-child { page-break-after: auto; }
@@ -1383,6 +1619,7 @@ document.addEventListener('keydown', e => {
     </div>
     <!-- Login panel -->
     <div id="panelLogin">
+      <input type="text" class="auth-input" id="loginDisplayName" placeholder="Display name (optional)" autocomplete="name">
       <input type="email" class="auth-input" id="loginEmail" placeholder="Email address" autocomplete="email">
       <input type="password" class="auth-input" id="loginPassword" placeholder="Password" autocomplete="current-password">
       <div class="auth-error" id="loginError"></div>
@@ -1397,6 +1634,7 @@ document.addEventListener('keydown', e => {
     </div>
     <!-- Register panel -->
     <div id="panelRegister" style="display:none;">
+      <input type="text" class="auth-input" id="regDisplayName" placeholder="Display name (optional)" autocomplete="name">
       <input type="email" class="auth-input" id="regEmail" placeholder="Email address" autocomplete="email">
       <input type="password" class="auth-input" id="regPassword" placeholder="Password (min 6 characters)" autocomplete="new-password">
       <input type="password" class="auth-input" id="regConfirm" placeholder="Confirm password" autocomplete="new-password">
@@ -1411,7 +1649,7 @@ document.addEventListener('keydown', e => {
 
 <!-- HEADER -->
 <header>
-  <div class="logo-group">
+  <div class="logo-group" id="logoHomeBtn" title="Reload dashboard" style="cursor:pointer;">
     <div class="logo-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent1)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(15deg);">
         <path d="M21 3L13.5 21l-2.2-7.3L4 11.5 21 3z"/>
@@ -1430,15 +1668,24 @@ document.addEventListener('keydown', e => {
       <span class="user-badge-caret">▾</span>
       <div class="user-menu" id="userMenu">
         <button class="menu-item" id="archiveViewBtn" title="View archived models"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg><span>Archived</span><span class="archive-count-badge" id="archiveCountBadge" style="display:none;">0</span></button>
+        <button class="menu-item" id="recycleViewBtn" title="View deleted tasks (kept for 30 days)" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Recycle Bin</span><span class="archive-count-badge" id="recycleCountBadge" style="display:none;">0</span></button>
         <button class="menu-item" id="userManualBtn" title="Download the user manual (PDF)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg><span>User Manual</span></button>
         <button class="menu-item" id="freshStartBtn" title="Clear everything and start fresh" style="color:var(--red);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg><span>Fresh Start</span></button>
         <button class="menu-item" id="undoBtn" title="Undo last change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span>Undo</span></button>
+        <button class="menu-item" id="redoBtn" title="Redo last undone change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0-5.5 5.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg><span>Redo</span></button>
         <div class="menu-divider"></div>
         <button class="logout-btn" id="logoutBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Sign Out</span></button>
       </div>
     </div>
     <button class="hdr-btn accent" id="loginOpenBtn">✦ <span>Login</span></button>
-    <button class="hdr-btn" id="themeToggleBtn" title="Toggle dark/light mode">✧ <span>Theme</span></button>
+    <div class="export-dropdown" id="themeDropdown">
+      <button class="hdr-btn" id="themeToggleBtn" title="Choose theme">✧ <span>Theme</span> <span class="hdr-btn-caret">▾</span></button>
+      <div class="export-menu" id="themeMenu">
+        <button class="menu-item theme-menu-item" id="themeOptDark" data-theme-val="dark"><span class="theme-swatch theme-swatch-dark"></span><span>Dark</span></button>
+        <button class="menu-item theme-menu-item" id="themeOptLight" data-theme-val="light"><span class="theme-swatch theme-swatch-light"></span><span>Light</span></button>
+        <button class="menu-item theme-menu-item" id="themeOptMidnight" data-theme-val="midnight"><span class="theme-swatch theme-swatch-midnight"></span><span>Midnight Blue</span></button>
+      </div>
+    </div>
     <div class="export-dropdown" id="exportAllDropdown">
       <button class="hdr-btn accent" id="exportAllToggleBtn" title="Export all models">↓ <span>Export</span> <span class="hdr-btn-caret">▾</span></button>
       <div class="export-menu" id="exportAllMenu">
@@ -1618,6 +1865,23 @@ document.addEventListener('keydown', e => {
 </div>
 <!-- END ARCHIVE VIEW -->
 
+<!-- RECYCLE BIN VIEW -->
+<div id="recycleView" style="display:none;">
+  <div class="models-section-hdr">
+    <div class="section-label" style="margin-bottom:0;flex:1;">Recycle Bin</div>
+    <button class="hdr-btn" id="emptyRecycleBinBtn" style="color:var(--red);border-color:rgba(244,63,94,0.25);" title="Permanently delete everything in the Recycle Bin" >Empty Bin</button>
+  </div>
+  <div class="recycle-bin-note">Deleted tasks and subtasks stay here for 30 days, then expire automatically.</div>
+  <div class="recycle-list" id="recycleList"></div>
+  <div class="empty-state" id="recycleEmptyState" style="display:none;">
+    <div class="empty-state-icon">🗑</div>
+    <div class="empty-state-title">Recycle Bin is empty</div>
+    <div class="empty-state-sub">Tasks and subtasks you delete will show up here for 30 days before they're gone for good.</div>
+  </div>
+</div>
+<!-- END RECYCLE BIN VIEW -->
+
+
 <!-- FOOTER -->
 <div class="footer-bar" id="footerBar">
   <div>
@@ -1682,14 +1946,34 @@ document.addEventListener('keydown', e => {
 
 <!-- NOTES MODAL -->
 <div class="modal-overlay" id="notesModal">
-  <div class="modal-box">
+  <div class="modal-box" id="notesModalBox" style="width:min(560px, 92vw);">
     <div class="modal-title">Task Notes</div>
     <div class="modal-subtitle" id="notesTaskName"></div>
     <textarea class="modal-textarea" id="notesTextarea" placeholder="Add detailed notes, internal links, or context for this specific task…"></textarea>
+
+    <div class="notes-shots-section">
+      <div class="notes-shots-header">
+        <span class="notes-shots-label">Screenshots</span>
+        <span class="notes-shots-hint">Paste (Ctrl+V) or</span>
+        <button type="button" class="notes-shots-add-btn" id="notesAddShotBtn">＋ Add</button>
+        <input type="file" id="notesShotFileInput" accept="image/*" multiple style="display:none;">
+      </div>
+      <div class="notes-shots-gallery" id="notesShotsGallery"></div>
+      <div class="notes-shots-empty" id="notesShotsEmpty">No screenshots yet — paste an image or click Add.</div>
+    </div>
+
     <div class="modal-actions">
       <button class="modal-btn secondary" id="notesCancelBtn">Cancel</button>
       <button class="modal-btn primary" id="notesSaveBtn">Save Notes</button>
     </div>
+  </div>
+</div>
+
+<!-- SCREENSHOT LIGHTBOX (click a thumbnail to enlarge) -->
+<div class="modal-overlay" id="shotLightbox" style="z-index:260;">
+  <div class="shot-lightbox-inner">
+    <img id="shotLightboxImg" src="" alt="Screenshot preview">
+    <button type="button" class="shot-lightbox-close" id="shotLightboxClose" title="Close">✕</button>
   </div>
 </div>
 
@@ -1848,6 +2132,10 @@ document.getElementById('undoBtn').onclick=()=>{
   document.getElementById('userBadge').classList.remove('menu-open');
   undo();
 };
+document.getElementById('redoBtn').onclick=()=>{
+  document.getElementById('userBadge').classList.remove('menu-open');
+  redo();
+};
 document.getElementById('authCloseBtn').onclick=hideAuthGate;
 document.getElementById('authGate').addEventListener('click',e=>{
   if(e.target.id==='authGate') hideAuthGate();
@@ -1879,8 +2167,17 @@ async function doLogin(){
   if(window.__firebaseLoadFailed){errEl.textContent='Sign-in service unavailable right now. Check your connection and reload.';return;}
   if(!email||!pass){errEl.textContent='Please enter email and password.';return;}
   btn.disabled=true;btn.textContent='Signing in…';errEl.textContent='';
+  const displayName=document.getElementById('loginDisplayName').value.trim();
   try{
-    await auth.signInWithEmailAndPassword(email,pass);
+    const cred=await auth.signInWithEmailAndPassword(email,pass);
+    if(displayName && cred.user){
+      await cred.user.updateProfile({displayName});
+      // updateProfile resolves after onAuthStateChanged fires, so refresh the badge manually
+      const emailEl=document.getElementById('userEmail');
+      const avatar=document.getElementById('userAvatar');
+      if(emailEl) emailEl.textContent=displayName;
+      if(avatar) avatar.textContent=displayName[0].toUpperCase();
+    }
   }catch(e){
     errEl.textContent=friendlyAuthError(e.code);
     btn.disabled=false;btn.textContent='Sign In';
@@ -1924,7 +2221,16 @@ async function doRegister(){
   if(pass.length<6){errEl.textContent='Password must be at least 6 characters.';return;}
   btn.disabled=true;btn.textContent='Creating account…';
   try{
-    await auth.createUserWithEmailAndPassword(email,pass);
+    const cred=await auth.createUserWithEmailAndPassword(email,pass);
+    const regDisplayName=document.getElementById('regDisplayName').value.trim();
+    if(regDisplayName && cred.user){
+      await cred.user.updateProfile({displayName: regDisplayName});
+      // Refresh badge immediately — onAuthStateChanged already fired before updateProfile resolved
+      const emailEl=document.getElementById('userEmail');
+      const avatar=document.getElementById('userAvatar');
+      if(emailEl) emailEl.textContent=regDisplayName;
+      if(avatar) avatar.textContent=regDisplayName[0].toUpperCase();
+    }
     okEl.textContent='Account created! Signing you in…';
   }catch(e){
     errEl.textContent=friendlyAuthError(e.code);
@@ -1968,12 +2274,14 @@ document.getElementById('exportAllToggleBtn').addEventListener('click',(e)=>{
   if(window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
   e.stopPropagation();
   document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  document.getElementById('themeDropdown').classList.remove('menu-open');
   document.getElementById('exportAllDropdown').classList.toggle('menu-open');
 });
 document.getElementById('exportModelToggleBtn').addEventListener('click',(e)=>{
   if(window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
   e.stopPropagation();
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  document.getElementById('themeDropdown').classList.remove('menu-open');
   document.getElementById('exportModelDropdown').classList.toggle('menu-open');
 });
 
@@ -1990,6 +2298,7 @@ document.addEventListener('click',()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
   document.getElementById('exportModelDropdown').classList.remove('menu-open');
   document.getElementById('bulkMoveDropdown').classList.remove('menu-open');
+  document.getElementById('themeDropdown').classList.remove('menu-open');
 });
 
 // Friendly error messages
@@ -2087,6 +2396,7 @@ function save(){
         deletedModels:[...deletedModelsSet],
         archivedModels:[...archivedModelsSet],
         modelOrder:[...modelOrder],
+        recycleBin,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
       });
       // lastUpdated label is refreshed automatically by the live Firestore
@@ -2101,6 +2411,7 @@ function save(){
 // the 800ms write debounce above). Capped to a small recent history.
 const UNDO_LIMIT=20;
 let undoStack=[];
+let redoStack=[];
 let lastSnapshot=null;
 function snapshotNow(){
   return {
@@ -2108,6 +2419,8 @@ function snapshotNow(){
     deadlines:JSON.parse(JSON.stringify(deadlines)),
     deletedModels:[...deletedModelsSet],
     archivedModels:[...archivedModelsSet],
+    modelOrder:[...modelOrder],
+    recycleBin:JSON.parse(JSON.stringify(recycleBin)),
     activeTab
   };
 }
@@ -2117,37 +2430,54 @@ function pushUndoSnapshot(){
     if(undoStack.length>UNDO_LIMIT) undoStack.shift();
   }
   lastSnapshot=snapshotNow();
+  redoStack=[];
   updateUndoBtn();
+  updateRedoBtn();
 }
 function resetUndo(){
   undoStack=[];
+  redoStack=[];
   lastSnapshot=snapshotNow();
   updateUndoBtn();
+  updateRedoBtn();
 }
 function updateUndoBtn(){
   const btn=document.getElementById('undoBtn');
   if(btn) btn.style.display=undoStack.length?'':'none';
 }
+function updateRedoBtn(){
+  const btn=document.getElementById('redoBtn');
+  if(btn) btn.style.display=redoStack.length?'':'none';
+}
 function undo(){
   if(!undoStack.length) return;
   const prev=undoStack.pop();
+  // Save current state to redo stack before restoring
+  redoStack.push(snapshotNow());
+  if(redoStack.length>UNDO_LIMIT) redoStack.shift();
   state=prev.state;
   deadlines=prev.deadlines;
   deletedModelsSet=new Set(prev.deletedModels);
   archivedModelsSet=new Set(prev.archivedModels||[]);
+  recycleBin=prev.recycleBin||{};
+  // Guard with `|| modelOrder` so undo steps taken before this field existed
+  // (e.g. mid-session after a reload of older saved state) don't wipe the
+  // current order out to an empty array.
+  modelOrder=prev.modelOrder||modelOrder;
   refreshModelsList();
   activeTab=models.includes(prev.activeTab)?prev.activeTab:(models[0]||'');
-  selectedTasks.clear();editingIdx=null;
+  selectedTasks.clear();selectedSubtasks.clear();editingIdx=null;
   // This counts as a change too, but shouldn't itself be undoable back to
   // a state we just left — re-baseline without pushing a new undo step.
   lastSnapshot=snapshotNow();
   updateUndoBtn();
+  updateRedoBtn();
   if(auth&&auth.currentUser){
     clearTimeout(saveTimer);
     saveTimer=setTimeout(async()=>{
       try{
         await getUserDoc(auth.currentUser.uid).set({
-          tasks:state,deadlines,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],
+          tasks:state,deadlines,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         });
       }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
@@ -2157,9 +2487,80 @@ function undo(){
   toast('↺','Undone',false);
 }
 
+function redo(){
+  if(!redoStack.length) return;
+  const next=redoStack.pop();
+  // Save current state back to undo stack so user can undo the redo
+  undoStack.push(snapshotNow());
+  if(undoStack.length>UNDO_LIMIT) undoStack.shift();
+  state=next.state;
+  deadlines=next.deadlines;
+  deletedModelsSet=new Set(next.deletedModels);
+  archivedModelsSet=new Set(next.archivedModels||[]);
+  recycleBin=next.recycleBin||{};
+  modelOrder=next.modelOrder||modelOrder;
+  refreshModelsList();
+  activeTab=models.includes(next.activeTab)?next.activeTab:(models[0]||'');
+  selectedTasks.clear();selectedSubtasks.clear();editingIdx=null;
+  lastSnapshot=snapshotNow();
+  updateUndoBtn();
+  updateRedoBtn();
+  if(auth&&auth.currentUser){
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(async()=>{
+      try{
+        await getUserDoc(auth.currentUser.uid).set({
+          tasks:state,deadlines,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
+    },800);
+  }
+  renderAll();
+  toast('↻','Redone',false);
+}
+
 let deletedModelsSet=new Set();
 let archivedModelsSet=new Set();
 let archiveViewActive=false;
+
+// ── RECYCLE BIN ───────────────────────────────────────────────────────────────
+// Soft-delete store for individual tasks & subtasks (mirrors the Archive
+// pattern, but per-item rather than per-model). Shape: { [model]: [entry] }
+// entry: {type:'task', task:{...}, deletedAt} or
+//        {type:'subtask', task:'<parent task name>', sub:{...}, deletedAt}
+// Kept per-model like Archive, so switching models only shows what's relevant.
+let recycleBin={};
+let recycleViewActive=false;
+const RECYCLE_RETENTION_DAYS=30;
+
+function recycleBinCount(){
+  return Object.values(recycleBin).reduce((n,arr)=>n+arr.length,0);
+}
+function purgeExpiredRecycleItems(){
+  const cutoff=Date.now()-RECYCLE_RETENTION_DAYS*24*60*60*1000;
+  let changed=false;
+  Object.keys(recycleBin).forEach(m=>{
+    const before=recycleBin[m].length;
+    recycleBin[m]=recycleBin[m].filter(e=>e.deletedAt>cutoff);
+    if(recycleBin[m].length!==before) changed=true;
+    if(!recycleBin[m].length) delete recycleBin[m];
+  });
+  return changed;
+}
+function recycleTask(model,task,idx){
+  if(!recycleBin[model]) recycleBin[model]=[];
+  recycleBin[model].push({type:'task',task:JSON.parse(JSON.stringify(task)),idx,deletedAt:Date.now()});
+}
+function recycleSubtask(model,taskName,sub,subIdx){
+  if(!recycleBin[model]) recycleBin[model]=[];
+  recycleBin[model].push({type:'subtask',task:taskName,sub:JSON.parse(JSON.stringify(sub)),subIdx,deletedAt:Date.now()});
+}
+function daysLeftLabel(deletedAt){
+  const elapsedDays=(Date.now()-deletedAt)/(24*60*60*1000);
+  const left=Math.max(0,Math.ceil(RECYCLE_RETENTION_DAYS-elapsedDays));
+  return left<=0?'Expiring soon':`${left} day${left===1?'':'s'} left`;
+}
 
 // Shared inline calendar icon (replaces the 🗓 emoji, which renders as a flat
 // info-glyph on some platforms/fonts). Inherits color via currentColor.
@@ -2176,7 +2577,9 @@ function enterPreviewMode(){
   previewMode = true;
   deletedModelsSet = new Set();
   archivedModelsSet = new Set();
+  recycleBin = {};
   setArchiveView(false);
+  setRecycleView(false);
   ({tasks: state, deadlines} = loadState(null));
   refreshModelsList();
   if (!activeTab && models.length > 0) activeTab = models[0];
@@ -2201,18 +2604,22 @@ async function handleAuthState(user){
     const emailEl=document.getElementById('userEmail');
     const badge=document.getElementById('userBadge');
     const loginOpenBtn=document.getElementById('loginOpenBtn');
-    avatar.textContent=(user.email||'?')[0].toUpperCase();
-    emailEl.textContent=(user.email||'').split('@')[0];
+    avatar.textContent=(user.displayName||user.email||'?')[0].toUpperCase();
+    emailEl.textContent=user.displayName||(user.email||'').split('@')[0];
     badge.style.display='flex';
     loginOpenBtn.style.display='none';
     document.getElementById('archiveViewBtn').style.display='';
+    document.getElementById('recycleViewBtn').style.display='';
 
     // Load user's data from Firestore
     const saved=await loadFromFirestore(user.uid);
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
     modelOrder=saved?.modelOrder||[];
+    recycleBin=saved?.recycleBin||{};
+    const expiredPurged=purgeExpiredRecycleItems();
     setArchiveView(false);
+    setRecycleView(false);
     ({tasks: state, deadlines}=loadState(saved));
     refreshModelsList();
     if (!activeTab && models.length > 0) activeTab = models[0];
@@ -2224,6 +2631,19 @@ async function handleAuthState(user){
     hideLoading();
     setTimeout(startDeadlineWatch,1200);
     if(typeof refreshStickyBarOrigin==='function') setTimeout(refreshStickyBarOrigin,100);
+    // Items that aged past 30 days were dropped above — persist that quietly,
+    // without disturbing the undo baseline we just reset.
+    if(expiredPurged && auth && auth.currentUser){
+      clearTimeout(saveTimer);
+      saveTimer=setTimeout(async()=>{
+        try{
+          await getUserDoc(auth.currentUser.uid).set({
+            tasks:state,deadlines,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }catch(e){ console.error('Save error:',e); }
+      },800);
+    }
   } else {
     // Signed out (or never signed in) — fall back to the local preview
     // instead of locking the dashboard behind a forced gate.
@@ -2232,16 +2652,19 @@ async function handleAuthState(user){
     document.getElementById('userBadge').classList.remove('menu-open');
     document.getElementById('loginOpenBtn').style.display='';
     document.getElementById('archiveViewBtn').style.display='none';
+    document.getElementById('recycleViewBtn').style.display='none';
     setArchiveView(false);
+    setRecycleView(false);
     document.getElementById('loginBtn').disabled=false;
     document.getElementById('loginBtn').textContent='Sign In';
     document.getElementById('registerBtn').disabled=false;
     document.getElementById('registerBtn').textContent='Create Account';
     document.getElementById('loginEmail').value='';
+    document.getElementById('loginDisplayName').value='';
     document.getElementById('loginPassword').value='';
     document.getElementById('loginError').textContent='';
     editingIdx=null;
-    selectedTasks.clear();
+    selectedTasks.clear();selectedSubtasks.clear();
     enterPreviewMode();
   }
 }
@@ -2348,7 +2771,7 @@ function loadState(saved) {
   if (!saved) {
     deletedModelsSet.forEach(m=>delete fresh[m]);
     Object.values(fresh).forEach(tasks=>tasks.forEach(t=>{
-      t.priority=t.priority||'med'; t.notes=t.notes||''; t.taskDeadline=t.taskDeadline||'';
+      t.priority=t.priority||'med'; t.notes=t.notes||''; t.taskDeadline=t.taskDeadline||''; if(!Array.isArray(t.screenshots))t.screenshots=[];
     }));
     return { tasks: fresh, deadlines:{} };
   }
@@ -2361,9 +2784,9 @@ function loadState(saved) {
     const existingNames=new Set(tasks.map(t=>t.name.trim().toUpperCase()));
     fresh[model].forEach(task=>{
       if(!existingNames.has(task.name.trim().toUpperCase()))
-        tasks.push({...task,priority:'med',notes:'',taskDeadline:''});
+        tasks.push({...task,priority:'med',notes:'',taskDeadline:'',screenshots:[]});
     });
-    tasks.forEach(t=>{if(!t.priority)t.priority='med';if(!t.notes)t.notes='';if(!t.taskDeadline)t.taskDeadline='';});
+    tasks.forEach(t=>{if(!t.priority)t.priority='med';if(!t.notes)t.notes='';if(!t.taskDeadline)t.taskDeadline='';if(!Array.isArray(t.screenshots))t.screenshots=[];});
     renumber(tasks);
     result[model]=tasks;
   });
@@ -2385,12 +2808,41 @@ let activeFilter = 'all';
 let searchQuery = '';
 let editingIdx = null;
 let selectedTasks = new Set();
+// Subtask bulk-select — keyed by "model::taskIdx::subIdx" strings so selections
+// from subtask panels on different tasks (even across different open panels)
+// never collide with each other or with the task-level selection above.
+let selectedSubtasks = new Set();
+function subSelKey(model,idx,sIdx){ return model+'::'+idx+'::'+sIdx; }
+// Whenever a model's task array is reordered, inserted into, or has a task
+// removed, every subtask-selection key for that model embeds a now-stale
+// task index — clear them rather than risk a bulk action hitting the wrong
+// task's subtasks (mirrors how selectedTasks itself is just cleared on
+// drag-drop reorder elsewhere in this file).
+function clearSubSelectionsForModel(model){
+  const prefix=model+'::';
+  [...selectedSubtasks].forEach(k=>{ if(k.startsWith(prefix)) selectedSubtasks.delete(k); });
+}
+// Same idea, but scoped to one task only — used after a subtask delete/reorder
+// within that task's panel, so sibling panels' selections are left untouched.
+function clearSubSelectionsForTask(model,idx){
+  const prefix=model+'::'+idx+'::';
+  [...selectedSubtasks].forEach(k=>{ if(k.startsWith(prefix)) selectedSubtasks.delete(k); });
+}
 let dragSrcIdx = null;
+// Subtask drag-and-drop is scoped to one task at a time — dragSrcSubCtx
+// records which task's panel the drag started in ({model, idx}) plus the
+// dragged subtask's index, so a drop is only honored within that same
+// task's subtask list (dragging between different tasks' panels isn't
+// supported, same as how task drag-drop only reorders within one model).
+let dragSrcSubCtx = null;
 let modelOrder = []; // persisted drag-and-drop order for model cards
 let renamingModel = null; // model name currently being renamed inline
 // Tracks which models currently have their "Completed" section expanded.
 // Collapsed by default — clicking the divider toggles it per model.
 let expandedCompletedSet = new Set();
+// Tracks which tasks have their subtask panel open. Key = "model::idx".
+// Toggle purely flips a CSS class — no re-render — so the CSS transition plays.
+let expandedSubtasksSet = new Set();
 
 function refreshModelsList(){
   const active=Object.keys(state).filter(m=>!archivedModelsSet.has(m));
@@ -2529,6 +2981,169 @@ function isOverdueTask(task){
   return d<today;
 }
 
+// ── SUBTASK HELPERS ───────────────────────────────────────────────────────────
+function getSubtasks(model,idx){
+  const t=state[model]&&state[model][idx];
+  if(!t) return [];
+  if(!Array.isArray(t.subtasks)) t.subtasks=[];
+  return t.subtasks;
+}
+function subKey(model,idx){ return model+'::'+idx; }
+function subPanelId(key){ return 'sp-'+key.replace(/[^a-zA-Z0-9]/g,'_'); }
+
+function addSubtask(model,idx,name){
+  const n=name.trim(); if(!n) return;
+  getSubtasks(model,idx).push({name:n.toUpperCase(),done:false,priority:'med',notes:'',taskDeadline:'',screenshots:[]});
+  save(); renderAll(); toast('＋','Subtask added: '+n.slice(0,28));
+}
+function toggleSubtask(model,idx,sIdx){
+  const s=getSubtasks(model,idx)[sIdx]; if(!s) return;
+  s.done=!s.done; save(); renderAll();
+}
+function deleteSubtask(model,idx,sIdx){
+  const subs=getSubtasks(model,idx);
+  const parentTask=state[model][idx];
+  const nm=subs[sIdx].name;
+  recycleSubtask(model,parentTask.name,subs[sIdx],sIdx);
+  subs.splice(sIdx,1);
+  clearSubSelectionsForTask(model,idx);
+  save(); renderAll(); updateRecycleBadge(); toast('🗑','Moved to Recycle Bin: '+nm.slice(0,28));
+}
+function renameSubtask(model,idx,sIdx,newName){
+  const n=newName.trim(); if(!n) return;
+  getSubtasks(model,idx)[sIdx].name=n.toUpperCase();
+  save(); renderAll();
+}
+function moveSubtask(model,idx,sIdx,dir){
+  const subs=getSubtasks(model,idx);
+  const ni=sIdx+dir; if(ni<0||ni>=subs.length) return;
+  [subs[sIdx],subs[ni]]=[subs[ni],subs[sIdx]];
+  clearSubSelectionsForTask(model,idx);
+  save(); renderAll();
+}
+function setSubPriority(model,idx,sIdx,p){
+  getSubtasks(model,idx)[sIdx].priority=p; save(); renderAll();
+}
+
+// Generic notes modal (reuses the existing modal for subtasks too)
+let _notesObj=null, _notesObjCb=null;
+// Working copy of the open object's screenshots — edited freely while the
+// modal is open, only written back to the real task/subtask on Save (so
+// Cancel truly discards any added/removed screenshots, same as the textarea).
+let _notesScreenshots=[];
+function openNotesForObj(obj,cb){
+  _notesObj=obj; _notesObjCb=cb;
+  document.getElementById('notesTaskName').textContent=obj.name;
+  document.getElementById('notesTextarea').value=obj.notes||'';
+  _notesScreenshots=Array.isArray(obj.screenshots)?obj.screenshots.map(s=>({...s})):[];
+  renderNotesShotsGallery();
+  document.getElementById('notesModal').classList.add('open');
+  setTimeout(()=>document.getElementById('notesTextarea').focus(),100);
+}
+
+// ── NOTES: SCREENSHOTS ───────────────────────────────────────────────────────
+// Max dimension (px) and JPEG quality used when re-encoding pasted/uploaded
+// images — keeps embedded screenshots from ballooning the saved Firestore
+// document (1 MiB hard limit per doc) while still being plenty readable.
+const SHOT_MAX_DIM=1280;
+const SHOT_JPEG_QUALITY=0.72;
+const SHOT_MAX_COUNT=12;
+
+function compressImageFile(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('Could not read file'));
+    reader.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('Could not decode image'));
+      img.onload=()=>{
+        let{width,height}=img;
+        if(width>SHOT_MAX_DIM||height>SHOT_MAX_DIM){
+          const scale=SHOT_MAX_DIM/Math.max(width,height);
+          width=Math.round(width*scale); height=Math.round(height*scale);
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=width; canvas.height=height;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,width,height);
+        resolve(canvas.toDataURL('image/jpeg',SHOT_JPEG_QUALITY));
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addScreenshotFiles(files){
+  const imgFiles=[...files].filter(f=>f.type&&f.type.startsWith('image/'));
+  if(!imgFiles.length) return;
+  if(_notesScreenshots.length>=SHOT_MAX_COUNT){
+    toast('⚠',`Max ${SHOT_MAX_COUNT} screenshots per task`,false); return;
+  }
+  for(const file of imgFiles){
+    if(_notesScreenshots.length>=SHOT_MAX_COUNT){
+      toast('⚠',`Max ${SHOT_MAX_COUNT} screenshots per task`,false); break;
+    }
+    try{
+      const dataUrl=await compressImageFile(file);
+      _notesScreenshots.push({id:'shot_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),dataUrl});
+      renderNotesShotsGallery();
+    }catch(e){ toast('⚠','Could not add image',false); }
+  }
+}
+
+function renderNotesShotsGallery(){
+  const gallery=document.getElementById('notesShotsGallery');
+  const empty=document.getElementById('notesShotsEmpty');
+  if(!gallery) return;
+  gallery.innerHTML='';
+  _notesScreenshots.forEach(shot=>{
+    const thumb=document.createElement('div');
+    thumb.className='notes-shot-thumb';
+    thumb.innerHTML=`<img src="${shot.dataUrl}" alt="Screenshot"><button type="button" class="notes-shot-remove" title="Remove">✕</button>`;
+    thumb.querySelector('img').addEventListener('click',()=>openShotLightbox(shot.dataUrl));
+    thumb.querySelector('.notes-shot-remove').addEventListener('click',e=>{
+      e.stopPropagation();
+      _notesScreenshots=_notesScreenshots.filter(s=>s.id!==shot.id);
+      renderNotesShotsGallery();
+    });
+    gallery.appendChild(thumb);
+  });
+  empty.classList.toggle('hide',_notesScreenshots.length>0);
+}
+
+function openShotLightbox(dataUrl){
+  document.getElementById('shotLightboxImg').src=dataUrl;
+  document.getElementById('shotLightbox').classList.add('open');
+}
+document.getElementById('shotLightboxClose').onclick=()=>document.getElementById('shotLightbox').classList.remove('open');
+document.getElementById('shotLightbox').onclick=e=>{
+  if(e.target===document.getElementById('shotLightbox')) document.getElementById('shotLightbox').classList.remove('open');
+};
+
+document.getElementById('notesAddShotBtn').onclick=()=>document.getElementById('notesShotFileInput').click();
+document.getElementById('notesShotFileInput').onchange=e=>{
+  addScreenshotFiles(e.target.files);
+  e.target.value='';
+};
+// Paste-from-clipboard support while the Notes modal is open.
+document.getElementById('notesModal').addEventListener('paste',e=>{
+  if(!document.getElementById('notesModal').classList.contains('open')) return;
+  const items=[...(e.clipboardData?.items||[])].filter(it=>it.type&&it.type.startsWith('image/'));
+  if(!items.length) return;
+  e.preventDefault();
+  addScreenshotFiles(items.map(it=>it.getAsFile()).filter(Boolean));
+});
+// Drag-and-drop image files onto the modal box as another way in, alongside paste/file-picker.
+const _notesModalBox=document.getElementById('notesModalBox');
+_notesModalBox.addEventListener('dragover',e=>{ e.preventDefault(); _notesModalBox.classList.add('notes-shots-dropzone-active'); });
+_notesModalBox.addEventListener('dragleave',()=>_notesModalBox.classList.remove('notes-shots-dropzone-active'));
+_notesModalBox.addEventListener('drop',e=>{
+  e.preventDefault();
+  _notesModalBox.classList.remove('notes-shots-dropzone-active');
+  if(e.dataTransfer?.files?.length) addScreenshotFiles(e.dataTransfer.files);
+});
+
 // ── KPI ───────────────────────────────────────────────────────────────────────
 function renderKPIs(){
   const g=globalStats();
@@ -2564,12 +3179,12 @@ function renderModelCards(){
     const isRenaming=renamingModel===m;
     const nameHtml=isRenaming
       ?`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <input class="task-name-edit model-rename-input" type="text" value="${m.replace(/"/g,'&quot;')}" style="font-size:16px;font-weight:600;padding:6px 10px;" maxlength="80">
+          <input class="task-name-edit model-rename-input" type="text" value="${escHtml(m)}" style="font-size:16px;font-weight:600;padding:6px 10px;" maxlength="80">
           <button class="row-action-btn save model-rename-save" title="Save" style="flex-shrink:0;">✓</button>
           <button class="row-action-btn cancel model-rename-cancel" title="Cancel" style="flex-shrink:0;">✕</button>
         </div>`
       :`<div style="display:flex;align-items:center;gap:8px;">
-          <div class="model-name">${m}</div>
+          <div class="model-name">${escHtml(m)}</div>
           <button class="row-action-btn edit model-rename-btn" title="Rename model" style="width:26px;height:26px;font-size:13px;opacity:0;transition:opacity 0.2s;" data-model="${m}">✎</button>
           <button class="row-action-btn edit model-duplicate-btn" title="Duplicate model" style="width:26px;height:26px;font-size:13px;opacity:0;transition:opacity 0.2s;" data-model="${m}">⧉</button>
           <button class="row-action-btn archive model-archive-btn" title="Archive model" style="width:26px;height:26px;font-size:13px;opacity:0;transition:opacity 0.2s;" data-model="${m}">🗄</button>
@@ -2688,7 +3303,7 @@ function renderModelCards(){
     card.addEventListener('dragstart',()=>{ _didDrag=true; });
     card.addEventListener('click',()=>{
       if(_didDrag||isRenaming){ _didDrag=false; return; }
-      activeTab=m;editingIdx=null;selectedTasks.clear();renderAll();
+      activeTab=m;editingIdx=null;selectedTasks.clear();selectedSubtasks.clear();renderAll();
       const target=document.getElementById('taskChecklistLabel');
       if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
     });
@@ -2748,6 +3363,13 @@ function setArchiveView(active){
   archiveViewActive=active;
   document.getElementById('mainDashboardView').style.display=active?'none':'';
   document.getElementById('archiveView').style.display=active?'':'none';
+  if(active){
+    const recycleViewEl=document.getElementById('recycleView');
+    if(recycleViewEl) recycleViewEl.style.display='none';
+    recycleViewActive=false;
+    const recycleBtn=document.getElementById('recycleViewBtn');
+    if(recycleBtn) recycleBtn.classList.remove('active-view');
+  }
   const footerBarEl=document.getElementById('footerBar');
   if(footerBarEl) footerBarEl.style.display=active?'none':'';
   document.getElementById('archiveViewBtn').classList.toggle('active-view',active);
@@ -2758,7 +3380,8 @@ document.getElementById('archiveViewBtn').onclick=()=>{
   document.getElementById('userBadge').classList.remove('menu-open');
   setArchiveView(!archiveViewActive);
 };
-document.getElementById('liveBadge').onclick=()=>setArchiveView(false);
+document.getElementById('liveBadge').onclick=()=>{ setArchiveView(false); setRecycleView(false); };
+document.getElementById('logoHomeBtn').onclick=()=>{ window.location.reload(); };
 
 function renderArchiveView(){
   const grid=document.getElementById('archiveGrid');
@@ -2777,8 +3400,7 @@ function renderArchiveView(){
     card.innerHTML=`
       <div class="model-header">
         <div>
-          <div class="model-name">${m}</div>
-          ${dlHtml}
+          <div class="model-name">${escHtml(m)}</div>
         </div>
         <div class="model-tag">ARCHIVED</div>
       </div>
@@ -2823,6 +3445,156 @@ function restoreModel(name){
   toast('↺',`Model restored: ${name}`);
 }
 
+// ── RECYCLE BIN VIEW ──────────────────────────────────────────────────────────
+function updateRecycleBadge(){
+  const badge=document.getElementById('recycleCountBadge');
+  if(!badge) return;
+  const n=recycleBinCount();
+  badge.textContent=n;
+  badge.style.display=n>0?'':'none';
+}
+
+function setRecycleView(active){
+  recycleViewActive=active;
+  const mainView=document.getElementById('mainDashboardView');
+  const archiveViewEl=document.getElementById('archiveView');
+  const recycleViewEl=document.getElementById('recycleView');
+  if(active){
+    if(mainView) mainView.style.display='none';
+    if(archiveViewEl) archiveViewEl.style.display='none';
+    archiveViewActive=false;
+    document.getElementById('archiveViewBtn').classList.remove('active-view');
+  } else if(mainView && !archiveViewActive){
+    mainView.style.display='';
+  }
+  if(recycleViewEl) recycleViewEl.style.display=active?'':'none';
+  const footerBarEl=document.getElementById('footerBar');
+  if(footerBarEl) footerBarEl.style.display=(active||archiveViewActive)?'none':'';
+  const btn=document.getElementById('recycleViewBtn');
+  if(btn) btn.classList.toggle('active-view',active);
+  if(active) renderRecycleView();
+}
+
+if(document.getElementById('recycleViewBtn')){
+  document.getElementById('recycleViewBtn').onclick=()=>{
+    document.getElementById('userBadge').classList.remove('menu-open');
+    setRecycleView(!recycleViewActive);
+  };
+}
+
+function recycleEntryLabel(entry){
+  return entry.type==='task' ? entry.task.name : entry.sub.name;
+}
+
+function renderRecycleView(){
+  const listEl=document.getElementById('recycleList');
+  const emptyState=document.getElementById('recycleEmptyState');
+  const emptyBinBtn=document.getElementById('emptyRecycleBinBtn');
+  if(!listEl) return;
+  purgeExpiredRecycleItems();
+  listEl.innerHTML='';
+  const entries=[];
+  Object.keys(recycleBin).forEach(model=>{
+    recycleBin[model].forEach((entry,i)=>entries.push({model,entry,i}));
+  });
+  entries.sort((a,b)=>b.entry.deletedAt-a.entry.deletedAt);
+  emptyState.style.display=entries.length?'none':'';
+  listEl.style.display=entries.length?'':'none';
+  if(emptyBinBtn) emptyBinBtn.style.display=entries.length?'':'none';
+  entries.forEach(({model,entry,i})=>{
+    const row=document.createElement('div');
+    row.className='recycle-row';
+    const isSub=entry.type==='subtask';
+    const name=recycleEntryLabel(entry);
+    const dateStr=new Date(entry.deletedAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+    row.innerHTML=`
+      <div class="recycle-row-icon">${isSub?'↳':'🗑'}</div>
+      <div class="recycle-row-main">
+        <div class="recycle-row-name">${escHtml(name)}</div>
+        <div class="recycle-row-meta">
+          <span class="recycle-row-model">${escHtml(model)}</span>
+          ${isSub?`<span class="recycle-row-sub">Subtask of "${escHtml(entry.task)}"</span>`:''}
+          <span class="recycle-row-date">Deleted ${dateStr}</span>
+          <span class="recycle-row-expiry">${daysLeftLabel(entry.deletedAt)}</span>
+        </div>
+      </div>
+      <div class="recycle-row-actions">
+        <button class="row-action-btn edit" data-act="restore" data-model="${escHtml(model)}" data-i="${i}" title="Restore">↺ Restore</button>
+        <button class="row-action-btn delete" data-act="purge" data-model="${escHtml(model)}" data-i="${i}" title="Delete forever">Delete Forever</button>
+      </div>`;
+    listEl.appendChild(row);
+  });
+  listEl.querySelectorAll('[data-act="restore"]').forEach(btn=>{
+    btn.onclick=()=>restoreRecycledItem(btn.dataset.model,Number(btn.dataset.i));
+  });
+  listEl.querySelectorAll('[data-act="purge"]').forEach(btn=>{
+    btn.onclick=()=>permanentlyDeleteRecycledItem(btn.dataset.model,Number(btn.dataset.i));
+  });
+}
+
+function restoreRecycledItem(model,i){
+  const entry=recycleBin[model]&&recycleBin[model][i];
+  if(!entry) return;
+  if(entry.type==='task'){
+    if(!(model in state)){
+      toast('⚠',`Can't restore — "${model}" no longer exists`,false);
+      return;
+    }
+    const tasks=state[model];
+    // Re-insert at the position it was deleted from, clamped to the current
+    // length in case other tasks were added/removed since — falls back to
+    // appending at the end only if the original spot is no longer sensible.
+    const insertAt=Math.max(0,Math.min(typeof entry.idx==='number'?entry.idx:tasks.length,tasks.length));
+    tasks.splice(insertAt,0,JSON.parse(JSON.stringify(entry.task)));
+    renumber(tasks);
+    recycleBin[model].splice(i,1);
+    if(!recycleBin[model].length) delete recycleBin[model];
+    save();renderAll();updateRecycleBadge();renderRecycleView();
+    toast('↺',`Restored task: ${entry.task.name.slice(0,28)}`);
+  } else {
+    if(!(model in state)){
+      toast('⚠',`Can't restore — "${model}" no longer exists`,false);
+      return;
+    }
+    const parentIdx=state[model].findIndex(t=>t.name===entry.task);
+    if(parentIdx===-1){
+      toast('⚠',`Can't restore — parent task "${entry.task}" no longer exists`,false);
+      return;
+    }
+    const subs=getSubtasks(model,parentIdx);
+    const insertAt=Math.max(0,Math.min(typeof entry.subIdx==='number'?entry.subIdx:subs.length,subs.length));
+    subs.splice(insertAt,0,JSON.parse(JSON.stringify(entry.sub)));
+    recycleBin[model].splice(i,1);
+    if(!recycleBin[model].length) delete recycleBin[model];
+    save();renderAll();updateRecycleBadge();renderRecycleView();
+    toast('↺',`Restored subtask: ${entry.sub.name.slice(0,28)}`);
+  }
+}
+
+async function permanentlyDeleteRecycledItem(model,i){
+  const entry=recycleBin[model]&&recycleBin[model][i];
+  if(!entry) return;
+  const ok=await showConfirm({title:'Delete forever?',message:`"${recycleEntryLabel(entry)}" will be permanently removed and cannot be recovered.`,confirmText:'Delete Forever',danger:true,icon:'🗑'});
+  if(!ok)return;
+  recycleBin[model].splice(i,1);
+  if(!recycleBin[model].length) delete recycleBin[model];
+  save();renderAll();updateRecycleBadge();renderRecycleView();
+  toast('×','Permanently deleted',false);
+}
+
+async function emptyRecycleBin(){
+  const n=recycleBinCount();
+  if(!n) return;
+  const ok=await showConfirm({title:'Empty Recycle Bin?',message:`${n} item${n===1?'':'s'} will be permanently removed and cannot be recovered.`,confirmText:'Empty Bin',danger:true,icon:'🗑'});
+  if(!ok)return;
+  recycleBin={};
+  save();renderAll();updateRecycleBadge();renderRecycleView();
+  toast('×','Recycle Bin emptied',false);
+}
+if(document.getElementById('emptyRecycleBinBtn')){
+  document.getElementById('emptyRecycleBinBtn').onclick=emptyRecycleBin;
+}
+
 // ── TABS & FILTERS ────────────────────────────────────────────────────────────
 function scrollToTaskChecklist(){
   const target=document.getElementById('taskChecklistLabel');
@@ -2830,9 +3602,11 @@ function scrollToTaskChecklist(){
 }
 
 // ── PDF / PRINT EXPORT ───────────────────────────────────────────────────────
-function _printEsc(s){
+function escHtml(s){
   return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+// Kept as an alias — print/export code below was written against this name.
+function _printEsc(s){ return escHtml(s); }
 // Builds the print-ready HTML for one model's checklist (header, summary, table).
 // Shared by both the single-model export and the combined all-models export.
 function _buildModelPrintSection(modelName){
@@ -2848,6 +3622,10 @@ function _buildModelPrintSection(modelName){
     const dlLabel=t.taskDeadline
       ? new Date(t.taskDeadline+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})
       : '—';
+    const shots=Array.isArray(t.screenshots)?t.screenshots:[];
+    const shotsHtml=shots.length
+      ? `<div class="pt-shots-row">${shots.map(s=>`<img src="${s.dataUrl}" alt="">`).join('')}</div>`
+      : '';
     return `<tr class="${t.done?'pt-done':''}${overdue?' pt-overdue':''}">
       <td class="pt-sn">${t.sn}</td>
       <td>${_printEsc(t.name)}</td>
@@ -2855,8 +3633,9 @@ function _buildModelPrintSection(modelName){
       <td class="pt-status">${t.done?'✓ Done':'Pending'}</td>
       <td class="pt-deadline">${dlLabel}${overdue?' (overdue)':''}</td>
       <td>${_printEsc(t.notes||'')}</td>
+      <td class="pt-shots">${shotsHtml}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" style="text-align:center;color:#888;">No tasks in this model</td></tr>`;
+  }).join('') || `<tr><td colspan="7" style="text-align:center;color:#888;">No tasks in this model</td></tr>`;
 
   return `
     <div class="print-header">
@@ -2875,7 +3654,7 @@ function _buildModelPrintSection(modelName){
     <table class="print-table">
       <thead><tr>
         <th class="pt-sn">#</th><th>Task Description</th><th class="pt-priority">Priority</th>
-        <th class="pt-status">Status</th><th class="pt-deadline">Due</th><th>Notes</th>
+        <th class="pt-status">Status</th><th class="pt-deadline">Due</th><th>Notes</th><th class="pt-shots">Screenshots</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -2924,7 +3703,7 @@ function renderTabs(){
     let _didDrag=false;
     btn.onclick=()=>{
       if(_didDrag){ _didDrag=false; return; }
-      activeTab=m;editingIdx=null;selectedTasks.clear();renderTabs();renderTaskList();scrollToTaskChecklist();
+      activeTab=m;editingIdx=null;selectedTasks.clear();selectedSubtasks.clear();renderTabs();renderTaskList();scrollToTaskChecklist();
     };
     if(!isCompare){
       btn.draggable=true;
@@ -3115,9 +3894,21 @@ function renderTaskList(){
     const prioMap={high:'HIGH',med:'MED',low:'LOW'};
     const prioClass={high:'prio-high',med:'prio-med',low:'prio-low'};
 
+    // ── subtask state for this row ──
+    const subs=getSubtasks(activeTab,idx);
+    const subsDone=subs.filter(s=>s.done).length;
+    const subsTotal=subs.length;
+    const sk=subKey(activeTab,idx);
+    const subOpen=expandedSubtasksSet.has(sk);
+    const pillCls=subsTotal===0?'':('has'+(subsDone===subsTotal&&subsTotal>0?' all-done':''));
+
     const nameCell=isEditing
-      ?`<input class="task-name-edit" id="editInput" type="text" value="${task.name.replace(/"/g,'&quot;')}">`
-      :`<div class="task-name ${showAsDone?'done-name':''}">${task.name}</div>`;
+      ?`<input class="task-name-edit" id="editInput" type="text" value="${escHtml(task.name)}">`
+      :`<div style="display:flex;align-items:center;gap:2px;min-width:0;">
+          <button class="subtask-toggle-btn${subOpen?' open':''}" data-sk="${sk}" title="${subOpen?'Collapse subtasks':'Expand / add subtasks'}">▸</button>
+          <div class="task-name ${showAsDone?'done-name':''}" style="margin:0;">${escHtml(task.name)}</div>
+          ${subsTotal>0?`<span class="subtask-count-pill ${pillCls}">${subsDone}/${subsTotal}</span>`:''}
+        </div>`;
 
     const sectionEntries=task.done?doneEntries:pendingEntries;
     const posInSection=sectionEntries.findIndex(e=>e.idx===idx);
@@ -3165,7 +3956,7 @@ function renderTaskList(){
       <div style="display:flex;align-items:center;justify-content:center;"><button class="status-chip ${showAsDone?'done':'pending'}" data-idx="${idx}"><span class="chip-dot"></span>${showAsDone?'Done':'Pending'}</button></div>
       ${dueCellHtml}
       <div class="task-icons-cell">
-        <div class="notes-indicator ${task.notes?'has-note':''}" data-idx="${idx}" title="${task.notes?'View/edit note':'Add note'}">📝</div>
+        <div class="notes-indicator ${(task.notes||(task.screenshots&&task.screenshots.length))?'has-note':''}" data-idx="${idx}" title="${(task.notes||(task.screenshots&&task.screenshots.length))?'View/edit note':'Add note'}">📝</div>
         <div class="task-deadline-wrap ${dlIconCls}" data-idx="${idx}" title="${dlTitle}">
           <input type="date" class="task-deadline-native" tabindex="-1" value="${task.taskDeadline||''}">
         </div>
@@ -3189,6 +3980,7 @@ function renderTaskList(){
       // Selections are stored by array index, which this reorder invalidates —
       // clear rather than risk the checkbox marking the wrong task as selected.
       selectedTasks.clear();
+      clearSubSelectionsForModel(activeTab);
       if(editingIdx!==null) editingIdx=null;
       save();renderAll();
     });
@@ -3229,11 +4021,262 @@ function renderTaskList(){
         save();renderAll();
         toast(CAL_ICON,`Task deadline ${val?'set':'cleared'}`);
       };
+
+      // Subtask toggle — flips CSS class only, no re-render, so transition plays
+      const toggleEl=row.querySelector('.subtask-toggle-btn');
+      if(toggleEl){
+        toggleEl.addEventListener('click',e=>{
+          e.stopPropagation();
+          const k=toggleEl.dataset.sk;
+          const nowOpen=!expandedSubtasksSet.has(k);
+          if(nowOpen) expandedSubtasksSet.add(k); else expandedSubtasksSet.delete(k);
+          toggleEl.classList.toggle('open',nowOpen);
+          const pw=document.getElementById(subPanelId(k));
+          if(pw) pw.classList.toggle('open',nowOpen);
+        });
+      }
     }
-    return row;
+
+    // ── SUBTASK PANEL — always in DOM, CSS controls open/close ──
+    const panelWrap=document.createElement('div');
+    panelWrap.className='subtask-panel-wrap'+(subOpen?' open':'');
+    panelWrap.id=subPanelId(sk);
+
+    const panelInner=document.createElement('div');
+    panelInner.className='subtask-panel-inner';
+    panelWrap.appendChild(panelInner);
+
+    const panel=document.createElement('div');
+    panel.className='subtask-panel';
+
+    // Title row — includes a "select all" checkbox for this task's subtasks
+    const titleRow=document.createElement('div');
+    titleRow.className='subtask-title-row';
+    const selAllSub=document.createElement('input');
+    selAllSub.type='checkbox'; selAllSub.className='task-checkbox subtask-select-all-chk';
+    selAllSub.title='Select all subtasks';
+    const subKeysForTask=subs.map((_,sIdx)=>subSelKey(activeTab,idx,sIdx));
+    selAllSub.checked=subs.length>0&&subKeysForTask.every(k=>selectedSubtasks.has(k));
+    selAllSub.indeterminate=!selAllSub.checked&&subKeysForTask.some(k=>selectedSubtasks.has(k));
+    selAllSub.onclick=e=>e.stopPropagation();
+    selAllSub.onchange=e=>{
+      if(e.target.checked) subKeysForTask.forEach(k=>selectedSubtasks.add(k));
+      else subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
+      renderTaskList();
+    };
+    const titleEl=document.createElement('span');
+    titleEl.className='subtask-panel-title';
+    titleEl.style.padding='0'; titleEl.style.marginBottom='0';
+    titleEl.textContent=`Subtasks${subsTotal>0?' ('+subsTotal+')':''}`;
+    titleRow.appendChild(selAllSub);
+    titleRow.appendChild(titleEl);
+    panel.appendChild(titleRow);
+
+    // Subtask bulk action bar — mirrors the task-level bulk bar, but scoped
+    // to this task's subtasks only, so selecting subtasks in one panel never
+    // affects another open panel.
+    const selectedHere=subKeysForTask.filter(k=>selectedSubtasks.has(k));
+    if(selectedHere.length>0){
+      const sBar=document.createElement('div');
+      sBar.className='bulk-bar subtask-bulk-bar visible';
+      sBar.innerHTML=`
+        <span class="bulk-count">${selectedHere.length} selected</span>
+        <button class="bulk-btn" data-act="done">Mark Done</button>
+        <button class="bulk-btn" data-act="pending">Mark Pending</button>
+        <button class="bulk-btn bulk-btn-deadline" data-act="deadline">📅 Set Deadline</button>
+        <button class="bulk-btn bulk-btn-priority" data-act="priority">⚑ Set Priority</button>
+        <button class="bulk-btn danger" data-act="delete">Delete Selected</button>
+        <button class="bulk-btn" data-act="clear" style="margin-left:auto;">Clear Selection</button>`;
+      sBar.querySelector('[data-act="done"]').onclick=e=>{
+        e.stopPropagation();
+        selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI])subs[sI].done=true;});
+        subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
+        save();renderAll();toast('✓',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} done`);
+      };
+      sBar.querySelector('[data-act="pending"]').onclick=e=>{
+        e.stopPropagation();
+        selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI])subs[sI].done=false;});
+        subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
+        save();renderAll();toast('↺',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} pending`);
+      };
+      sBar.querySelector('[data-act="delete"]').onclick=async e=>{
+        e.stopPropagation();
+        const n=selectedHere.length;
+        const ok=await showConfirm({title:'Delete selected subtasks?',message:`${n} subtask${n===1?'':'s'} will be moved to the Recycle Bin (kept for 30 days).`,confirmText:`Delete ${n}`,danger:true,icon:'🗑'});
+        if(!ok)return;
+        const parentTaskName=state[activeTab][idx].name;
+        const sIdxs=selectedHere.map(k=>Number(k.split('::')[2])).sort((a,b)=>b-a);
+        sIdxs.forEach(sI=>{ recycleSubtask(activeTab,parentTaskName,subs[sI],sI); subs.splice(sI,1); });
+        clearSubSelectionsForTask(activeTab,idx);
+        save();renderAll();updateRecycleBadge();toast('🗑',`Moved ${n} subtask${n===1?'':'s'} to Recycle Bin`);
+      };
+      sBar.querySelector('[data-act="clear"]').onclick=e=>{e.stopPropagation();subKeysForTask.forEach(k=>selectedSubtasks.delete(k));renderTaskList();};
+      sBar.querySelector('[data-act="deadline"]').onclick=e=>{
+        e.stopPropagation();
+        openSubBulkDeadlineModal(activeTab,idx,selectedHere.map(k=>Number(k.split('::')[2])));
+      };
+      sBar.querySelector('[data-act="priority"]').onclick=e=>{
+        e.stopPropagation();
+        openSubBulkPriorityModal(activeTab,idx,selectedHere.map(k=>Number(k.split('::')[2])));
+      };
+      panel.appendChild(sBar);
+    }
+
+    // Add bar
+    const addBar=document.createElement('div');
+    addBar.className='subtask-add-bar';
+    addBar.innerHTML=`<input class="subtask-add-input" type="text" placeholder="Add a subtask and press Enter…" maxlength="120"><button class="subtask-add-btn">＋ Add</button>`;
+    const addInp=addBar.querySelector('.subtask-add-input');
+    const addBtn=addBar.querySelector('.subtask-add-btn');
+    const doAdd=()=>{ addSubtask(activeTab,idx,addInp.value); };
+    addBtn.onclick=e=>{e.stopPropagation();doAdd();};
+    addInp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doAdd();}});
+    addInp.addEventListener('click',e=>e.stopPropagation());
+    panel.appendChild(addBar);
+
+    // Subtask rows — same 8-column grid as the parent task row, so
+    // Priority/Status/Due/Notes/Actions all line up under the matching
+    // task-table header cells. Numbered "<task#>.<subtask#>", e.g. 1.1, 1.2.
+    const prioMap2={high:'HIGH',med:'MED',low:'LOW'};
+    const prioClass2={high:'prio-high',med:'prio-med',low:'prio-low'};
+    subs.forEach((sub,sIdx)=>{
+      const sRow=document.createElement('div');
+      sRow.className='subtask-row';
+      sRow.draggable=true;
+      const sdl=taskDeadlineLabel(sub.taskDeadline||'');
+      const dlIconCls2=sdl?sdl.cls:'';
+      const dlTitle2=sdl?`Deadline: ${sdl.text}`:'Set subtask deadline';
+
+      // Due column cell — mirrors the parent task's day-count badge
+      let subDueHtml='<div style="display:flex;justify-content:center;align-items:center;">—</div>';
+      if(sub.taskDeadline){
+        const today=new Date(); today.setHours(0,0,0,0);
+        const d=new Date(sub.taskDeadline+'T00:00:00');
+        const diff=Math.round((d-today)/(1000*60*60*24));
+        if(sub.done){
+          subDueHtml=`<div style="display:flex;justify-content:center;align-items:center;"><span class="task-dl-pill due-done" title="Completed · deadline was ${sub.taskDeadline}">Done</span></div>`;
+        } else if(diff<0){
+          subDueHtml=`<div style="display:flex;justify-content:center;align-items:center;"><span class="task-dl-pill overdue" title="Overdue by ${-diff} day${-diff===1?'':'s'}">-${-diff}d</span></div>`;
+        } else if(diff===0){
+          subDueHtml=`<div style="display:flex;justify-content:center;align-items:center;"><span class="task-dl-pill due-today" title="Due today">Today</span></div>`;
+        } else {
+          subDueHtml=`<div style="display:flex;justify-content:center;align-items:center;"><span class="task-dl-pill due-soon" title="Due in ${diff} day${diff===1?'':'s'}">${diff}d</span></div>`;
+        }
+      }
+
+      const selKey=subSelKey(activeTab,idx,sIdx);
+      const isSelected=selectedSubtasks.has(selKey);
+      sRow.innerHTML=`
+        <div class="subtask-num">${task.sn}.${sIdx+1}</div>
+        <div><input type="checkbox" class="task-checkbox subtask-sel-chk" ${isSelected?'checked':''}></div>
+        <div class="subtask-name-cell">
+          <span class="subtask-name${sub.done?' done':''}">${escHtml(sub.name)}</span>
+        </div>
+        <div><button class="priority-badge ${prioClass2[sub.priority||'med']}" title="Click to cycle priority">${prioMap2[sub.priority||'med']}</button></div>
+        <div style="display:flex;align-items:center;justify-content:center;"><button class="status-chip ${sub.done?'done':'pending'}"><span class="chip-dot"></span>${sub.done?'Done':'Pending'}</button></div>
+        ${subDueHtml}
+        <div class="task-icons-cell">
+          <div class="notes-indicator ${(sub.notes||(sub.screenshots&&sub.screenshots.length))?'has-note':''}" title="${(sub.notes||(sub.screenshots&&sub.screenshots.length))?'View/edit note':'Add note'}">📝</div>
+          <div class="task-deadline-wrap ${dlIconCls2}" title="${dlTitle2}">
+            <input type="date" class="task-deadline-native" tabindex="-1" value="${sub.taskDeadline||''}">
+          </div>
+        </div>
+        <div class="row-actions">
+          <button class="row-action-btn edit" title="Rename">✎</button>
+          <button class="row-action-btn move-up" title="Move up" ${sIdx===0?'disabled':''}>↑</button>
+          <button class="row-action-btn move-down" title="Move down" ${sIdx===subs.length-1?'disabled':''}>↓</button>
+          <button class="row-action-btn delete" title="Delete">✕</button>
+        </div>`;
+
+      sRow.querySelector('.subtask-sel-chk').onclick=e=>e.stopPropagation();
+      sRow.querySelector('.subtask-sel-chk').onchange=e=>{
+        if(e.target.checked) selectedSubtasks.add(selKey); else selectedSubtasks.delete(selKey);
+        renderTaskList();
+      };
+      sRow.addEventListener('dragstart',e=>{
+        dragSrcSubCtx={model:activeTab,idx,sIdx};
+        sRow.classList.add('dragging');
+        e.stopPropagation();
+      });
+      sRow.addEventListener('dragend',()=>{
+        sRow.classList.remove('dragging');
+        panel.querySelectorAll('.subtask-row.drag-over').forEach(r=>r.classList.remove('drag-over'));
+      });
+      sRow.addEventListener('dragover',e=>{
+        e.preventDefault();e.stopPropagation();
+        // Only show the drop indicator when dragging within this same task's
+        // subtask list — dropping a subtask onto a different task's panel
+        // (or onto a task row) isn't supported.
+        if(dragSrcSubCtx&&dragSrcSubCtx.model===activeTab&&dragSrcSubCtx.idx===idx) sRow.classList.add('drag-over');
+      });
+      sRow.addEventListener('dragleave',()=>sRow.classList.remove('drag-over'));
+      sRow.addEventListener('drop',e=>{
+        e.preventDefault();e.stopPropagation();
+        sRow.classList.remove('drag-over');
+        if(!dragSrcSubCtx||dragSrcSubCtx.model!==activeTab||dragSrcSubCtx.idx!==idx) return;
+        const fromI=dragSrcSubCtx.sIdx;
+        dragSrcSubCtx=null;
+        if(fromI===sIdx) return;
+        const[moved]=subs.splice(fromI,1);
+        subs.splice(sIdx,0,moved);
+        // Reorder invalidates this task's subtask-index-based selections —
+        // clear them rather than risk acting on the wrong subtask.
+        clearSubSelectionsForTask(activeTab,idx);
+        save();renderAll();
+      });
+      sRow.querySelector('.status-chip').onclick=e=>{e.stopPropagation();toggleSubtask(activeTab,idx,sIdx);};
+      sRow.querySelector('.priority-badge').onclick=e=>{
+        e.stopPropagation();
+        const cyc={high:'low',med:'high',low:'med'};
+        setSubPriority(activeTab,idx,sIdx,cyc[sub.priority||'med']);
+      };
+      sRow.querySelector('.notes-indicator').onclick=e=>{
+        e.stopPropagation();
+        openNotesForObj(sub,()=>{save();renderAll();});
+      };
+      // Deadline
+      const sdlNative=sRow.querySelector('.task-deadline-native');
+      sdlNative.onclick=e=>e.stopPropagation();
+      sdlNative.onchange=e=>{
+        e.stopPropagation(); sub.taskDeadline=e.target.value;
+        save();renderAll(); toast(CAL_ICON,`Subtask deadline ${e.target.value?'set':'cleared'}`);
+      };
+      // Edit inline
+      sRow.querySelector('.row-action-btn.edit').onclick=e=>{
+        e.stopPropagation();
+        const nameEl=sRow.querySelector('.subtask-name');
+        const inp=document.createElement('input');
+        inp.className='subtask-name-edit'; inp.value=sub.name;
+        nameEl.replaceWith(inp);
+        const saveBtn=sRow.querySelector('.row-action-btn.edit');
+        saveBtn.textContent='✓'; saveBtn.classList.replace('edit','save');
+        const cancelBtn=document.createElement('button');
+        cancelBtn.className='row-action-btn cancel'; cancelBtn.textContent='✕';
+        saveBtn.after(cancelBtn);
+        inp.focus(); inp.select();
+        inp.addEventListener('click',e2=>e2.stopPropagation());
+        const commit=()=>renameSubtask(activeTab,idx,sIdx,inp.value);
+        saveBtn.onclick=e2=>{e2.stopPropagation();commit();};
+        cancelBtn.onclick=e2=>{e2.stopPropagation();renderTaskList();};
+        inp.addEventListener('keydown',e2=>{
+          if(e2.key==='Enter'){e2.preventDefault();commit();}
+          if(e2.key==='Escape'){e2.preventDefault();renderTaskList();}
+        });
+      };
+      sRow.querySelector('.row-action-btn.move-up').onclick=e=>{e.stopPropagation();moveSubtask(activeTab,idx,sIdx,-1);};
+      sRow.querySelector('.row-action-btn.move-down').onclick=e=>{e.stopPropagation();moveSubtask(activeTab,idx,sIdx,1);};
+      sRow.querySelector('.row-action-btn.delete').onclick=e=>{e.stopPropagation();deleteSubtask(activeTab,idx,sIdx);};
+      panel.appendChild(sRow);
+    });
+
+    panelInner.appendChild(panel);
+    return {row,panelWrap};
   }
 
-  pendingEntries.forEach(({task,idx})=>tbody.appendChild(buildRow(task,idx)));
+  pendingEntries.forEach(({task,idx})=>{
+    const {row,panelWrap}=buildRow(task,idx);
+    tbody.appendChild(row); tbody.appendChild(panelWrap);
+  });
 
   // ── COMPLETED DIVIDER (collapsible) ──
   // Only shown when there's at least one done task that's currently visible
@@ -3255,7 +4298,10 @@ function renderTaskList(){
   }
 
   if(isExpanded){
-    doneEntries.forEach(({task,idx})=>tbody.appendChild(buildRow(task,idx)));
+    doneEntries.forEach(({task,idx})=>{
+      const {row,panelWrap}=buildRow(task,idx);
+      tbody.appendChild(row); tbody.appendChild(panelWrap);
+    });
   }
 
   if(editingIdx!==null){
@@ -3280,8 +4326,8 @@ function populateCompareSelects(){
   const prevB=compareB||selB.value||(models[1]||models[0]);
   selA.innerHTML=selB.innerHTML='';
   models.forEach(m=>{
-    selA.innerHTML+=`<option value="${m}" ${m===prevA?'selected':''}>${m}</option>`;
-    selB.innerHTML+=`<option value="${m}" ${m===prevB?'selected':''}>${m}</option>`;
+    selA.innerHTML+=`<option value="${escHtml(m)}" ${m===prevA?'selected':''}>${escHtml(m)}</option>`;
+    selB.innerHTML+=`<option value="${escHtml(m)}" ${m===prevB?'selected':''}>${escHtml(m)}</option>`;
   });
   compareA=selA.value; compareB=selB.value;
   if(compareA===compareB&&models.length>1){
@@ -3316,14 +4362,14 @@ function renderCompare(){
     
     const chipA=doneA===null
       ?`<span style="font-size:12px;color:var(--text-muted);">—</span>`
-      :`<button class="status-chip ${doneA?'done':'pending'}" data-model="${mA}" data-name="${name}"><span class="chip-dot"></span>${doneA?'Done':'Pending'}</button>`;
+      :`<button class="status-chip ${doneA?'done':'pending'}" data-model="${escHtml(mA)}" data-name="${escHtml(name)}"><span class="chip-dot"></span>${doneA?'Done':'Pending'}</button>`;
     const chipB=doneB===null
       ?`<span style="font-size:12px;color:var(--text-muted);">—</span>`
-      :`<button class="status-chip ${doneB?'done':'pending'}" data-model="${mB}" data-name="${name}"><span class="chip-dot"></span>${doneB?'Done':'Pending'}</button>`;
+      :`<button class="status-chip ${doneB?'done':'pending'}" data-model="${escHtml(mB)}" data-name="${escHtml(name)}"><span class="chip-dot"></span>${doneB?'Done':'Pending'}</button>`;
 
     row.innerHTML=`
       <div style="font-size:12px;color:var(--text-muted);">${String(idx+1).padStart(2,'0')}</div>
-      <div style="font-size:14px;padding:12px 0;color:var(--text);">${name}</div>
+      <div style="font-size:14px;padding:12px 0;color:var(--text);">${escHtml(name)}</div>
       <div>${chipA}</div>
       <div>${chipB}</div>`;
 
@@ -3422,7 +4468,7 @@ function addTask(model,name,position){
     toast('⚠','This task already exists. Try a different one.',false);
     return;
   }
-  const newTask={sn:tasks.length+1,name:upperName,done:false,priority:'med',notes:'',taskDeadline:''};
+  const newTask={sn:tasks.length+1,name:upperName,done:false,priority:'med',notes:'',taskDeadline:'',screenshots:[]};
   let insertAt=tasks.length;
   if(position!==undefined&&position!==null&&position!==''){
     const p=parseInt(position,10);
@@ -3432,7 +4478,7 @@ function addTask(model,name,position){
   renumber(tasks);
   // Inserting anywhere but the end shifts every later index, which would
   // desync any existing checkbox selections — clear to stay safe.
-  if(insertAt<tasks.length-1){ selectedTasks.clear(); if(editingIdx!==null) editingIdx=null; }
+  if(insertAt<tasks.length-1){ selectedTasks.clear(); clearSubSelectionsForModel(model); if(editingIdx!==null) editingIdx=null; }
   save();renderAll();
   toast('＋',`Task added${insertAt<tasks.length-1?` at #${insertAt+1}`:''}: ${trimmed.slice(0,28)}`);
 }
@@ -3445,9 +4491,10 @@ function renameTask(model,idx,newName){
 }
 async function deleteTask(model,idx){
   const task=state[model][idx];
-  const ok=await showConfirm({title:'Delete task?',message:`"${task.name}" will be permanently removed from this checklist.`,confirmText:'Delete',danger:true,icon:'🗑'});
+  const ok=await showConfirm({title:'Delete task?',message:`"${task.name}" will be moved to the Recycle Bin (kept for 30 days).`,confirmText:'Delete',danger:true,icon:'🗑'});
   if(!ok)return;
   if(pendingDoneTimers.has(task)){ clearTimeout(pendingDoneTimers.get(task)); pendingDoneTimers.delete(task); }
+  recycleTask(model,task,idx);
   state[model].splice(idx,1);renumber(state[model]);
   // Removing a row shifts every later index down by one — rebuild the
   // selection set accordingly instead of just dropping the deleted index,
@@ -3458,12 +4505,13 @@ async function deleteTask(model,idx){
     else if(i>idx) shifted.add(i-1);
   });
   selectedTasks=shifted;
+  clearSubSelectionsForModel(model);
   if(editingIdx!==null){
     if(editingIdx===idx) editingIdx=null;
     else if(editingIdx>idx) editingIdx-=1;
   }
-  save();renderAll();
-  toast('×',`Deleted: ${task.name.slice(0,28)}`);
+  save();renderAll();updateRecycleBadge();
+  toast('🗑',`Moved to Recycle Bin: ${task.name.slice(0,28)}`);
 }
 function moveTask(model,idx,dir){
   const tasks=state[model];
@@ -3482,6 +4530,7 @@ function moveTask(model,idx,dir){
   // Selections are stored by array index, which this reorder invalidates —
   // clear rather than risk the checkbox marking the wrong task as selected.
   selectedTasks.clear();
+  clearSubSelectionsForModel(model);
   if(editingIdx!==null) editingIdx=null;
   save();renderAll();
 }
@@ -3500,7 +4549,7 @@ async function addModel(name,deadline){
   });
 
   state[trimmed]=useDefault
-    ? STANDARD_TASK_TEMPLATE.map((n,i)=>({sn:i+1,name:n,done:false,priority:'med',notes:'',taskDeadline:''}))
+    ? STANDARD_TASK_TEMPLATE.map((n,i)=>({sn:i+1,name:n,done:false,priority:'med',notes:'',taskDeadline:'',screenshots:[]}))
     : [];
   if(deadline)deadlines[trimmed]=deadline;
   deletedModelsSet.delete(trimmed);
@@ -3569,13 +4618,22 @@ function openNotesModal(model,idx){
   const task=state[model][idx];
   document.getElementById('notesTaskName').textContent=task.name;
   document.getElementById('notesTextarea').value=task.notes||'';
+  _notesScreenshots=Array.isArray(task.screenshots)?task.screenshots.map(s=>({...s})):[];
+  renderNotesShotsGallery();
   document.getElementById('notesModal').classList.add('open');
   setTimeout(()=>document.getElementById('notesTextarea').focus(),100);
 }
 document.getElementById('notesSaveBtn').onclick=()=>{
-  const{model,idx}=notesCtx;
-  state[model][idx].notes=document.getElementById('notesTextarea').value.trim();
-  save();renderTaskList();renderModelCards();
+  const text=document.getElementById('notesTextarea').value.trim();
+  const shots=_notesScreenshots;
+  if(_notesObj&&_notesObjCb){
+    _notesObj.notes=text; _notesObj.screenshots=shots; _notesObjCb(); _notesObj=null; _notesObjCb=null;
+  } else {
+    const{model,idx}=notesCtx;
+    state[model][idx].notes=text;
+    state[model][idx].screenshots=shots;
+    save();renderTaskList();renderModelCards();
+  }
   document.getElementById('notesModal').classList.remove('open');
   toast('✎','Note saved');
 };
@@ -3666,6 +4724,7 @@ document.getElementById('bulkMoveTopBtn').onclick=()=>{
   state[activeTab]=[...moving,...remaining];
   renumber(state[activeTab]);
   selectedTasks.clear();moving.forEach((_,i)=>selectedTasks.add(i));
+  clearSubSelectionsForModel(activeTab);
   save();renderAll();
   document.getElementById('bulkMoveDropdown').classList.remove('menu-open');
   toast('↑',`Moved ${moving.length} tasks to top`);
@@ -3680,6 +4739,7 @@ document.getElementById('bulkMoveBottomBtn').onclick=()=>{
   renumber(state[activeTab]);
   const base=remaining.length;
   selectedTasks.clear();moving.forEach((_,i)=>selectedTasks.add(base+i));
+  clearSubSelectionsForModel(activeTab);
   save();renderAll();
   document.getElementById('bulkMoveDropdown').classList.remove('menu-open');
   toast('↓',`Moved ${moving.length} tasks to bottom`);
@@ -3739,6 +4799,8 @@ function moveSelectedTasksToModel(destModel){
   renumber(state[activeTab]);
   renumber(state[destModel]);
   selectedTasks.clear();
+  clearSubSelectionsForModel(activeTab);
+  clearSubSelectionsForModel(destModel);
   if(editingIdx!==null) editingIdx=null;
   save();renderAll();
   document.getElementById('bulkMoveModelModal').classList.remove('open');
@@ -3754,6 +4816,7 @@ function copySelectedTasksToModel(destModel){
   state[destModel]=[...state[destModel],...JSON.parse(JSON.stringify(copying))];
   renumber(state[destModel]);
   selectedTasks.clear();
+  clearSubSelectionsForModel(destModel);
   save();renderAll();
   document.getElementById('bulkMoveModelModal').classList.remove('open');
   toast('⧉',`Copied ${n} task${n===1?'':'s'} to ${destModel}`);
@@ -3765,21 +4828,41 @@ document.getElementById('bulkMoveModelModal').onclick=e=>{
 };
 document.getElementById('bulkDeleteBtn').onclick=async()=>{
   const n=selectedTasks.size;
-  const ok=await showConfirm({title:'Delete selected tasks?',message:`${n} task${n===1?'':'s'} will be permanently removed from this checklist.`,confirmText:`Delete ${n}`,danger:true,icon:'🗑'});
+  const ok=await showConfirm({title:'Delete selected tasks?',message:`${n} task${n===1?'':'s'} will be moved to the Recycle Bin (kept for 30 days).`,confirmText:`Delete ${n}`,danger:true,icon:'🗑'});
   if(!ok)return;
   const idxs=[...selectedTasks].sort((a,b)=>b-a);
-  idxs.forEach(i=>state[activeTab].splice(i,1));
+  idxs.forEach(i=>{ recycleTask(activeTab,state[activeTab][i],i); state[activeTab].splice(i,1); });
   renumber(state[activeTab]);selectedTasks.clear();
+  clearSubSelectionsForModel(activeTab);
   if(editingIdx!==null) editingIdx=null;
-  save();renderAll();
-  toast('×',`Deleted ${n} tasks`);
+  save();renderAll();updateRecycleBadge();
+  toast('🗑',`Moved ${n} task${n===1?'':'s'} to Recycle Bin`);
 };
 document.getElementById('bulkClearBtn').onclick=()=>{selectedTasks.clear();updateBulkBar();renderTaskList();};
 
 // ── BULK SET DEADLINE ─────────────────────────────────────────────────────────
+// bulkModalSubCtx is non-null while the deadline/priority modal is being used
+// for a subtask bulk action ({model, idx, subIdxs}); null means the modal is
+// operating on the task-level selectedTasks set, as before.
+let bulkModalSubCtx=null;
+function openSubBulkDeadlineModal(model,idx,subIdxs){
+  if(!subIdxs.length) return;
+  bulkModalSubCtx={model,idx,subIdxs};
+  const n=subIdxs.length;
+  document.getElementById('bulkDeadlineSubtitle').textContent=
+    `${n} subtask${n===1?'':'s'} selected — pick a date to apply to all of them`;
+  const subs=getSubtasks(model,idx);
+  const dates=subIdxs.map(sI=>(subs[sI]||{}).taskDeadline||'');
+  const common=dates.every(d=>d===dates[0])?dates[0]:'';
+  const picker=document.getElementById('bulkDeadlinePicker');
+  picker.value=common;
+  document.getElementById('bulkDeadlineModal').classList.add('open');
+  setTimeout(()=>{ try{ if(picker.showPicker) picker.showPicker(); else picker.focus(); }catch(e){ picker.focus(); } },320);
+}
 document.getElementById('bulkSetDeadlineBtn').onclick=()=>{
   const n=selectedTasks.size;
   if(!n) return;
+  bulkModalSubCtx=null;
   document.getElementById('bulkDeadlineSubtitle').textContent=
     `${n} task${n===1?'':'s'} selected — pick a date to apply to all of them`;
   // Pre-fill with the common deadline if all selected tasks share one
@@ -3792,6 +4875,18 @@ document.getElementById('bulkSetDeadlineBtn').onclick=()=>{
 };
 document.getElementById('bulkDeadlineSaveBtn').onclick=()=>{
   const val=document.getElementById('bulkDeadlinePicker').value;
+  if(bulkModalSubCtx){
+    const {model,idx,subIdxs}=bulkModalSubCtx;
+    const subs=getSubtasks(model,idx);
+    const n=subIdxs.length;
+    subIdxs.forEach(sI=>{ if(subs[sI]) subs[sI].taskDeadline=val; });
+    clearSubSelectionsForTask(model,idx);
+    save(); renderAll();
+    document.getElementById('bulkDeadlineModal').classList.remove('open');
+    toast(CAL_ICON, val ? `Deadline set for ${n} subtask${n===1?'':'s'}` : `Deadline cleared for ${n} subtask${n===1?'':'s'}`);
+    bulkModalSubCtx=null;
+    return;
+  }
   const n=selectedTasks.size;
   selectedTasks.forEach(i=>{ if(state[activeTab][i]) state[activeTab][i].taskDeadline=val; });
   save(); renderAll();
@@ -3799,27 +4894,63 @@ document.getElementById('bulkDeadlineSaveBtn').onclick=()=>{
   toast(CAL_ICON, val ? `Deadline set for ${n} task${n===1?'':'s'}` : `Deadline cleared for ${n} task${n===1?'':'s'}`);
 };
 document.getElementById('bulkDeadlineClearBtn').onclick=()=>{
+  if(bulkModalSubCtx){
+    const {model,idx,subIdxs}=bulkModalSubCtx;
+    const subs=getSubtasks(model,idx);
+    const n=subIdxs.length;
+    subIdxs.forEach(sI=>{ if(subs[sI]) subs[sI].taskDeadline=''; });
+    clearSubSelectionsForTask(model,idx);
+    save(); renderAll();
+    document.getElementById('bulkDeadlineModal').classList.remove('open');
+    toast(CAL_ICON,`Deadline cleared for ${n} subtask${n===1?'':'s'}`);
+    bulkModalSubCtx=null;
+    return;
+  }
   const n=selectedTasks.size;
   selectedTasks.forEach(i=>{ if(state[activeTab][i]) state[activeTab][i].taskDeadline=''; });
   save(); renderAll();
   document.getElementById('bulkDeadlineModal').classList.remove('open');
   toast(CAL_ICON,`Deadline cleared for ${n} task${n===1?'':'s'}`);
 };
-document.getElementById('bulkDeadlineCancelBtn').onclick=()=>document.getElementById('bulkDeadlineModal').classList.remove('open');
+document.getElementById('bulkDeadlineCancelBtn').onclick=()=>{bulkModalSubCtx=null;document.getElementById('bulkDeadlineModal').classList.remove('open');};
 document.getElementById('bulkDeadlineModal').onclick=e=>{
-  if(e.target===document.getElementById('bulkDeadlineModal'))
+  if(e.target===document.getElementById('bulkDeadlineModal')){
+    bulkModalSubCtx=null;
     document.getElementById('bulkDeadlineModal').classList.remove('open');
+  }
 };
 
 // ── BULK SET PRIORITY ─────────────────────────────────────────────────────────
+function openSubBulkPriorityModal(model,idx,subIdxs){
+  if(!subIdxs.length) return;
+  bulkModalSubCtx={model,idx,subIdxs};
+  const n=subIdxs.length;
+  document.getElementById('bulkPrioritySubtitle').textContent=
+    `${n} subtask${n===1?'':'s'} selected — choose a priority to apply to all of them`;
+  document.getElementById('bulkPriorityModal').classList.add('open');
+}
 document.getElementById('bulkSetPriorityBtn').onclick=()=>{
   const n=selectedTasks.size;
   if(!n) return;
+  bulkModalSubCtx=null;
   document.getElementById('bulkPrioritySubtitle').textContent=
     `${n} task${n===1?'':'s'} selected — choose a priority to apply to all of them`;
   document.getElementById('bulkPriorityModal').classList.add('open');
 };
 function applyBulkPriority(level){
+  if(bulkModalSubCtx){
+    const {model,idx,subIdxs}=bulkModalSubCtx;
+    const subs=getSubtasks(model,idx);
+    const n=subIdxs.length;
+    subIdxs.forEach(sI=>{ if(subs[sI]) subs[sI].priority=level; });
+    clearSubSelectionsForTask(model,idx);
+    save(); renderAll();
+    document.getElementById('bulkPriorityModal').classList.remove('open');
+    const label={high:'High',med:'Medium',low:'Low'}[level];
+    toast('⚑',`Priority set to ${label} for ${n} subtask${n===1?'':'s'}`);
+    bulkModalSubCtx=null;
+    return;
+  }
   const n=selectedTasks.size;
   selectedTasks.forEach(i=>{ if(state[activeTab][i]) state[activeTab][i].priority=level; });
   save(); renderAll();
@@ -3830,10 +4961,12 @@ function applyBulkPriority(level){
 document.getElementById('bulkPrioHigh').onclick=()=>applyBulkPriority('high');
 document.getElementById('bulkPrioMed').onclick=()=>applyBulkPriority('med');
 document.getElementById('bulkPrioLow').onclick=()=>applyBulkPriority('low');
-document.getElementById('bulkPriorityCancelBtn').onclick=()=>document.getElementById('bulkPriorityModal').classList.remove('open');
+document.getElementById('bulkPriorityCancelBtn').onclick=()=>{bulkModalSubCtx=null;document.getElementById('bulkPriorityModal').classList.remove('open');};
 document.getElementById('bulkPriorityModal').onclick=e=>{
-  if(e.target===document.getElementById('bulkPriorityModal'))
+  if(e.target===document.getElementById('bulkPriorityModal')){
+    bulkModalSubCtx=null;
     document.getElementById('bulkPriorityModal').classList.remove('open');
+  }
 };
 document.getElementById('selectAllChk').onchange=e=>{
   const tasks=state[activeTab];
@@ -4073,15 +5206,37 @@ document.getElementById('importExcelFile').onchange=async e=>{
   e.target.value='';
 };
 
-// ── THEME TOGGLE ──────────────────────────────────────────────────────────────
-const themeBtn=document.getElementById('themeToggleBtn');
+// ── THEME PICKER ──────────────────────────────────────────────────────────────
+const THEME_ICONS={dark:'✧',light:'✦',midnight:'☾'};
+function applyTheme(theme){
+  if(theme==='dark') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme',theme);
+  document.getElementById('themeToggleBtn').innerHTML=
+    `${THEME_ICONS[theme]||'✧'} <span>Theme</span> <span class="hdr-btn-caret">▾</span>`;
+  document.querySelectorAll('.theme-menu-item').forEach(btn=>{
+    btn.classList.toggle('theme-active',btn.dataset.themeVal===theme);
+  });
+  localStorage.setItem('mlc_theme_premium',theme);
+}
 const savedTheme=localStorage.getItem('mlc_theme_premium')||'dark';
-if(savedTheme==='light'){document.documentElement.setAttribute('data-theme','light');themeBtn.innerHTML='✦ <span>Theme</span>';}
-themeBtn.onclick=()=>{
-  const isLight=document.documentElement.getAttribute('data-theme')==='light';
-  if(isLight){document.documentElement.removeAttribute('data-theme');themeBtn.innerHTML='✧ <span>Theme</span>';localStorage.setItem('mlc_theme_premium','dark');}
-  else{document.documentElement.setAttribute('data-theme','light');themeBtn.innerHTML='✦ <span>Theme</span>';localStorage.setItem('mlc_theme_premium','light');}
-};
+applyTheme(['dark','light','midnight'].includes(savedTheme)?savedTheme:'dark');
+document.querySelectorAll('.theme-menu-item').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    applyTheme(btn.dataset.themeVal);
+    document.getElementById('themeDropdown').classList.remove('menu-open');
+  });
+});
+// Theme dropdown: hover reveals the menu on desktop. On touch devices
+// (no real hover), tap the Theme button to toggle it instead — same
+// convention as the Export dropdowns above.
+document.getElementById('themeToggleBtn').addEventListener('click',(e)=>{
+  if(window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  e.stopPropagation();
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  document.getElementById('themeDropdown').classList.toggle('menu-open');
+});
 
 // ── FILTER & SEARCH ───────────────────────────────────────────────────────────
 document.querySelectorAll('.filter-btn').forEach(btn=>{
@@ -4141,10 +5296,17 @@ document.addEventListener('keydown',e=>{
     undo();
     return;
   }
+  if((e.ctrlKey||e.metaKey)&&(e.key.toLowerCase()==='y'||(e.key.toLowerCase()==='z'&&e.shiftKey))){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+    e.preventDefault();
+    redo();
+    return;
+  }
   if(e.key==='Escape'){
     document.getElementById('searchBox').value='';
     searchQuery='';
     selectedTasks.clear();
+    selectedSubtasks.clear();
     updateBulkBar();
     renderTaskList();
     document.getElementById('notesModal').classList.remove('open');
@@ -4272,8 +5434,9 @@ function toast(icon,msg,showUndo){
 
 // ── RENDER ALL ────────────────────────────────────────────────────────────────
 function renderAll(){
-  renderKPIs();renderModelCards();renderTabs();renderTaskList();updateBulkBar();updateArchiveBadge();
+  renderKPIs();renderModelCards();renderTabs();renderTaskList();updateBulkBar();updateArchiveBadge();updateRecycleBadge();
   if(archiveViewActive) renderArchiveView();
+  if(recycleViewActive) renderRecycleView();
 }
 
 // ── FRESH START ───────────────────────────────────────────────────────────────
@@ -4293,11 +5456,15 @@ async function freshStart(){
   deadlines = {};
   deletedModelsSet = new Set();
   archivedModelsSet = new Set();
+  recycleBin = {};
   modelOrder = [];
   activeTab = '';
   selectedTasks.clear();
+  selectedSubtasks.clear();
+  expandedSubtasksSet.clear();
   editingIdx = null;
   setArchiveView(false);
+  setRecycleView(false);
   refreshModelsList();
   resetUndo();
 
@@ -4311,6 +5478,7 @@ async function freshStart(){
         deletedModels: [],
         archivedModels: [],
         modelOrder: [],
+        recycleBin: {},
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     } catch(e){ console.error('Fresh start save error:',e); }
