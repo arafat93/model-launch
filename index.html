@@ -497,6 +497,31 @@ footer {
 .model-card.theme-3::after { background: radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, transparent 70%); }
 
 .model-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.model-header-main { display: flex; align-items: flex-start; gap: 14px; min-width: 0; flex: 1; }
+.model-thumb-wrap { position: relative; flex-shrink: 0; width: 56px; height: 56px; }
+.model-thumb {
+  position: relative; width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
+  overflow: hidden; background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.model-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.model-thumb .model-thumb-icon { color: var(--text-muted); opacity: 0.5; }
+.model-thumb .model-thumb-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.18s; color: #fff; font-size: 15px;
+}
+.model-thumb:hover .model-thumb-overlay { opacity: 1; }
+.model-thumb-remove {
+  position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--red); color: #fff; border: 2px solid var(--surface); font-size: 11px;
+  line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer;
+  opacity: 0; transition: opacity 0.18s, transform 0.18s; z-index: 3; padding: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+.model-card:hover .model-thumb-remove { opacity: 1; }
+.model-thumb-remove:hover { transform: scale(1.12); }
+.model-thumb-input { display: none; }
 .model-name { font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
 .model-deadline { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; align-items: center; gap: 6px; font-weight: 400; }
 .model-deadline-btn {
@@ -519,6 +544,15 @@ footer {
 .model-deadline-btn.overdue { color: var(--red); }
 .model-deadline-btn.warning { color: var(--yellow); }
 .model-deadline-btn.ok { color: var(--green); }
+.model-deadline-row {
+  display: flex; align-items: center; gap: 4px; flex-wrap: nowrap;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none;
+}
+.model-deadline-row::-webkit-scrollbar { display: none; }
+.model-deadline-row .model-deadline-btn { flex-shrink: 0; }
+.model-card-actions-row { display: flex; align-items: center; margin-top: 6px; }
+.model-card-action-btn { opacity: 0; transition: opacity 0.2s ease; }
+.model-card:hover .model-card-action-btn { opacity: 1; }
 .deadline-overdue { color: var(--red) !important; font-weight: 500; }
 .deadline-soon { color: var(--yellow) !important; font-weight: 500; }
 .deadline-ok { color: var(--green) !important; }
@@ -1292,6 +1326,9 @@ footer {
   display: flex; flex-wrap: wrap; gap: 10px;
 }
 .notes-shots-gallery:empty { display: none; }
+.notes-shot-item {
+  display: flex; flex-direction: column; gap: 5px; width: 84px; flex-shrink: 0;
+}
 .notes-shot-thumb {
   position: relative; width: 84px; height: 84px; border-radius: 10px;
   overflow: hidden; border: 1px solid var(--border); cursor: pointer;
@@ -1306,6 +1343,15 @@ footer {
   align-items: center; justify-content: center; transition: background 0.2s ease;
 }
 .notes-shot-remove:hover { background: var(--red); }
+.notes-shot-title-input {
+  width: 84px; box-sizing: border-box; font-family: inherit; font-size: 11px;
+  padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); text-align: center;
+  resize: none; overflow: hidden; line-height: 1.35; word-break: break-word;
+  white-space: pre-wrap; min-height: 24px;
+}
+.notes-shot-title-input:focus { outline: none; border-color: var(--accent1); }
+.notes-shot-title-input::placeholder { color: var(--text-muted); }
 .notes-shots-empty { font-size: 12px; color: var(--text-muted); font-weight: 300; font-style: italic; }
 .notes-shots-empty.hide { display: none; }
 .notes-shots-dropzone-active { outline: 2px dashed var(--accent1); outline-offset: 4px; border-radius: 12px; }
@@ -2345,6 +2391,7 @@ document.addEventListener('keydown', e => {
 <div class="modal-overlay" id="shotLightbox" style="z-index:260;">
   <div class="shot-lightbox-inner">
     <img id="shotLightboxImg" src="" alt="Screenshot preview">
+    <div id="shotLightboxTitle" style="display:none;position:absolute;left:0;right:0;bottom:0;padding:10px 16px;background:rgba(0,0,0,0.65);color:#fff;font-size:14px;font-weight:600;border-radius:0 0 12px 12px;text-align:center;"></div>
     <button type="button" class="shot-lightbox-close" id="shotLightboxClose" title="Close">✕</button>
   </div>
 </div>
@@ -2761,6 +2808,7 @@ function save(){
       await getUserDoc(auth.currentUser.uid).set({
         tasks:state,
         deadlines,
+        modelImages,
         deletedModels:[...deletedModelsSet],
         archivedModels:[...archivedModelsSet],
         modelOrder:[...modelOrder],
@@ -2785,6 +2833,7 @@ function snapshotNow(){
   return {
     state:JSON.parse(JSON.stringify(state)),
     deadlines:JSON.parse(JSON.stringify(deadlines)),
+    modelImages:JSON.parse(JSON.stringify(modelImages)),
     deletedModels:[...deletedModelsSet],
     archivedModels:[...archivedModelsSet],
     modelOrder:[...modelOrder],
@@ -2825,6 +2874,7 @@ function undo(){
   if(redoStack.length>UNDO_LIMIT) redoStack.shift();
   state=prev.state;
   deadlines=prev.deadlines;
+  modelImages=prev.modelImages||modelImages;
   deletedModelsSet=new Set(prev.deletedModels);
   archivedModelsSet=new Set(prev.archivedModels||[]);
   recycleBin=prev.recycleBin||{};
@@ -2846,7 +2896,7 @@ function undo(){
     saveTimer=setTimeout(async()=>{
       try{
         await getUserDoc(auth.currentUser.uid).set({
-          tasks:state,deadlines,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
+          tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         });
       }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
@@ -2864,6 +2914,7 @@ function redo(){
   if(undoStack.length>UNDO_LIMIT) undoStack.shift();
   state=next.state;
   deadlines=next.deadlines;
+  modelImages=next.modelImages||modelImages;
   deletedModelsSet=new Set(next.deletedModels);
   archivedModelsSet=new Set(next.archivedModels||[]);
   recycleBin=next.recycleBin||{};
@@ -2880,7 +2931,7 @@ function redo(){
     saveTimer=setTimeout(async()=>{
       try{
         await getUserDoc(auth.currentUser.uid).set({
-          tasks:state,deadlines,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
+          tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         });
       }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
@@ -2936,6 +2987,7 @@ function recycleModel(name){
     name,
     tasks:JSON.parse(JSON.stringify(state[name]||[])),
     deadline:deadlines[name]||null,
+    image:modelImages[name]||null,
     orderIdx:modelOrder.indexOf(name),
     wasArchived:archivedModelsSet.has(name),
     deletedAt:Date.now()
@@ -2963,6 +3015,7 @@ function enterPreviewMode(){
   deletedModelsSet = new Set();
   archivedModelsSet = new Set();
   recycleBin = {};
+  modelImages = {};
   setArchiveView(false);
   setRecycleView(false);
   ({tasks: state, deadlines} = loadState(null));
@@ -3003,6 +3056,7 @@ async function handleAuthState(user){
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
     modelOrder=saved?.modelOrder||[];
+    modelImages=saved?.modelImages||{};
     recycleBin=saved?.recycleBin||{};
     const expiredPurged=purgeExpiredRecycleItems();
     setArchiveView(false);
@@ -3027,7 +3081,7 @@ async function handleAuthState(user){
       saveTimer=setTimeout(async()=>{
         try{
           await getUserDoc(auth.currentUser.uid).set({
-            tasks:state,deadlines,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
+            tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
             updatedAt:firebase.firestore.FieldValue.serverTimestamp()
           });
         }catch(e){ console.error('Save error:',e); }
@@ -3191,6 +3245,7 @@ function renumber(tasks){tasks.forEach((t,i)=>{t.sn=i+1;});}
 // State initialized by onAuthStateChanged after login
 let state = {};
 let deadlines = {};
+let modelImages = {};
 let models = [];
 let activeTab = '';
 let activeFilter = 'all';
@@ -3475,8 +3530,12 @@ async function addScreenshotFiles(files){
     }
     try{
       const dataUrl=await compressImageFile(file);
-      _notesScreenshots.push({id:'shot_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),dataUrl});
+      const newId='shot_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+      _notesScreenshots.push({id:newId,dataUrl,title:''});
       renderNotesShotsGallery();
+      // Focus the title field for the image just added so the user can name it right away.
+      const newInput=document.querySelector(`.notes-shot-title-input[data-id="${newId}"]`);
+      if(newInput) setTimeout(()=>newInput.focus(),0);
     }catch(e){ toast('⚠','Could not add image',false); }
   }
 }
@@ -3487,22 +3546,43 @@ function renderNotesShotsGallery(){
   if(!gallery) return;
   gallery.innerHTML='';
   _notesScreenshots.forEach(shot=>{
+    const item=document.createElement('div');
+    item.className='notes-shot-item';
     const thumb=document.createElement('div');
     thumb.className='notes-shot-thumb';
-    thumb.innerHTML=`<img src="${shot.dataUrl}" alt="Screenshot"><button type="button" class="notes-shot-remove" title="Remove">✕</button>`;
-    thumb.querySelector('img').addEventListener('click',()=>openShotLightbox(shot.dataUrl));
+    thumb.innerHTML=`<img src="${shot.dataUrl}" alt="${_printEsc(shot.title||'Screenshot')}"><button type="button" class="notes-shot-remove" title="Remove">✕</button>`;
+    thumb.querySelector('img').addEventListener('click',()=>openShotLightbox(shot.dataUrl,shot.title));
     thumb.querySelector('.notes-shot-remove').addEventListener('click',e=>{
       e.stopPropagation();
       _notesScreenshots=_notesScreenshots.filter(s=>s.id!==shot.id);
       renderNotesShotsGallery();
     });
-    gallery.appendChild(thumb);
+    const titleInput=document.createElement('textarea');
+    titleInput.className='notes-shot-title-input';
+    titleInput.placeholder='Add title…';
+    titleInput.maxLength=60;
+    titleInput.rows=1;
+    titleInput.value=shot.title||'';
+    titleInput.dataset.id=shot.id;
+    const autoGrow=()=>{ titleInput.style.height='auto'; titleInput.style.height=titleInput.scrollHeight+'px'; };
+    titleInput.addEventListener('input',()=>{
+      const s=_notesScreenshots.find(s=>s.id===shot.id);
+      if(s) s.title=titleInput.value;
+      autoGrow();
+    });
+    item.appendChild(thumb);
+    item.appendChild(titleInput);
+    gallery.appendChild(item);
+    autoGrow();
   });
   empty.classList.toggle('hide',_notesScreenshots.length>0);
 }
 
-function openShotLightbox(dataUrl){
+function openShotLightbox(dataUrl,title){
   document.getElementById('shotLightboxImg').src=dataUrl;
+  const titleEl=document.getElementById('shotLightboxTitle');
+  if(title){ titleEl.textContent=title; titleEl.style.display='block'; }
+  else{ titleEl.textContent=''; titleEl.style.display='none'; }
   document.getElementById('shotLightbox').classList.add('open');
 }
 document.getElementById('shotLightboxClose').onclick=()=>document.getElementById('shotLightbox').classList.remove('open');
@@ -3561,9 +3641,26 @@ function renderModelCards(){
     card.draggable=true;
     card.dataset.model=m;
     const dl=deadlineLabel(m);
+    const actionBtnsHtml=`
+        <div class="model-card-actions-row">
+          <button class="row-action-btn edit model-card-action-btn model-rename-btn" title="Rename model" style="width:26px;height:26px;font-size:13px;" data-model="${m}">✎</button>
+          <button class="row-action-btn edit model-card-action-btn model-duplicate-btn" title="Duplicate model" style="width:26px;height:26px;font-size:13px;margin-left:-2px;" data-model="${m}">⧉</button>
+          <button class="row-action-btn archive model-card-action-btn model-archive-btn" title="Archive model" style="width:26px;height:26px;font-size:13px;margin-left:4px;" data-model="${m}">🗄</button>
+          <button class="row-action-btn delete model-card-action-btn model-delete-btn" title="Delete model" style="width:26px;height:26px;font-size:13px;margin-left:2px;" data-model="${m}">🗑</button>
+        </div>`;
     const dlHtml=dl
-      ?`<div class="model-deadline model-deadline-btn ${dl.cls}" style="position:relative;display:inline-flex;align-items:center;gap:6px;">${CAL_ICON} ${dl.text} <span class="model-deadline-edit-hint">✎</span><input type="date" class="model-deadline-native-input task-deadline-native" value="${deadlines[m]||''}" tabindex="-1" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none;border:none;background:transparent;margin:0;padding:0;"></div>`
-      :`<div class="model-deadline model-deadline-btn model-deadline-unset" style="position:relative;display:inline-flex;align-items:center;gap:6px;">${CAL_ICON} Set deadline <span class="model-deadline-edit-hint">✎</span><input type="date" class="model-deadline-native-input task-deadline-native" value="" tabindex="-1" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none;border:none;background:transparent;margin:0;padding:0;"></div>`;
+      ?`<div>
+          <div class="model-deadline-row">
+            <div class="model-deadline model-deadline-btn ${dl.cls}" style="position:relative;display:inline-flex;align-items:center;gap:6px;">${CAL_ICON} ${dl.text} <span class="model-deadline-edit-hint">✎</span><input type="date" class="model-deadline-native-input task-deadline-native" value="${deadlines[m]||''}" tabindex="-1" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none;border:none;background:transparent;margin:0;padding:0;"></div>
+          </div>
+          ${actionBtnsHtml}
+        </div>`
+      :`<div>
+          <div class="model-deadline-row">
+            <div class="model-deadline model-deadline-btn model-deadline-unset" style="position:relative;display:inline-flex;align-items:center;gap:6px;">${CAL_ICON} Set deadline <span class="model-deadline-edit-hint">✎</span><input type="date" class="model-deadline-native-input task-deadline-native" value="" tabindex="-1" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none;border:none;background:transparent;margin:0;padding:0;"></div>
+          </div>
+          ${actionBtnsHtml}
+        </div>`;
 
     const isRenaming=renamingModel===m;
     const nameHtml=isRenaming
@@ -3572,19 +3669,28 @@ function renderModelCards(){
           <button class="row-action-btn save model-rename-save" title="Save" style="flex-shrink:0;">✓</button>
           <button class="row-action-btn cancel model-rename-cancel" title="Cancel" style="flex-shrink:0;">✕</button>
         </div>`
-      :`<div style="display:flex;align-items:center;gap:8px;">
-          <div class="model-name">${escHtml(m)}</div>
-          <button class="row-action-btn edit model-rename-btn" title="Rename model" style="width:26px;height:26px;font-size:13px;opacity:0;transition:opacity 0.2s;" data-model="${m}">✎</button>
-          <button class="row-action-btn edit model-duplicate-btn" title="Duplicate model" style="width:26px;height:26px;font-size:13px;opacity:0;transition:opacity 0.2s;" data-model="${m}">⧉</button>
-          <button class="row-action-btn archive model-archive-btn" title="Archive model" style="width:26px;height:26px;font-size:13px;opacity:0;transition:opacity 0.2s;" data-model="${m}">🗄</button>
-          <button class="row-action-btn delete model-delete-btn" title="Delete model" style="width:26px;height:26px;font-size:13px;opacity:0;transition:opacity 0.2s;" data-model="${m}">🗑</button>
-        </div>`;
+      :`<div class="model-name">${escHtml(m)}</div>`;
+
+
+    const img=modelImages[m];
+    const thumbHtml=`
+      <div class="model-thumb-wrap">
+        <div class="model-thumb model-thumb-btn" title="${img?'Change photo':'Add photo'}" data-model="${m}">
+          ${img?`<img src="${img}" alt="">`:`<svg class="model-thumb-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10.5" r="2"/><path d="M21 15l-4.5-4.5a2 2 0 0 0-2.8 0L5 19"/></svg>`}
+          <div class="model-thumb-overlay">${img?'✎':'＋'}</div>
+          <input type="file" accept="image/*" class="model-thumb-input" data-model="${m}">
+        </div>
+        ${img?`<button class="model-thumb-remove" title="Remove photo" data-model="${m}">✕</button>`:''}
+      </div>`;
 
     card.innerHTML=`
       <div class="model-header">
-        <div style="min-width:0;flex:1;">
-          ${nameHtml}
-          ${dlHtml}
+        <div class="model-header-main">
+          ${thumbHtml}
+          <div style="min-width:0;flex:1;">
+            ${nameHtml}
+            ${dlHtml}
+          </div>
         </div>
         <div class="model-tag">${lbl}</div>
       </div>
@@ -3597,6 +3703,38 @@ function renderModelCards(){
         <div class="stat-item"><div class="stat-num pend-val">${s.pending}</div><div class="stat-lbl">PENDING</div></div>
         <div class="stat-item"><div class="stat-num" style="color:var(--text-muted)">${s.total}</div><div class="stat-lbl">TOTAL</div></div>
       </div>`;
+
+    // Model photo: click thumbnail to pick a file, resized/compressed client-side
+    const thumbBtn=card.querySelector('.model-thumb-btn');
+    const thumbInput=card.querySelector('.model-thumb-input');
+    if(thumbBtn && thumbInput){
+      thumbBtn.addEventListener('click',e=>{ e.stopPropagation(); thumbInput.click(); });
+      thumbInput.addEventListener('click',e=>e.stopPropagation());
+      thumbInput.addEventListener('change',async e=>{
+        e.stopPropagation();
+        const file=e.target.files && e.target.files[0];
+        if(!file) return;
+        if(!file.type.startsWith('image/')){ toast('⚠','Please choose an image file',false); return; }
+        try{
+          const dataUrl=await resizeImageFile(file,320,320,0.75);
+          modelImages[m]=dataUrl;
+          save();renderModelCards();
+          toast('🖼','Photo updated');
+        }catch(err){
+          console.error('Image resize error:',err);
+          toast('⚠','Could not process that image',false);
+        }
+      });
+    }
+    const thumbRemoveBtn=card.querySelector('.model-thumb-remove');
+    if(thumbRemoveBtn){
+      thumbRemoveBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        delete modelImages[m];
+        save();renderModelCards();
+        toast('🗑','Photo removed',false);
+      });
+    }
 
     // Deadline: native date input overlay — no modal, opens picker directly on click
     const dlNativeInput=card.querySelector('.model-deadline-native-input');
@@ -3611,28 +3749,6 @@ function renderModelCards(){
         toast(CAL_ICON,`Model deadline ${val?'set':'cleared'}`);
       });
     }
-
-    // Show/hide rename + duplicate + archive + delete icons on hover
-    card.addEventListener('mouseenter',()=>{
-      const btn=card.querySelector('.model-rename-btn');
-      if(btn) btn.style.opacity='1';
-      const dupBtn=card.querySelector('.model-duplicate-btn');
-      if(dupBtn) dupBtn.style.opacity='1';
-      const archBtn=card.querySelector('.model-archive-btn');
-      if(archBtn) archBtn.style.opacity='1';
-      const delBtn=card.querySelector('.model-delete-btn');
-      if(delBtn) delBtn.style.opacity='1';
-    });
-    card.addEventListener('mouseleave',()=>{
-      const btn=card.querySelector('.model-rename-btn');
-      if(btn) btn.style.opacity='0';
-      const dupBtn=card.querySelector('.model-duplicate-btn');
-      if(dupBtn) dupBtn.style.opacity='0';
-      const archBtn=card.querySelector('.model-archive-btn');
-      if(archBtn) archBtn.style.opacity='0';
-      const delBtn=card.querySelector('.model-delete-btn');
-      if(delBtn) delBtn.style.opacity='0';
-    });
 
     // Rename button click
     const renameBtn=card.querySelector('.model-rename-btn');
@@ -3719,16 +3835,15 @@ function renderModelCards(){
       e.preventDefault();
       card.classList.remove('drag-over');
       if(!_cardDragSrc || _cardDragSrc===m) return;
-      // Swap positions in models array
+      // Swap positions in models array — a direct exchange, not a remove/
+      // reinsert. (A remove-then-insert approach has a quirk: dragging a
+      // card onto its immediate next neighbor computes an insert index that
+      // lands it right back where it started, so nothing visibly moves. A
+      // straight swap has no such blind spot in either direction.)
       const fromIdx=models.indexOf(_cardDragSrc);
       const toIdx=models.indexOf(m);
       if(fromIdx<0||toIdx<0) return;
-      models.splice(fromIdx,1);
-      // Removing the source shifts everything after it left by one, so when
-      // dragging forward (toIdx was after fromIdx) the insert index needs to
-      // shift back by one to land exactly on the drop target's old slot.
-      const insertIdx=toIdx>fromIdx?toIdx-1:toIdx;
-      models.splice(insertIdx,0,_cardDragSrc);
+      [models[fromIdx],models[toIdx]]=[models[toIdx],models[fromIdx]];
       modelOrder=[...models];
       _cardDragSrc=null;
       save(); // persist the new card order
@@ -3811,10 +3926,17 @@ function renderArchiveView(){
     const dl=deadlineLabel(m);
     const dlHtml=dl?`<button class="model-deadline model-deadline-btn ${dl.cls}" onclick="event.stopPropagation()">${CAL_ICON} ${dl.text}</button>`
       :`<div class="model-deadline">${CAL_ICON} No deadline</div>`;
+    const archImg=modelImages[m];
+    const archThumbHtml=`<div class="model-thumb" style="cursor:default;">
+        ${archImg?`<img src="${archImg}" alt="">`:`<svg class="model-thumb-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10.5" r="2"/><path d="M21 15l-4.5-4.5a2 2 0 0 0-2.8 0L5 19"/></svg>`}
+      </div>`;
     card.innerHTML=`
       <div class="model-header">
-        <div>
-          <div class="model-name">${escHtml(m)}</div>
+        <div class="model-header-main">
+          ${archThumbHtml}
+          <div>
+            <div class="model-name">${escHtml(m)}</div>
+          </div>
         </div>
         <div class="model-tag">ARCHIVED</div>
       </div>
@@ -3974,6 +4096,7 @@ function restoreRecycledItem(bucket,i){
     // Restore full model state & deadline
     state[name]=JSON.parse(JSON.stringify(entry.tasks||[]));
     if(entry.deadline) deadlines[name]=entry.deadline;
+    if(entry.image) modelImages[name]=entry.image;
     // Re-insert into modelOrder at original position (clamped)
     const insertAt=Math.max(0,Math.min(typeof entry.orderIdx==='number'?entry.orderIdx:modelOrder.length,modelOrder.length));
     modelOrder.splice(insertAt,0,name);
@@ -4059,6 +4182,34 @@ function scrollToTaskChecklist(){
   if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+// ── MODEL PHOTO HELPERS ──────────────────────────────────────────────────────
+// Resizes/compresses an image file client-side (down to at most maxW×maxH,
+// preserving aspect ratio) before storing it as a base64 data URL. Keeps
+// per-model photos small so the Firestore doc (1MB limit) has room for many
+// models' worth of images alongside tasks/deadlines.
+function resizeImageFile(file,maxW,maxH,quality){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('read failed'));
+    reader.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('decode failed'));
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        const ratio=Math.min(1,maxW/w,maxH/h);
+        w=Math.round(w*ratio);h=Math.round(h*ratio);
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // ── PDF / PRINT EXPORT ───────────────────────────────────────────────────────
 function escHtml(s){
   return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -4082,7 +4233,7 @@ function _buildModelPrintSection(modelName){
       : '—';
     const shots=Array.isArray(t.screenshots)?t.screenshots:[];
     const shotsHtml=shots.length
-      ? `<div class="pt-shots-row">${shots.map(s=>`<img src="${s.dataUrl}" alt="">`).join('')}</div>`
+      ? `<div class="pt-shots-row">${shots.map(s=>`<img src="${s.dataUrl}" alt="${_printEsc(s.title||'')}" title="${_printEsc(s.title||'')}">`).join('')}</div>`
       : '';
     return `<tr class="${t.done?'pt-done':''}${overdue?' pt-overdue':''}">
       <td class="pt-sn">${t.sn}</td>
@@ -5053,6 +5204,7 @@ async function duplicateModel(name){
   // Deep-clone tasks so edits to the copy never touch the original.
   state[copyName]=JSON.parse(JSON.stringify(state[name]||[]));
   if(deadlines[name]) deadlines[copyName]=deadlines[name];
+  if(modelImages[name]) modelImages[copyName]=modelImages[name];
   deletedModelsSet.delete(copyName);
   // Place the duplicate right after the source model in the order list.
   const srcIdx=modelOrder.indexOf(name);
@@ -5069,7 +5221,7 @@ async function deleteModel(name){
   clearPendingTimersForModel(name);
   // Soft-delete: save the whole model into the recycle bin before wiping it
   recycleModel(name);
-  delete state[name];delete deadlines[name];
+  delete state[name];delete deadlines[name];delete modelImages[name];
   archivedModelsSet.delete(name);
   if(name in INITIAL_DATA) deletedModelsSet.add(name);
   refreshModelsList();if(activeTab===name){ activeTab=models[0]||''; localStorage.setItem('mlc_activeTab',activeTab); }
@@ -5089,6 +5241,7 @@ async function renameModel(oldName, newName){
   // Migrate state, deadlines, model order
   state[trimmed]=state[oldName]; delete state[oldName];
   if(deadlines[oldName]){ deadlines[trimmed]=deadlines[oldName]; delete deadlines[oldName]; }
+  if(modelImages[oldName]){ modelImages[trimmed]=modelImages[oldName]; delete modelImages[oldName]; }
   if(archivedModelsSet.has(oldName)){ archivedModelsSet.delete(oldName); archivedModelsSet.add(trimmed); }
   if(deletedModelsSet.has(oldName)){ deletedModelsSet.delete(oldName); }
   const oi=modelOrder.indexOf(oldName); if(oi>=0) modelOrder[oi]=trimmed;
@@ -5101,6 +5254,7 @@ async function renameModel(oldName, newName){
 // ── NOTES & DEADLINE MODALS ───────────────────────────────────────────────────
 let notesCtx={model:null,idx:null};
 function openNotesModal(model,idx){
+  _notesObj=null; _notesObjCb=null;
   notesCtx={model,idx};
   const task=state[model][idx];
   document.getElementById('notesTaskName').textContent=task.name;
@@ -5109,6 +5263,15 @@ function openNotesModal(model,idx){
   renderNotesShotsGallery();
   document.getElementById('notesModal').classList.add('open');
   setTimeout(()=>document.getElementById('notesTextarea').focus(),100);
+}
+// Closes the Notes modal AND clears the pending subtask reference (_notesObj/
+// _notesObjCb). Without this, cancelling out of a subtask's notes leaves that
+// reference set, and the next task-notes save would get silently written into
+// the old subtask instead of the intended task. Always use this to dismiss the
+// modal (Cancel, outside-click, Escape) unless a save just happened.
+function closeNotesModal(){
+  document.getElementById('notesModal').classList.remove('open');
+  _notesObj=null; _notesObjCb=null;
 }
 document.getElementById('notesSaveBtn').onclick=()=>{
   const text=document.getElementById('notesTextarea').value.trim();
@@ -5124,8 +5287,8 @@ document.getElementById('notesSaveBtn').onclick=()=>{
   document.getElementById('notesModal').classList.remove('open');
   toast('✎','Note saved');
 };
-document.getElementById('notesCancelBtn').onclick=()=>document.getElementById('notesModal').classList.remove('open');
-document.getElementById('notesModal').onclick=e=>{if(e.target===document.getElementById('notesModal'))document.getElementById('notesModal').classList.remove('open');};
+document.getElementById('notesCancelBtn').onclick=()=>closeNotesModal();
+document.getElementById('notesModal').onclick=e=>{if(e.target===document.getElementById('notesModal'))closeNotesModal();};
 
 // ── MODEL DEADLINE (header "Set Deadline" button) ─────────────────────────────
 // Real, fully-functional <input type="date"> stretched invisibly over the
@@ -5804,6 +5967,7 @@ document.addEventListener('keydown',e=>{
     updateBulkBar();
     renderTaskList();
     document.getElementById('notesModal').classList.remove('open');
+    _notesObj=null; _notesObjCb=null;
     document.getElementById('userBadge').classList.remove('menu-open');
     hideAuthGate();
     if (document.activeElement) document.activeElement.blur();
