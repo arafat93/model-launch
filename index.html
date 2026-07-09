@@ -610,6 +610,14 @@ footer {
   transform: translateY(-6px) scale(1.02);
   background: var(--surface2);
 }
+.model-card.drag-over-before {
+  box-shadow: inset 3px 0 0 0 var(--accent1), var(--shadow-md) !important;
+  transform: translateY(-4px);
+}
+.model-card.drag-over-after {
+  box-shadow: inset -3px 0 0 0 var(--accent1), var(--shadow-md) !important;
+  transform: translateY(-4px);
+}
 
 /* ── ARCHIVE CARD ── */
 .model-card.archived { cursor: default; opacity: 0.85; }
@@ -3844,27 +3852,50 @@ function renderModelCards(){
     });
     card.addEventListener('dragend',()=>{
       card.classList.remove('dragging');
-      document.querySelectorAll('.model-card.drag-over').forEach(c=>c.classList.remove('drag-over'));
+      document.querySelectorAll('.model-card.drag-over,.model-card.drag-over-before,.model-card.drag-over-after')
+        .forEach(c=>c.classList.remove('drag-over','drag-over-before','drag-over-after'));
     });
     card.addEventListener('dragover',e=>{
       e.preventDefault();
       e.dataTransfer.dropEffect='move';
-      if(_cardDragSrc && _cardDragSrc!==m) card.classList.add('drag-over');
+      card.classList.remove('drag-over','drag-over-before','drag-over-after');
+      if(!_cardDragSrc || _cardDragSrc===m) return;
+      // Hovering near the left/right edge of a card means "drop between this
+      // card and its neighbor" (insert); hovering over the middle means
+      // "drop onto this card" (swap places with it).
+      const rect=card.getBoundingClientRect();
+      const relX=e.clientX-rect.left;
+      const edgeZone=rect.width*0.25;
+      if(relX<edgeZone) card.classList.add('drag-over-before');
+      else if(relX>rect.width-edgeZone) card.classList.add('drag-over-after');
+      else card.classList.add('drag-over');
     });
-    card.addEventListener('dragleave',()=>{ card.classList.remove('drag-over'); });
+    card.addEventListener('dragleave',()=>{ card.classList.remove('drag-over','drag-over-before','drag-over-after'); });
     card.addEventListener('drop',e=>{
       e.preventDefault();
-      card.classList.remove('drag-over');
+      const wasBefore=card.classList.contains('drag-over-before');
+      const wasAfter=card.classList.contains('drag-over-after');
+      card.classList.remove('drag-over','drag-over-before','drag-over-after');
       if(!_cardDragSrc || _cardDragSrc===m) return;
-      // Swap positions in models array — a direct exchange, not a remove/
-      // reinsert. (A remove-then-insert approach has a quirk: dragging a
-      // card onto its immediate next neighbor computes an insert index that
-      // lands it right back where it started, so nothing visibly moves. A
-      // straight swap has no such blind spot in either direction.)
       const fromIdx=models.indexOf(_cardDragSrc);
       const toIdx=models.indexOf(m);
       if(fromIdx<0||toIdx<0) return;
-      [models[fromIdx],models[toIdx]]=[models[toIdx],models[fromIdx]];
+      if(wasBefore||wasAfter){
+        // Dropped near an edge — remove the dragged card from its old spot
+        // and reinsert it right before/after the target, shifting the cards
+        // in between rather than swapping with the target directly.
+        models.splice(fromIdx,1);
+        let insertIdx=models.indexOf(m);
+        if(wasAfter) insertIdx+=1;
+        models.splice(insertIdx,0,_cardDragSrc);
+      }else{
+        // Dropped on the middle of a card — swap positions directly. (A
+        // remove-then-insert approach has a quirk here: dragging a card onto
+        // its immediate next neighbor computes an insert index that lands it
+        // right back where it started, so nothing visibly moves. A straight
+        // swap has no such blind spot in either direction.)
+        [models[fromIdx],models[toIdx]]=[models[toIdx],models[fromIdx]];
+      }
       modelOrder=[...models];
       _cardDragSrc=null;
       save(); // persist the new card order
