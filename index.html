@@ -521,6 +521,18 @@ footer {
 }
 .model-card:hover .model-thumb-remove { opacity: 1; }
 .model-thumb-remove:hover { transform: scale(1.12); }
+.model-thumb-preview {
+  position: absolute; top: -7px; left: -7px; width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(20, 20, 24, 0.75); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  color: var(--accent1); border: 1.5px solid var(--accent1); font-size: 10px;
+  line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer;
+  opacity: 0; transform: scale(0.85); transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  z-index: 3; padding: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.02);
+}
+.model-thumb-preview svg { width: 12px; height: 12px; display: block; }
+.model-card:hover .model-thumb-preview { opacity: 1; transform: scale(1); }
+.model-thumb-preview:hover { background: var(--accent1); color: #fff; transform: scale(1.12); box-shadow: 0 2px 10px var(--accent1-dim), 0 0 0 1px rgba(255,255,255,0.04); }
 .model-thumb-input { display: none; }
 .model-name { font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
 .model-deadline { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; align-items: center; gap: 6px; font-weight: 400; }
@@ -3680,6 +3692,7 @@ function renderModelCards(){
           <div class="model-thumb-overlay">${img?'✎':'＋'}</div>
           <input type="file" accept="image/*" class="model-thumb-input" data-model="${m}">
         </div>
+        ${img?`<button class="model-thumb-preview" title="Preview photo" data-model="${m}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>`:''}
         ${img?`<button class="model-thumb-remove" title="Remove photo" data-model="${m}">✕</button>`:''}
       </div>`;
 
@@ -3733,6 +3746,14 @@ function renderModelCards(){
         delete modelImages[m];
         save();renderModelCards();
         toast('🗑','Photo removed',false);
+      });
+    }
+    const thumbPreviewBtn=card.querySelector('.model-thumb-preview');
+    if(thumbPreviewBtn){
+      thumbPreviewBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        const currentImg=modelImages[m];
+        if(currentImg) openShotLightbox(currentImg,m);
       });
     }
 
