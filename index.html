@@ -445,7 +445,7 @@ footer {
 }
 
 /* ── KPI CARDS ── */
-.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 44px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 44px; }
 .kpi-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 18px; padding: 28px 26px;
@@ -460,6 +460,10 @@ footer {
 .kpi-card.done::before { background: linear-gradient(90deg, var(--green), transparent); }
 .kpi-card.pending::before { background: linear-gradient(90deg, var(--red), transparent); }
 .kpi-card.pct::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+.kpi-card.overdue::before { background: linear-gradient(90deg, var(--red), transparent); }
+.kpi-card.overdue { cursor: pointer; }
+.kpi-card.overdue.has-overdue { border-color: rgba(244,63,94,0.4); }
+.kpi-card.overdue.has-overdue:hover { border-color: var(--red); box-shadow: 0 0 0 1px rgba(244,63,94,0.2), var(--shadow-md); }
 
 .kpi-label { font-size: 11px; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; margin-bottom: 12px; }
 .kpi-value { font-size: 42px; font-weight: 300; line-height: 1; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
@@ -467,12 +471,14 @@ footer {
 .kpi-card.done  .kpi-value { color: var(--green); }
 .kpi-card.pending .kpi-value { color: var(--red); }
 .kpi-card.pct   .kpi-value { color: var(--accent2); }
+.kpi-card.overdue .kpi-value { color: var(--red); }
 .kpi-sub { font-size: 12px; color: var(--text-muted); font-weight: 300; }
 
 .kpi-card:nth-child(1) { animation-delay: 0.05s; }
 .kpi-card:nth-child(2) { animation-delay: 0.1s; }
 .kpi-card:nth-child(3) { animation-delay: 0.15s; }
 .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+.kpi-card:nth-child(5) { animation-delay: 0.25s; }
 
 /* ── MODEL CARDS ── */
 .models-section-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
@@ -1302,6 +1308,23 @@ footer {
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
 .modal-overlay.open { display: flex; }
+.overdue-modal-body { max-height: 60vh; overflow-y: auto; margin-top: 10px; }
+.overdue-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface2); margin-bottom: 8px; cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.overdue-row:hover { border-color: var(--red); background: rgba(244,63,94,0.08); }
+.overdue-row-main { min-width: 0; }
+.overdue-row-name { font-size: 13.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.overdue-row-model { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+.overdue-row-days {
+  flex-shrink: 0; font-size: 11.5px; font-weight: 700; color: var(--red);
+  background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.3);
+  border-radius: 20px; padding: 4px 10px; white-space: nowrap;
+}
+.overdue-empty { padding: 32px 8px; text-align: center; color: var(--text-dim); font-size: 13px; }
 .modal-box {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 24px; padding: 36px; width: min(500px, 90vw);
@@ -1746,6 +1769,7 @@ kbd {
 
 /* ── RESPONSIVE ── */
 @media(max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
   .table-header, .task-row, .subtask-row { grid-template-columns: 30px 48px 1fr 100px 120px 80px 80px 150px; }
   .subtask-panel-title, .subtask-add-bar { padding-left: 102px; }
   .subtask-title-row { grid-template-columns: 30px 48px 1fr; }
@@ -2160,6 +2184,11 @@ document.addEventListener('keydown', e => {
     <div class="kpi-value" id="kpiPct">—</div>
     <div class="kpi-sub">Completion rate</div>
   </div>
+  <div class="kpi-card overdue" id="kpiOverdueCard" title="Click to see every overdue task across all models">
+    <div class="kpi-label">Overdue</div>
+    <div class="kpi-value" id="kpiOverdue">—</div>
+    <div class="kpi-sub">Click to view all</div>
+  </div>
 </div>
 
 <!-- MAIN DASHBOARD VIEW (hidden when Archive view is active) -->
@@ -2417,6 +2446,17 @@ document.addEventListener('keydown', e => {
 </div>
 
 <!-- TASK DEADLINE MODAL -->
+<div class="modal-overlay" id="overdueModal">
+  <div class="modal-box" id="overdueModalBox" style="width:min(560px, 92vw);">
+    <div class="modal-title">⚠ Overdue Tasks</div>
+    <div class="modal-subtitle" id="overdueModalCount">All pending tasks past their deadline, across every model.</div>
+    <div class="overdue-modal-body" id="overdueModalBody"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-btn primary" id="overdueModalCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="taskDeadlineModal">
   <div class="modal-box">
     <div class="modal-title">Task Deadline</div>
@@ -3408,6 +3448,22 @@ function globalStats(){
   models.forEach(m=>{const s=stats(m);total+=s.total;done+=s.done;});
   return{total,done,pending:total-done,pct:total?Math.round(done/total*100):0};
 }
+// Collects every pending task whose deadline has passed, across ALL models
+// (not just the currently active tab), sorted with the most overdue first.
+function getAllOverdueTasks(){
+  const out=[];
+  const today=new Date(); today.setHours(0,0,0,0);
+  models.forEach(m=>{
+    (state[m]||[]).forEach((t,idx)=>{
+      if(t.done||!t.taskDeadline) return;
+      const d=new Date(t.taskDeadline+'T00:00:00');
+      const diff=Math.round((d-today)/(1000*60*60*24));
+      if(diff<0) out.push({model:m, idx, task:t, days:-diff});
+    });
+  });
+  out.sort((a,b)=>b.days-a.days);
+  return out;
+}
 function statusLabel(pct){
   if(pct===100) return['COMPLETED','#10b981','rgba(16, 185, 129, 0.1)'];
   if(pct>=70)   return['ON TRACK','#f59e0b','rgba(245, 158, 11, 0.1)'];
@@ -3606,6 +3662,73 @@ function openShotLightbox(dataUrl,title){
   document.getElementById('shotLightbox').classList.add('open');
 }
 document.getElementById('shotLightboxClose').onclick=()=>document.getElementById('shotLightbox').classList.remove('open');
+
+// ── OVERDUE TASKS MODAL ─────────────────────────────────────────────────────
+function renderOverdueModal(){
+  const list=getAllOverdueTasks();
+  const countEl=document.getElementById('overdueModalCount');
+  const body=document.getElementById('overdueModalBody');
+  if(!list.length){
+    countEl.textContent='Nothing overdue — nice work.';
+    body.innerHTML=`<div class="overdue-empty">🎉 No overdue tasks across any model.</div>`;
+    return;
+  }
+  countEl.textContent=`${list.length} task${list.length>1?'s':''} past their deadline, across ${new Set(list.map(x=>x.model)).size} model${new Set(list.map(x=>x.model)).size>1?'s':''}.`;
+  body.innerHTML=list.map((item,i)=>`
+    <div class="overdue-row" data-i="${i}">
+      <div class="overdue-row-main">
+        <div class="overdue-row-name">${escHtml(item.task.name)}</div>
+        <div class="overdue-row-model">${escHtml(item.model)}</div>
+      </div>
+      <div class="overdue-row-days">${item.days}d overdue</div>
+    </div>
+  `).join('');
+  body.querySelectorAll('.overdue-row').forEach(row=>{
+    row.onclick=()=>{
+      const item=list[parseInt(row.dataset.i,10)];
+      jumpToOverdueTask(item.model,item.idx);
+    };
+  });
+}
+function jumpToOverdueTask(model,idx){
+  closeOverdueModal();
+  if(!models.includes(model)) return;
+  activeTab=model; localStorage.setItem('mlc_activeTab',model);
+  editingIdx=null; selectedTasks.clear(); selectedSubtasks.clear();
+  activeFilter='critical';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  const critBtn=document.querySelector('.filter-btn[data-filter="critical"]');
+  if(critBtn) critBtn.classList.add('active');
+  const task=(state[model]||[])[idx];
+  const sb=document.getElementById('searchBox');
+  sb.value=task?task.name:'';
+  searchQuery=sb.value;
+  renderTabs();
+  renderTaskList();
+  scrollToTaskChecklist();
+  // The search box was only filled in to pinpoint this one task — clear it
+  // again as soon as the user clicks anywhere, so it doesn't stay applied.
+  setTimeout(()=>{
+    document.addEventListener('click',function clearPinpointSearch(){
+      document.removeEventListener('click',clearPinpointSearch);
+      document.getElementById('searchBox').value='';
+      searchQuery='';
+      renderTaskList();
+    },{once:true});
+  },0);
+}
+function openOverdueModal(){
+  renderOverdueModal();
+  document.getElementById('overdueModal').classList.add('open');
+}
+function closeOverdueModal(){
+  document.getElementById('overdueModal').classList.remove('open');
+}
+document.getElementById('kpiOverdueCard').onclick=openOverdueModal;
+document.getElementById('overdueModalCloseBtn').onclick=closeOverdueModal;
+document.getElementById('overdueModal').onclick=e=>{
+  if(e.target.id==='overdueModal') closeOverdueModal();
+};
 document.getElementById('shotLightbox').onclick=e=>{
   if(e.target===document.getElementById('shotLightbox')) document.getElementById('shotLightbox').classList.remove('open');
 };
@@ -3640,6 +3763,9 @@ function renderKPIs(){
   document.getElementById('kpiDone').textContent=g.done;
   document.getElementById('kpiPending').textContent=g.pending;
   document.getElementById('kpiPct').textContent=g.pct+'%';
+  const overdueCount=getAllOverdueTasks().length;
+  document.getElementById('kpiOverdue').textContent=overdueCount;
+  document.getElementById('kpiOverdueCard').classList.toggle('has-overdue',overdueCount>0);
   document.getElementById('footerPct').textContent=g.pct+'%';
   document.getElementById('footerFraction').textContent=`${g.done} / ${g.total} tasks`;
   document.getElementById('ringText').textContent=g.pct+'%';
@@ -6020,6 +6146,7 @@ document.addEventListener('keydown',e=>{
     renderTaskList();
     document.getElementById('notesModal').classList.remove('open');
     _notesObj=null; _notesObjCb=null;
+    document.getElementById('overdueModal').classList.remove('open');
     document.getElementById('userBadge').classList.remove('menu-open');
     hideAuthGate();
     if (document.activeElement) document.activeElement.blur();
