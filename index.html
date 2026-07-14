@@ -492,6 +492,44 @@ footer {
   cursor: pointer; box-shadow: var(--shadow-sm);
 }
 .model-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--border-hover); }
+.model-pin-btn {
+  position: absolute; top: 14px; right: 14px; z-index: 3;
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  color: var(--text-muted); font-size: 14px; line-height: 1;
+  filter: grayscale(1) opacity(0.55);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; opacity: 0; transform: scale(0.8) rotate(-25deg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(.34,1.56,.64,1),
+              background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+.model-card:hover .model-pin-btn { opacity: 1; transform: scale(1) rotate(0deg); }
+.model-pin-btn:hover {
+  border-color: rgba(212,175,55,0.55); color: var(--accent1);
+  background: rgba(212,175,55,0.1); transform: scale(1.08) rotate(0deg);
+  filter: grayscale(0) opacity(1);
+}
+.model-pin-btn:active { transform: scale(0.94) rotate(0deg); }
+.model-pin-btn.pinned {
+  opacity: 1; transform: scale(1) rotate(0deg); filter: none;
+  background: radial-gradient(circle at 35% 30%, rgba(212,175,55,0.16), var(--surface2) 70%);
+  border: 1px solid rgba(212,175,55,0.5);
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.08), 0 4px 10px rgba(0,0,0,0.25),
+              inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.model-pin-btn.pinned:hover {
+  transform: scale(1.08) rotate(0deg);
+  border-color: rgba(212,175,55,0.75);
+  box-shadow: 0 0 0 4px rgba(212,175,55,0.12), 0 4px 10px rgba(0,0,0,0.3);
+}
+.model-card.pinned-card {
+  border-color: rgba(212,175,55,0.28);
+  box-shadow: var(--shadow-sm), 0 0 24px -12px rgba(212,175,55,0.35);
+}
+.model-card.pinned-card:hover { box-shadow: var(--shadow-md), 0 0 28px -10px rgba(212,175,55,0.45); }
 .model-card::after {
   content: ''; position: absolute; top: -80px; right: -80px;
   width: 200px; height: 200px;
@@ -2871,6 +2909,7 @@ function save(){
         modelImages,
         deletedModels:[...deletedModelsSet],
         archivedModels:[...archivedModelsSet],
+        pinnedModels:[...pinnedModelsSet],
         modelOrder:[...modelOrder],
         recycleBin,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
@@ -2896,6 +2935,7 @@ function snapshotNow(){
     modelImages:JSON.parse(JSON.stringify(modelImages)),
     deletedModels:[...deletedModelsSet],
     archivedModels:[...archivedModelsSet],
+    pinnedModels:[...pinnedModelsSet],
     modelOrder:[...modelOrder],
     recycleBin:JSON.parse(JSON.stringify(recycleBin)),
     activeTab
@@ -2937,6 +2977,7 @@ function undo(){
   modelImages=prev.modelImages||modelImages;
   deletedModelsSet=new Set(prev.deletedModels);
   archivedModelsSet=new Set(prev.archivedModels||[]);
+  pinnedModelsSet=new Set(prev.pinnedModels||[]);
   recycleBin=prev.recycleBin||{};
   // Guard with `|| modelOrder` so undo steps taken before this field existed
   // (e.g. mid-session after a reload of older saved state) don't wipe the
@@ -2956,7 +2997,7 @@ function undo(){
     saveTimer=setTimeout(async()=>{
       try{
         await getUserDoc(auth.currentUser.uid).set({
-          tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
+          tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         });
       }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
@@ -2977,6 +3018,7 @@ function redo(){
   modelImages=next.modelImages||modelImages;
   deletedModelsSet=new Set(next.deletedModels);
   archivedModelsSet=new Set(next.archivedModels||[]);
+  pinnedModelsSet=new Set(next.pinnedModels||[]);
   recycleBin=next.recycleBin||{};
   modelOrder=next.modelOrder||modelOrder;
   refreshModelsList();
@@ -2991,7 +3033,7 @@ function redo(){
     saveTimer=setTimeout(async()=>{
       try{
         await getUserDoc(auth.currentUser.uid).set({
-          tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
+          tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         });
       }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
@@ -3003,6 +3045,7 @@ function redo(){
 
 let deletedModelsSet=new Set();
 let archivedModelsSet=new Set();
+let pinnedModelsSet=new Set();
 let archiveViewActive=false;
 
 // ── RECYCLE BIN ───────────────────────────────────────────────────────────────
@@ -3050,6 +3093,7 @@ function recycleModel(name){
     image:modelImages[name]||null,
     orderIdx:modelOrder.indexOf(name),
     wasArchived:archivedModelsSet.has(name),
+    wasPinned:pinnedModelsSet.has(name),
     deletedAt:Date.now()
   });
 }
@@ -3074,6 +3118,7 @@ function enterPreviewMode(){
   previewMode = true;
   deletedModelsSet = new Set();
   archivedModelsSet = new Set();
+  pinnedModelsSet = new Set();
   recycleBin = {};
   modelImages = {};
   setArchiveView(false);
@@ -3115,6 +3160,7 @@ async function handleAuthState(user){
     const saved=await loadFromFirestore(user.uid);
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
+    pinnedModelsSet=new Set(saved?.pinnedModels||[]);
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
     recycleBin=saved?.recycleBin||{};
@@ -3141,7 +3187,7 @@ async function handleAuthState(user){
       saveTimer=setTimeout(async()=>{
         try{
           await getUserDoc(auth.currentUser.uid).set({
-            tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],modelOrder:[...modelOrder],recycleBin,
+            tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
             updatedAt:firebase.firestore.FieldValue.serverTimestamp()
           });
         }catch(e){ console.error('Save error:',e); }
@@ -3353,8 +3399,13 @@ function refreshModelsList(){
   // Merge saved order with current active models
   const ordered=modelOrder.filter(m=>active.includes(m));
   const unordered=active.filter(m=>!ordered.includes(m));
-  models=[...ordered,...unordered];
-  modelOrder=[...models]; // keep in sync
+  const combined=[...ordered,...unordered];
+  // Pinned models float to the top, but keep their relative drag-order
+  // among themselves (and unpinned models keep theirs too).
+  const pinned=combined.filter(m=>pinnedModelsSet.has(m));
+  const rest=combined.filter(m=>!pinnedModelsSet.has(m));
+  models=[...pinned,...rest];
+  modelOrder=[...combined]; // keep drag order in sync (independent of pin state)
 }
 // save() is defined above in the Firebase section
 
@@ -3783,7 +3834,7 @@ function renderModelCards(){
     const s=stats(m);
     const[lbl]=statusLabel(s.pct);
     const card=document.createElement('div');
-    card.className='model-card theme-'+(idx%4);
+    card.className='model-card theme-'+(idx%4)+(pinnedModelsSet.has(m)?' pinned-card':'');
     card.draggable=true;
     card.dataset.model=m;
     const dl=deadlineLabel(m);
@@ -3830,7 +3881,9 @@ function renderModelCards(){
         ${img?`<button class="model-thumb-remove" title="Remove photo" data-model="${m}">✕</button>`:''}
       </div>`;
 
+    const isPinned=pinnedModelsSet.has(m);
     card.innerHTML=`
+      <button class="model-pin-btn${isPinned?' pinned':''}" title="${isPinned?'Unpin model':'Pin model to top'}" data-model="${m}">📌</button>
       <div class="model-header">
         <div class="model-header-main">
           ${thumbHtml}
@@ -3850,6 +3903,23 @@ function renderModelCards(){
         <div class="stat-item"><div class="stat-num pend-val">${s.pending}</div><div class="stat-lbl">PENDING</div></div>
         <div class="stat-item"><div class="stat-num" style="color:var(--text-muted)">${s.total}</div><div class="stat-lbl">TOTAL</div></div>
       </div>`;
+
+    // Pin/unpin toggle — floats the model to the top of the grid
+    const pinBtn=card.querySelector('.model-pin-btn');
+    if(pinBtn){
+      pinBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(pinnedModelsSet.has(m)){
+          pinnedModelsSet.delete(m);
+          toast('📌',`Unpinned: ${m}`,false);
+        }else{
+          pinnedModelsSet.add(m);
+          toast('📌',`Pinned to top: ${m}`);
+        }
+        refreshModelsList();
+        save();renderModelCards();
+      });
+    }
 
     // Model photo: click thumbnail to pick a file, resized/compressed client-side
     const thumbBtn=card.querySelector('.model-thumb-btn');
@@ -4280,6 +4350,8 @@ function restoreRecycledItem(bucket,i){
     modelOrder.splice(insertAt,0,name);
     // Restore archive status if it was archived when deleted
     if(entry.wasArchived) archivedModelsSet.add(name);
+    // Restore pin status if it was pinned when deleted
+    if(entry.wasPinned) pinnedModelsSet.add(name);
     // Un-mark as deleted if it was a built-in model
     deletedModelsSet.delete(name);
     recycleBin[bucket].splice(i,1);
@@ -5401,6 +5473,7 @@ async function deleteModel(name){
   recycleModel(name);
   delete state[name];delete deadlines[name];delete modelImages[name];
   archivedModelsSet.delete(name);
+  pinnedModelsSet.delete(name);
   if(name in INITIAL_DATA) deletedModelsSet.add(name);
   refreshModelsList();if(activeTab===name){ activeTab=models[0]||''; localStorage.setItem('mlc_activeTab',activeTab); }
   editingIdx=null;save();renderAll();updateRecycleBadge();
@@ -5421,6 +5494,7 @@ async function renameModel(oldName, newName){
   if(deadlines[oldName]){ deadlines[trimmed]=deadlines[oldName]; delete deadlines[oldName]; }
   if(modelImages[oldName]){ modelImages[trimmed]=modelImages[oldName]; delete modelImages[oldName]; }
   if(archivedModelsSet.has(oldName)){ archivedModelsSet.delete(oldName); archivedModelsSet.add(trimmed); }
+  if(pinnedModelsSet.has(oldName)){ pinnedModelsSet.delete(oldName); pinnedModelsSet.add(trimmed); }
   if(deletedModelsSet.has(oldName)){ deletedModelsSet.delete(oldName); }
   const oi=modelOrder.indexOf(oldName); if(oi>=0) modelOrder[oi]=trimmed;
   refreshModelsList();
@@ -6294,6 +6368,7 @@ async function freshStart(){
   deadlines = {};
   deletedModelsSet = new Set();
   archivedModelsSet = new Set();
+  pinnedModelsSet = new Set();
   recycleBin = {};
   modelOrder = [];
   activeTab = '';
@@ -6316,6 +6391,7 @@ async function freshStart(){
         deadlines: {},
         deletedModels: [],
         archivedModels: [],
+        pinnedModels: [],
         modelOrder: [],
         recycleBin: {},
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
