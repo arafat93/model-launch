@@ -2051,6 +2051,30 @@ img { -webkit-user-drag: none; }
 // ── COPY PROTECTION (deters casual copying — not a real security measure) ──
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('dragstart', e => { if (!e.target.closest('[draggable="true"]')) e.preventDefault(); });
+
+// ── AUTO-SCROLL WHILE DRAGGING (task rows, subtask rows, model cards) ──
+// Native HTML5 drag-and-drop does not reliably auto-scroll the page when you
+// drag a row toward the top/bottom edge of the viewport, so long lists were
+// impossible to reorder across more than a screenful. This watches every
+// dragover on the page and, whenever something with the shared ".dragging"
+// class is being dragged, nudges the window scroll if the cursor is near the
+// top or bottom edge — scroll speed ramps up the closer the cursor gets.
+(function(){
+  const EDGE=110;      // px from viewport edge that triggers scrolling
+  const MAX_SPEED=26;  // px scrolled per dragover tick at the very edge
+  document.addEventListener('dragover', e => {
+    if(!document.querySelector('.dragging')) return;
+    const y=e.clientY, vh=window.innerHeight;
+    if(y<EDGE){
+      const speed=Math.ceil(MAX_SPEED*(1-Math.max(y,0)/EDGE));
+      window.scrollBy(0,-speed);
+    } else if(y>vh-EDGE){
+      const dist=vh-y;
+      const speed=Math.ceil(MAX_SPEED*(1-Math.max(dist,0)/EDGE));
+      window.scrollBy(0,speed);
+    }
+  });
+})();
 document.addEventListener('keydown', e => {
   const k = e.key.toUpperCase();
   // View source
