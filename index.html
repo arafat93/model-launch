@@ -1597,6 +1597,9 @@ footer {
 .menu-item:hover { background: var(--accent1-dim); color: var(--text); }
 .menu-item:hover svg { opacity: 1; color: var(--accent1); }
 .menu-item:active { background: var(--surface2); }
+.menu-item:disabled { opacity: 0.4; cursor: not-allowed; }
+.menu-item:disabled:hover { background: none; color: inherit; }
+.menu-item:disabled:hover svg { opacity: 0.75; color: inherit; }
 .menu-item .archive-count-badge { margin-left: auto; }
 .menu-divider { height: 1px; background: var(--border); margin: 6px 6px; }
 
@@ -2223,6 +2226,8 @@ document.addEventListener('keydown', e => {
       <div class="export-menu" id="exportAllMenu">
         <button class="menu-item" id="exportAllExcelBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#21a366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="11" x2="10" y2="19"/></svg><span>Export as Excel</span></button>
         <button class="menu-item" id="exportAllPdfBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#e5484d" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="#e5484d" stroke-width="2"/><line x1="7.5" y1="13" x2="16.5" y2="13" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="16" x2="16.5" y2="16" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="19" x2="13" y2="19" stroke="#e5484d" stroke-width="1.6"/></svg><span>Export as PDF</span></button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" id="restoreBackupBtn" title="No backup yet — use &quot;Export as Excel&quot; once to create one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span id="restoreBackupLabel">Restore Last Backup</span></button>
       </div>
     </div>
     <label class="hdr-btn accent" title="Import from Excel — adds new models/tasks, keeps existing data" style="cursor:pointer;">
@@ -5989,9 +5994,107 @@ document.getElementById('exportAllExcelBtn').onclick=async()=>{
     XLSX.utils.book_append_sheet(wb,ws,sheetName);
   });
   XLSX.writeFile(wb,'model_launch_dashboard.xlsx');
+  const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
+  saveLastBackup(wb,models.length,totalTasks);
   const totalSubs=models.reduce((n,m)=>n+state[m].reduce((s,t)=>s+((Array.isArray(t.subtasks)?t.subtasks.length:0)),0),0);
   toast('📤',`Exported ${models.length} model${models.length===1?'':'s'}${totalSubs?` (incl. ${totalSubs} subtasks)`:''} to Excel`,false);
 };
+
+// Merges a parsed workbook into the current dashboard state. Shared by the
+// file-based "Import" button and the "Restore Last Backup" button below —
+// same semantics either way: a sheet matching an existing model appends only
+// its new (non-duplicate) tasks/subtasks; a sheet with an unrecognized name
+// becomes a new model. Never overwrites or deletes existing data, so it's
+// safe to use for recovering something that was accidentally removed.
+function mergeWorkbookIntoState(wb){
+  const sheetNames=wb.SheetNames.filter(n=>{
+    const ws=wb.Sheets[n];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    return rows.length>0;
+  });
+  let modelsAdded=0, modelsUpdated=0, tasksAdded=0, tasksSkipped=0, subtasksAdded=0, subtasksSkipped=0;
+  sheetNames.forEach(sheetName=>{
+    const ws=wb.Sheets[sheetName];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    let startIdx=0;
+    const firstRow=(rows[0]||[]).map(c=>String(c).trim().toLowerCase());
+    let typeIdx=-1, parentIdx=-1;
+    if(firstRow[0]&&(firstRow[0].includes('task')||firstRow[0].includes('name'))){
+      startIdx=1;
+      typeIdx=firstRow.indexOf('type');
+      parentIdx=firstRow.indexOf('parent task');
+    }
+
+    const isExistingModel=Object.prototype.hasOwnProperty.call(state,sheetName);
+    const targetTasks=isExistingModel?state[sheetName]:[];
+    const existingNames=new Set(targetTasks.map(t=>t.name.trim().toUpperCase()));
+    let addedHere=0, lastTaskRef=null;
+
+    for(let i=startIdx;i<rows.length;i++){
+      const row=rows[i];
+      const name=String(row[0]||'').trim();
+      if(!name) continue;
+      const key=name.toUpperCase();
+      const isSubRow=typeIdx>=0 && String(row[typeIdx]||'').trim().toLowerCase()==='subtask';
+
+      if(isSubRow){
+        const parentName=parentIdx>=0?String(row[parentIdx]||'').trim().toUpperCase():'';
+        let parentTask=parentName?targetTasks.find(t=>t.name===parentName):null;
+        if(!parentTask) parentTask=lastTaskRef;
+        if(!parentTask) continue; // orphan subtask row — no known parent task, skip
+        if(!Array.isArray(parentTask.subtasks)) parentTask.subtasks=[];
+        const subExisting=new Set(parentTask.subtasks.map(s=>s.name.trim().toUpperCase()));
+        if(subExisting.has(key)){ subtasksSkipped++; continue; }
+        parentTask.subtasks.push({
+          name:key,
+          done:normDone(row[2]),
+          priority:normPriority(row[1]),
+          notes:String(row[3]||'').trim(),
+          taskDeadline:normDate(row[4]),
+          screenshots:[]
+        });
+        subtasksAdded++;
+        continue;
+      }
+
+      if(existingNames.has(key)){tasksSkipped++;continue;}
+      existingNames.add(key);
+      const newTask={
+        sn:targetTasks.length+1,
+        name:key,
+        done:normDone(row[2]),
+        priority:normPriority(row[1]),
+        notes:String(row[3]||'').trim(),
+        taskDeadline:normDate(row[4]),
+        subtasks:[]
+      };
+      targetTasks.push(newTask);
+      lastTaskRef=newTask;
+      addedHere++;
+    }
+    if(!addedHere && !isExistingModel) return; // empty new sheet — nothing to add
+
+    if(isExistingModel){
+      if(addedHere){ renumber(targetTasks); modelsUpdated++; tasksAdded+=addedHere; }
+    } else if(targetTasks.length){
+      state[sheetName]=targetTasks;
+      deletedModelsSet.delete(sheetName);
+      modelsAdded++; tasksAdded+=addedHere;
+    }
+  });
+  return {modelsAdded,modelsUpdated,tasksAdded,tasksSkipped,subtasksAdded,subtasksSkipped};
+}
+
+function importStatsToMessage(stats){
+  const parts=[];
+  if(stats.modelsAdded) parts.push(`${stats.modelsAdded} new model${stats.modelsAdded===1?'':'s'}`);
+  if(stats.modelsUpdated) parts.push(`${stats.modelsUpdated} model${stats.modelsUpdated===1?'':'s'} updated`);
+  if(stats.tasksAdded) parts.push(`${stats.tasksAdded} task${stats.tasksAdded===1?'':'s'} added`);
+  if(stats.tasksSkipped) parts.push(`${stats.tasksSkipped} duplicate task${stats.tasksSkipped===1?'':'s'} skipped`);
+  if(stats.subtasksAdded) parts.push(`${stats.subtasksAdded} subtask${stats.subtasksAdded===1?'':'s'} added`);
+  if(stats.subtasksSkipped) parts.push(`${stats.subtasksSkipped} duplicate subtask${stats.subtasksSkipped===1?'':'s'} skipped`);
+  return parts;
+}
 
 document.getElementById('importFile').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
@@ -6003,12 +6106,7 @@ document.getElementById('importFile').onchange=async e=>{
   reader.onload=async ev=>{
     try{
       const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
-      const sheetNames=wb.SheetNames.filter(n=>{
-        const ws=wb.Sheets[n];
-        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        return rows.length>0;
-      });
-      if(!sheetNames.length){await showAlert({title:'Empty workbook',message:'The workbook appears to be empty.',tone:'warn'});e.target.value='';return;}
+      if(!wb.SheetNames.length){await showAlert({title:'Empty workbook',message:'The workbook appears to be empty.',tone:'warn'});e.target.value='';return;}
 
       // Merge into the existing dashboard rather than replacing it:
       // - a sheet whose name matches an existing model appends only its
@@ -6016,95 +6114,91 @@ document.getElementById('importFile').onchange=async e=>{
       //   completion status, and the model's deadline are left untouched.
       // - a sheet with a name that doesn't match any model becomes a new
       //   model (and is un-deleted if it was a previously-removed built-in).
-      let modelsAdded=0, modelsUpdated=0, tasksAdded=0, tasksSkipped=0, subtasksAdded=0, subtasksSkipped=0;
-      sheetNames.forEach(sheetName=>{
-        const ws=wb.Sheets[sheetName];
-        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        let startIdx=0;
-        const firstRow=(rows[0]||[]).map(c=>String(c).trim().toLowerCase());
-        let typeIdx=-1, parentIdx=-1;
-        if(firstRow[0]&&(firstRow[0].includes('task')||firstRow[0].includes('name'))){
-          startIdx=1;
-          typeIdx=firstRow.indexOf('type');
-          parentIdx=firstRow.indexOf('parent task');
-        }
+      const stats=mergeWorkbookIntoState(wb);
 
-        const isExistingModel=Object.prototype.hasOwnProperty.call(state,sheetName);
-        const targetTasks=isExistingModel?state[sheetName]:[];
-        const existingNames=new Set(targetTasks.map(t=>t.name.trim().toUpperCase()));
-        let addedHere=0, lastTaskRef=null;
-
-        for(let i=startIdx;i<rows.length;i++){
-          const row=rows[i];
-          const name=String(row[0]||'').trim();
-          if(!name) continue;
-          const key=name.toUpperCase();
-          const isSubRow=typeIdx>=0 && String(row[typeIdx]||'').trim().toLowerCase()==='subtask';
-
-          if(isSubRow){
-            const parentName=parentIdx>=0?String(row[parentIdx]||'').trim().toUpperCase():'';
-            let parentTask=parentName?targetTasks.find(t=>t.name===parentName):null;
-            if(!parentTask) parentTask=lastTaskRef;
-            if(!parentTask) continue; // orphan subtask row — no known parent task, skip
-            if(!Array.isArray(parentTask.subtasks)) parentTask.subtasks=[];
-            const subExisting=new Set(parentTask.subtasks.map(s=>s.name.trim().toUpperCase()));
-            if(subExisting.has(key)){ subtasksSkipped++; continue; }
-            parentTask.subtasks.push({
-              name:key,
-              done:normDone(row[2]),
-              priority:normPriority(row[1]),
-              notes:String(row[3]||'').trim(),
-              taskDeadline:normDate(row[4]),
-              screenshots:[]
-            });
-            subtasksAdded++;
-            continue;
-          }
-
-          if(existingNames.has(key)){tasksSkipped++;continue;}
-          existingNames.add(key);
-          const newTask={
-            sn:targetTasks.length+1,
-            name:key,
-            done:normDone(row[2]),
-            priority:normPriority(row[1]),
-            notes:String(row[3]||'').trim(),
-            taskDeadline:normDate(row[4]),
-            subtasks:[]
-          };
-          targetTasks.push(newTask);
-          lastTaskRef=newTask;
-          addedHere++;
-        }
-        if(!addedHere && !isExistingModel) return; // empty new sheet — nothing to add
-
-        if(isExistingModel){
-          if(addedHere){ renumber(targetTasks); modelsUpdated++; tasksAdded+=addedHere; }
-        } else if(targetTasks.length){
-          state[sheetName]=targetTasks;
-          deletedModelsSet.delete(sheetName);
-          modelsAdded++; tasksAdded+=addedHere;
-        }
-      });
-
-      if(!modelsAdded && !modelsUpdated && !subtasksAdded){await showAlert({title:'Nothing to import',message:'No new models, tasks, or subtasks found — everything in the workbook already exists.',tone:'warn'});e.target.value='';return;}
+      if(!stats.modelsAdded && !stats.modelsUpdated && !stats.subtasksAdded){await showAlert({title:'Nothing to import',message:'No new models, tasks, or subtasks found — everything in the workbook already exists.',tone:'warn'});e.target.value='';return;}
 
       refreshModelsList();
       if(!activeTab && models.length) activeTab=models[0];
       save();renderAll();
-      const parts=[];
-      if(modelsAdded) parts.push(`${modelsAdded} new model${modelsAdded===1?'':'s'}`);
-      if(modelsUpdated) parts.push(`${modelsUpdated} model${modelsUpdated===1?'':'s'} updated`);
-      if(tasksAdded) parts.push(`${tasksAdded} task${tasksAdded===1?'':'s'} added`);
-      if(tasksSkipped) parts.push(`${tasksSkipped} duplicate task${tasksSkipped===1?'':'s'} skipped`);
-      if(subtasksAdded) parts.push(`${subtasksAdded} subtask${subtasksAdded===1?'':'s'} added`);
-      if(subtasksSkipped) parts.push(`${subtasksSkipped} duplicate subtask${subtasksSkipped===1?'':'s'} skipped`);
-      toast('↑',`Imported: ${parts.join(', ')}`);
+      toast('↑',`Imported: ${importStatsToMessage(stats).join(', ')}`);
     }catch(err){await showAlert({title:'Could not read file',message:"Make sure it's a valid .xlsx or .xls workbook.",tone:'error'});}
   };
   reader.readAsArrayBuffer(file);
   e.target.value='';
 };
+
+// ── SINGLE-SLOT LOCAL BACKUP ─────────────────────────────────────────────────
+// Every "Export All Models" also stashes a base64 copy of that same workbook
+// in localStorage, overwriting whatever was there before — so only the most
+// recent backup is ever kept. "Restore Last Backup" reads it straight back
+// and merges it in with the same safe, additive logic as a normal import,
+// without the person needing to hunt down the downloaded file on their device.
+const LAST_BACKUP_KEY='mlc_lastBackupXlsx';
+
+function saveLastBackup(wb,modelsCount,tasksCount){
+  try{
+    const base64=XLSX.write(wb,{type:'base64',bookType:'xlsx'});
+    localStorage.setItem(LAST_BACKUP_KEY,JSON.stringify({data:base64,ts:Date.now(),models:modelsCount,tasks:tasksCount}));
+  }catch(err){
+    console.warn('Could not save local backup (workbook may be too large for localStorage):',err);
+  }
+  updateRestoreBackupBtn();
+}
+
+function getLastBackup(){
+  try{
+    const raw=localStorage.getItem(LAST_BACKUP_KEY);
+    return raw?JSON.parse(raw):null;
+  }catch(err){ return null; }
+}
+
+function updateRestoreBackupBtn(){
+  const btn=document.getElementById('restoreBackupBtn');
+  const label=document.getElementById('restoreBackupLabel');
+  if(!btn) return;
+  const backup=getLastBackup();
+  if(!backup){
+    btn.disabled=true;
+    btn.title='No backup yet — use "Export as Excel" once to create one';
+    if(label) label.textContent='Restore Last Backup';
+    return;
+  }
+  btn.disabled=false;
+  const d=new Date(backup.ts);
+  const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  btn.title=`Backup taken ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}`;
+  if(label) label.textContent=`Restore Last Backup (${dateStr})`;
+}
+
+document.getElementById('restoreBackupBtn').onclick=async()=>{
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  const backup=getLastBackup();
+  if(!backup){await showAlert({title:'No backup found',message:'Use "Export as Excel" at least once to create a local backup you can restore from.',tone:'warn'});return;}
+  const d=new Date(backup.ts);
+  const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' at '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  const ok=await showConfirm({
+    title:'Restore from last backup?',
+    message:`This will merge in the backup taken on ${dateStr} (${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}). Existing tasks and models are kept as-is — only tasks/subtasks/models missing from your current dashboard are added back.`,
+    confirmText:'Restore',
+    icon:'↺'
+  });
+  if(!ok) return;
+  try{ await loadXLSX(); }catch(err){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
+  try{
+    const wb=XLSX.read(backup.data,{type:'base64',cellDates:true});
+    const stats=mergeWorkbookIntoState(wb);
+    if(!stats.modelsAdded && !stats.modelsUpdated && !stats.subtasksAdded){await showAlert({title:'Nothing to restore',message:'Your current dashboard already has everything from that backup.',tone:'warn'});return;}
+    refreshModelsList();
+    if(!activeTab && models.length) activeTab=models[0];
+    save();renderAll();
+    toast('↺',`Restored from backup: ${importStatsToMessage(stats).join(', ')}`);
+  }catch(err){
+    await showAlert({title:'Could not read backup',message:'The stored backup appears to be corrupted.',tone:'error'});
+  }
+};
+
+updateRestoreBackupBtn();
 
 // ── LAZY-LOAD XLSX LIBRARY (only needed for Excel import/export) ─────────────
 // This is a ~700KB library most page loads never touch, so we fetch it on
