@@ -3173,6 +3173,7 @@ function enterPreviewMode(){
   renderAll();
   hideLoading();
   setTimeout(startDeadlineWatch,1200);
+  setTimeout(startAutoBackup,1500);
   if (typeof refreshStickyBarOrigin === 'function') setTimeout(refreshStickyBarOrigin, 100);
 }
 
@@ -3218,6 +3219,7 @@ async function handleAuthState(user){
     renderAll();
     hideLoading();
     setTimeout(startDeadlineWatch,1200);
+    setTimeout(startAutoBackup,1500);
     if(typeof refreshStickyBarOrigin==='function') setTimeout(refreshStickyBarOrigin,100);
     // Items that aged past 30 days were dropped above — persist that quietly,
     // without disturbing the undo baseline we just reset.
@@ -5969,10 +5971,10 @@ function excelSafeSheetName(name){
   // Excel sheet names: max 31 chars, no \ / ? * [ ] : characters
   return name.replace(/[\\/?*\[\]:]/g,' ').slice(0,31).trim()||'Model';
 }
-document.getElementById('exportAllExcelBtn').onclick=async()=>{
-  document.getElementById('exportAllDropdown').classList.remove('menu-open');
-  if(!models.length){await showAlert({title:'Nothing to export',message:'Add at least one model before exporting.',tone:'warn'});return;}
-  try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
+// Builds the multi-sheet "all models" workbook from the current state.
+// Shared by the manual "Export as Excel" button and the hourly auto-backup
+// below, so both always produce byte-identical output for the same state.
+function buildAllModelsWorkbook(){
   const prioMap={high:'High',med:'Med',low:'Low'};
   const wb=XLSX.utils.book_new();
   const usedNames=new Set();
@@ -5993,6 +5995,14 @@ document.getElementById('exportAllExcelBtn').onclick=async()=>{
     usedNames.add(sheetName);
     XLSX.utils.book_append_sheet(wb,ws,sheetName);
   });
+  return wb;
+}
+
+document.getElementById('exportAllExcelBtn').onclick=async()=>{
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  if(!models.length){await showAlert({title:'Nothing to export',message:'Add at least one model before exporting.',tone:'warn'});return;}
+  try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
+  const wb=buildAllModelsWorkbook();
   XLSX.writeFile(wb,'model_launch_dashboard.xlsx');
   const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
   saveLastBackup(wb,models.length,totalTasks);
@@ -6199,6 +6209,38 @@ document.getElementById('restoreBackupBtn').onclick=async()=>{
 };
 
 updateRestoreBackupBtn();
+
+// ── HOURLY AUTO-BACKUP ────────────────────────────────────────────────────────
+// Keeps the local backup fresh even if the person forgets to export
+// manually: builds a workbook from the current state once an hour and
+// overwrites the single stored backup slot via saveLastBackup — so the old
+// backup is always discarded and only the newest copy is ever kept.
+const AUTO_BACKUP_INTERVAL_MS=60*60*1000; // 1 hour
+
+async function runAutoBackup(){
+  if(!models.length) return; // nothing to back up yet
+  try{ await loadXLSX(); }catch(err){ return; } // e.g. offline — just skip this cycle
+  try{
+    const wb=buildAllModelsWorkbook();
+    const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
+    saveLastBackup(wb,models.length,totalTasks);
+  }catch(err){
+    console.warn('Auto-backup failed:',err);
+  }
+}
+
+// Starts (or restarts) the recurring auto-backup. If the stored backup is
+// missing or already an hour (or more) stale, it backs up right away;
+// otherwise it waits for the next hourly tick. Safe to call more than once
+// (e.g. once from preview mode, once from signed-in mode) — any previous
+// timer is cleared first so backups never run twice as often as intended.
+let _autoBackupInterval=null;
+function startAutoBackup(){
+  const last=getLastBackup();
+  if(!last || (Date.now()-last.ts)>=AUTO_BACKUP_INTERVAL_MS) runAutoBackup();
+  if(_autoBackupInterval) clearInterval(_autoBackupInterval);
+  _autoBackupInterval=setInterval(runAutoBackup,AUTO_BACKUP_INTERVAL_MS);
+}
 
 // ── LAZY-LOAD XLSX LIBRARY (only needed for Excel import/export) ─────────────
 // This is a ~700KB library most page loads never touch, so we fetch it on
