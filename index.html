@@ -766,6 +766,10 @@ footer {
   margin-left: 6px; letter-spacing: 0; transition: all 0.3s ease;
 }
 .filter-btn.active .filter-count { background: var(--accent1); color: var(--bg); }
+.select-completed-btn { margin-left: 4px; border-style: dashed; }
+.select-completed-btn.has-selection { border-style: solid; border-color: var(--green); color: var(--green); background: rgba(16,185,129,0.12); }
+.select-pending-btn { border-style: dashed; }
+.select-pending-btn.has-selection { border-style: solid; border-color: var(--accent1); color: var(--accent1); background: var(--accent1-dim); }
 
 .search-box {
   margin-left: auto; background: var(--surface); border: 1px solid var(--border);
@@ -1964,6 +1968,10 @@ img { -webkit-user-drag: none; }
   .print-footer { margin-top: 16px; font-size: 10px; color: #777; text-align: right; }
   .print-model-section { page-break-after: always; }
   .print-model-section:last-child { page-break-after: auto; }
+  .print-table tr.pt-subtask td { background: #f7f7f7; font-size: 10px; color: #555; }
+  .print-table tr.pt-subtask td.pt-sn { color: #999; }
+  .print-table tr.pt-subtask td:nth-child(2) { padding-left: 22px; }
+  .print-table tr.pt-subtask.pt-done td { color: #999; }
   @page { margin: 18mm 14mm; }
 }
 
@@ -2306,6 +2314,8 @@ document.addEventListener('keydown', e => {
   <button class="filter-btn" data-filter="med">Medium<span class="filter-count" id="fc-med">0</span></button>
   <button class="filter-btn" data-filter="low">Low<span class="filter-count" id="fc-low">0</span></button>
   <button class="filter-btn filter-btn-critical" data-filter="critical">⚠ Critical<span class="filter-count" id="fc-critical">0</span></button>
+  <button class="filter-btn select-completed-btn" id="selectCompletedBtn" title="Select all completed tasks for bulk actions, regardless of the current filter">☑ Select Completed</button>
+  <button class="filter-btn select-pending-btn" id="selectPendingBtn" title="Select all pending tasks for bulk actions, regardless of the current filter">☐ Select Pending</button>
   <div class="kbd-hint">Shortcuts: <kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</div>
 </div>
 
@@ -4509,6 +4519,26 @@ function _buildModelPrintSection(modelName){
     const shotsHtml=shots.length
       ? `<div class="pt-shots-row">${shots.map(s=>`<img src="${s.dataUrl}" alt="${_printEsc(s.title||'')}" title="${_printEsc(s.title||'')}">`).join('')}</div>`
       : '';
+    const subs=Array.isArray(t.subtasks)?t.subtasks:[];
+    const subRows=subs.map(s=>{
+      const subOverdue=!s.done&&s.taskDeadline&&new Date(s.taskDeadline+'T00:00:00')<new Date(new Date().toDateString());
+      const subDlLabel=s.taskDeadline
+        ? new Date(s.taskDeadline+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})
+        : '—';
+      const subShots=Array.isArray(s.screenshots)?s.screenshots:[];
+      const subShotsHtml=subShots.length
+        ? `<div class="pt-shots-row">${subShots.map(sh=>`<img src="${sh.dataUrl}" alt="${_printEsc(sh.title||'')}" title="${_printEsc(sh.title||'')}">`).join('')}</div>`
+        : '';
+      return `<tr class="pt-subtask${s.done?' pt-done':''}${subOverdue?' pt-overdue':''}">
+        <td class="pt-sn">↳</td>
+        <td>${_printEsc(s.name)}</td>
+        <td class="pt-priority">${prioMap[s.priority||'med']}</td>
+        <td class="pt-status">${s.done?'✓ Done':'Pending'}</td>
+        <td class="pt-deadline">${subDlLabel}${subOverdue?' (overdue)':''}</td>
+        <td>${_printEsc(s.notes||'')}</td>
+        <td class="pt-shots">${subShotsHtml}</td>
+      </tr>`;
+    }).join('');
     return `<tr class="${t.done?'pt-done':''}${overdue?' pt-overdue':''}">
       <td class="pt-sn">${t.sn}</td>
       <td>${_printEsc(t.name)}</td>
@@ -4517,7 +4547,7 @@ function _buildModelPrintSection(modelName){
       <td class="pt-deadline">${dlLabel}${overdue?' (overdue)':''}</td>
       <td>${_printEsc(t.notes||'')}</td>
       <td class="pt-shots">${shotsHtml}</td>
-    </tr>`;
+    </tr>${subRows}`;
   }).join('') || `<tr><td colspan="7" style="text-align:center;color:#888;">No tasks in this model</td></tr>`;
 
   return `
@@ -5207,6 +5237,20 @@ function updateBulkBar(){
   const bar=document.getElementById('bulkBar');
   document.getElementById('bulkCount').textContent=`${selectedTasks.size} selected`;
   bar.classList.toggle('visible',selectedTasks.size>0);
+
+  const selCompletedBtn=document.getElementById('selectCompletedBtn');
+  const selPendingBtn=document.getElementById('selectPendingBtn');
+  const tasks=(activeTab && activeTab!=='Compare Models' && state[activeTab])?state[activeTab]:[];
+  if(selCompletedBtn){
+    const doneIdxs=tasks.reduce((arr,t,i)=>{if(t.done)arr.push(i);return arr;},[]);
+    const allDoneSelected=doneIdxs.length>0&&doneIdxs.every(i=>selectedTasks.has(i));
+    selCompletedBtn.classList.toggle('has-selection',allDoneSelected);
+  }
+  if(selPendingBtn){
+    const pendingIdxs=tasks.reduce((arr,t,i)=>{if(!t.done)arr.push(i);return arr;},[]);
+    const allPendingSelected=pendingIdxs.length>0&&pendingIdxs.every(i=>selectedTasks.has(i));
+    selPendingBtn.classList.toggle('has-selection',allPendingSelected);
+  }
 }
 
 // ── COMPARE VIEW ──────────────────────────────────────────────────────────────
@@ -5929,12 +5973,15 @@ document.getElementById('exportAllExcelBtn').onclick=async()=>{
   const usedNames=new Set();
   models.forEach(m=>{
     const tasks=state[m];
-    const rows=[['Task Name','Priority','Status','Notes','Deadline']];
+    const rows=[['Task Name','Priority','Status','Notes','Deadline','Type','Parent Task']];
     tasks.forEach(t=>{
-      rows.push([t.name,prioMap[t.priority||'med'],t.done?'Done':'Pending',t.notes||'',t.taskDeadline||'']);
+      rows.push([t.name,prioMap[t.priority||'med'],t.done?'Done':'Pending',t.notes||'',t.taskDeadline||'','Task','']);
+      (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>{
+        rows.push([s.name,prioMap[s.priority||'med'],s.done?'Done':'Pending',s.notes||'',s.taskDeadline||'','Subtask',t.name]);
+      });
     });
     const ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:40},{wch:10},{wch:10},{wch:35},{wch:14}];
+    ws['!cols']=[{wch:40},{wch:10},{wch:10},{wch:35},{wch:14},{wch:9},{wch:28}];
     // Guard against two model names colliding once sanitized/truncated to 31 chars
     let sheetName=excelSafeSheetName(m), n=2;
     while(usedNames.has(sheetName)){ sheetName=excelSafeSheetName(m).slice(0,28)+'_'+n; n++; }
@@ -5942,7 +5989,8 @@ document.getElementById('exportAllExcelBtn').onclick=async()=>{
     XLSX.utils.book_append_sheet(wb,ws,sheetName);
   });
   XLSX.writeFile(wb,'model_launch_dashboard.xlsx');
-  toast('📤',`Exported ${models.length} model${models.length===1?'':'s'} to Excel`,false);
+  const totalSubs=models.reduce((n,m)=>n+state[m].reduce((s,t)=>s+((Array.isArray(t.subtasks)?t.subtasks.length:0)),0),0);
+  toast('📤',`Exported ${models.length} model${models.length===1?'':'s'}${totalSubs?` (incl. ${totalSubs} subtasks)`:''} to Excel`,false);
 };
 
 document.getElementById('importFile').onchange=async e=>{
@@ -5968,34 +6016,64 @@ document.getElementById('importFile').onchange=async e=>{
       //   completion status, and the model's deadline are left untouched.
       // - a sheet with a name that doesn't match any model becomes a new
       //   model (and is un-deleted if it was a previously-removed built-in).
-      let modelsAdded=0, modelsUpdated=0, tasksAdded=0, tasksSkipped=0;
+      let modelsAdded=0, modelsUpdated=0, tasksAdded=0, tasksSkipped=0, subtasksAdded=0, subtasksSkipped=0;
       sheetNames.forEach(sheetName=>{
         const ws=wb.Sheets[sheetName];
         const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
         let startIdx=0;
         const firstRow=(rows[0]||[]).map(c=>String(c).trim().toLowerCase());
-        if(firstRow[0]&&(firstRow[0].includes('task')||firstRow[0].includes('name'))) startIdx=1;
+        let typeIdx=-1, parentIdx=-1;
+        if(firstRow[0]&&(firstRow[0].includes('task')||firstRow[0].includes('name'))){
+          startIdx=1;
+          typeIdx=firstRow.indexOf('type');
+          parentIdx=firstRow.indexOf('parent task');
+        }
 
         const isExistingModel=Object.prototype.hasOwnProperty.call(state,sheetName);
         const targetTasks=isExistingModel?state[sheetName]:[];
         const existingNames=new Set(targetTasks.map(t=>t.name.trim().toUpperCase()));
-        let addedHere=0;
+        let addedHere=0, lastTaskRef=null;
 
         for(let i=startIdx;i<rows.length;i++){
           const row=rows[i];
           const name=String(row[0]||'').trim();
           if(!name) continue;
           const key=name.toUpperCase();
+          const isSubRow=typeIdx>=0 && String(row[typeIdx]||'').trim().toLowerCase()==='subtask';
+
+          if(isSubRow){
+            const parentName=parentIdx>=0?String(row[parentIdx]||'').trim().toUpperCase():'';
+            let parentTask=parentName?targetTasks.find(t=>t.name===parentName):null;
+            if(!parentTask) parentTask=lastTaskRef;
+            if(!parentTask) continue; // orphan subtask row — no known parent task, skip
+            if(!Array.isArray(parentTask.subtasks)) parentTask.subtasks=[];
+            const subExisting=new Set(parentTask.subtasks.map(s=>s.name.trim().toUpperCase()));
+            if(subExisting.has(key)){ subtasksSkipped++; continue; }
+            parentTask.subtasks.push({
+              name:key,
+              done:normDone(row[2]),
+              priority:normPriority(row[1]),
+              notes:String(row[3]||'').trim(),
+              taskDeadline:normDate(row[4]),
+              screenshots:[]
+            });
+            subtasksAdded++;
+            continue;
+          }
+
           if(existingNames.has(key)){tasksSkipped++;continue;}
           existingNames.add(key);
-          targetTasks.push({
+          const newTask={
             sn:targetTasks.length+1,
             name:key,
             done:normDone(row[2]),
             priority:normPriority(row[1]),
             notes:String(row[3]||'').trim(),
-            taskDeadline:normDate(row[4])
-          });
+            taskDeadline:normDate(row[4]),
+            subtasks:[]
+          };
+          targetTasks.push(newTask);
+          lastTaskRef=newTask;
           addedHere++;
         }
         if(!addedHere && !isExistingModel) return; // empty new sheet — nothing to add
@@ -6009,7 +6087,7 @@ document.getElementById('importFile').onchange=async e=>{
         }
       });
 
-      if(!modelsAdded && !modelsUpdated){await showAlert({title:'Nothing to import',message:'No new models or tasks found — everything in the workbook already exists.',tone:'warn'});e.target.value='';return;}
+      if(!modelsAdded && !modelsUpdated && !subtasksAdded){await showAlert({title:'Nothing to import',message:'No new models, tasks, or subtasks found — everything in the workbook already exists.',tone:'warn'});e.target.value='';return;}
 
       refreshModelsList();
       if(!activeTab && models.length) activeTab=models[0];
@@ -6018,7 +6096,9 @@ document.getElementById('importFile').onchange=async e=>{
       if(modelsAdded) parts.push(`${modelsAdded} new model${modelsAdded===1?'':'s'}`);
       if(modelsUpdated) parts.push(`${modelsUpdated} model${modelsUpdated===1?'':'s'} updated`);
       if(tasksAdded) parts.push(`${tasksAdded} task${tasksAdded===1?'':'s'} added`);
-      if(tasksSkipped) parts.push(`${tasksSkipped} duplicate${tasksSkipped===1?'':'s'} skipped`);
+      if(tasksSkipped) parts.push(`${tasksSkipped} duplicate task${tasksSkipped===1?'':'s'} skipped`);
+      if(subtasksAdded) parts.push(`${subtasksAdded} subtask${subtasksAdded===1?'':'s'} added`);
+      if(subtasksSkipped) parts.push(`${subtasksSkipped} duplicate subtask${subtasksSkipped===1?'':'s'} skipped`);
       toast('↑',`Imported: ${parts.join(', ')}`);
     }catch(err){await showAlert({title:'Could not read file',message:"Make sure it's a valid .xlsx or .xls workbook.",tone:'error'});}
   };
@@ -6050,17 +6130,21 @@ document.getElementById('exportExcelBtn').onclick=async()=>{
   try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   const tasks=state[activeTab];
   const prioMap={high:'High',med:'Med',low:'Low'};
-  const rows=[['Task Name','Priority','Status','Notes','Deadline']];
+  const rows=[['Task Name','Priority','Status','Notes','Deadline','Type','Parent Task']];
   tasks.forEach(t=>{
-    rows.push([t.name,prioMap[t.priority||'med'],t.done?'Done':'Pending',t.notes||'',t.taskDeadline||'']);
+    rows.push([t.name,prioMap[t.priority||'med'],t.done?'Done':'Pending',t.notes||'',t.taskDeadline||'','Task','']);
+    (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>{
+      rows.push([s.name,prioMap[s.priority||'med'],s.done?'Done':'Pending',s.notes||'',s.taskDeadline||'','Subtask',t.name]);
+    });
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:40},{wch:10},{wch:10},{wch:35},{wch:14}];
+  ws['!cols']=[{wch:40},{wch:10},{wch:10},{wch:35},{wch:14},{wch:9},{wch:28}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,activeTab.slice(0,31));
   const fname=`${activeTab.replace(/[^a-z0-9]+/gi,'_')}_tasks.xlsx`;
   XLSX.writeFile(wb,fname);
-  toast('📤',`Exported ${tasks.length} tasks to Excel`,false);
+  const subCount=tasks.reduce((n,t)=>n+((Array.isArray(t.subtasks)?t.subtasks.length:0)),0);
+  toast('📤',`Exported ${tasks.length} tasks${subCount?` + ${subCount} subtasks`:''} to Excel`,false);
 };
 
 document.getElementById('exportPdfBtn').onclick=()=>{
@@ -6110,29 +6194,68 @@ document.getElementById('importExcelFile').onchange=async e=>{
       if(!rows.length){await showAlert({title:'Empty file',message:'The file appears to be empty.',tone:'warn'});e.target.value='';return;}
       let startIdx=0;
       const firstRow=rows[0].map(c=>String(c).trim().toLowerCase());
-      if(firstRow[0]&&(firstRow[0].includes('task')||firstRow[0].includes('name'))) startIdx=1;
+      let typeIdx=-1, parentIdx=-1;
+      if(firstRow[0]&&(firstRow[0].includes('task')||firstRow[0].includes('name'))){
+        startIdx=1;
+        typeIdx=firstRow.indexOf('type');
+        parentIdx=firstRow.indexOf('parent task');
+      }
       const tasks=state[activeTab];
       const existingNames=new Set(tasks.map(t=>t.name.trim().toUpperCase()));
-      let added=0,skipped=0;
+      let added=0,skipped=0,subAdded=0,subSkipped=0,lastTaskRef=null;
       for(let i=startIdx;i<rows.length;i++){
         const row=rows[i];
         const name=String(row[0]||'').trim();
         if(!name) continue;
         const key=name.toUpperCase();
+        const isSubRow=typeIdx>=0 && String(row[typeIdx]||'').trim().toLowerCase()==='subtask';
+
+        if(isSubRow){
+          const parentName=parentIdx>=0?String(row[parentIdx]||'').trim().toUpperCase():'';
+          let parentTask=parentName?tasks.find(t=>t.name===parentName):null;
+          if(!parentTask) parentTask=lastTaskRef;
+          if(!parentTask) continue;
+          if(!Array.isArray(parentTask.subtasks)) parentTask.subtasks=[];
+          const subExisting=new Set(parentTask.subtasks.map(s=>s.name.trim().toUpperCase()));
+          if(subExisting.has(key)){ subSkipped++; continue; }
+          parentTask.subtasks.push({
+            name:key,
+            done:normDone(row[2]),
+            priority:normPriority(row[1]),
+            notes:String(row[3]||'').trim(),
+            taskDeadline:normDate(row[4]),
+            screenshots:[]
+          });
+          subAdded++;
+          continue;
+        }
+
         if(existingNames.has(key)){skipped++;continue;}
         existingNames.add(key);
-        tasks.push({
+        const newTask={
           sn:tasks.length+1,
           name:key,
           done:normDone(row[2]),
           priority:normPriority(row[1]),
           notes:String(row[3]||'').trim(),
-          taskDeadline:normDate(row[4])
-        });
+          taskDeadline:normDate(row[4]),
+          subtasks:[]
+        };
+        tasks.push(newTask);
+        lastTaskRef=newTask;
         added++;
       }
       renumber(tasks);save();renderAll();
-      toast('📥',`Imported ${added} task${added===1?'':'s'}${skipped?`, skipped ${skipped} duplicate${skipped===1?'':'s'}`:''}`);
+      const parts=[];
+      if(added) parts.push(`${added} task${added===1?'':'s'}`);
+      if(subAdded) parts.push(`${subAdded} subtask${subAdded===1?'':'s'}`);
+      if(!parts.length) parts.push('0 tasks');
+      let msg=`Imported ${parts.join(', ')}`;
+      const skipParts=[];
+      if(skipped) skipParts.push(`${skipped} duplicate task${skipped===1?'':'s'}`);
+      if(subSkipped) skipParts.push(`${subSkipped} duplicate subtask${subSkipped===1?'':'s'}`);
+      if(skipParts.length) msg+=`, skipped ${skipParts.join(', ')}`;
+      toast('📥',msg);
     }catch(err){await showAlert({title:'Could not read file',message:"Make sure it's a valid .xlsx, .xls, or .csv file.",tone:'error'});}
   };
   reader.readAsArrayBuffer(file);
@@ -6185,6 +6308,40 @@ document.querySelectorAll('.filter-btn').forEach(btn=>{
   };
 });
 document.getElementById('searchBox').oninput=e=>{searchQuery=e.target.value;renderTaskList();};
+
+// Selects (or deselects) every completed task in the current model for bulk
+// actions, independent of whatever filter/search is currently applied. This
+// is a separate control from the header "select all" checkbox, which only
+// selects tasks matching the active filter/search view.
+document.getElementById('selectCompletedBtn').onclick=()=>{
+  if(!activeTab || activeTab==='Compare Models' || !state[activeTab]) return;
+  const tasks=state[activeTab];
+  const doneIdxs=tasks.reduce((arr,t,i)=>{if(t.done)arr.push(i);return arr;},[]);
+  if(!doneIdxs.length){toast('⚠','No completed tasks in this model',false);return;}
+  const allSelected=doneIdxs.every(i=>selectedTasks.has(i));
+  if(allSelected){
+    doneIdxs.forEach(i=>selectedTasks.delete(i));
+  }else{
+    doneIdxs.forEach(i=>selectedTasks.add(i));
+  }
+  updateBulkBar();renderTaskList();
+};
+
+// Selects (or deselects) every pending task in the current model for bulk
+// actions, independent of whatever filter/search is currently applied.
+document.getElementById('selectPendingBtn').onclick=()=>{
+  if(!activeTab || activeTab==='Compare Models' || !state[activeTab]) return;
+  const tasks=state[activeTab];
+  const pendingIdxs=tasks.reduce((arr,t,i)=>{if(!t.done)arr.push(i);return arr;},[]);
+  if(!pendingIdxs.length){toast('⚠','No pending tasks in this model',false);return;}
+  const allSelected=pendingIdxs.every(i=>selectedTasks.has(i));
+  if(allSelected){
+    pendingIdxs.forEach(i=>selectedTasks.delete(i));
+  }else{
+    pendingIdxs.forEach(i=>selectedTasks.add(i));
+  }
+  updateBulkBar();renderTaskList();
+};
 
 // ── ADD BUTTONS ───────────────────────────────────────────────────────────────
 document.getElementById('addTaskBtn').onclick=()=>{
