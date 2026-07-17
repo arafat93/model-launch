@@ -2227,6 +2227,7 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="exportAllExcelBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#21a366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="11" x2="10" y2="19"/></svg><span>Export as Excel</span></button>
         <button class="menu-item" id="exportAllPdfBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#e5484d" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="#e5484d" stroke-width="2"/><line x1="7.5" y1="13" x2="16.5" y2="13" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="16" x2="16.5" y2="16" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="19" x2="13" y2="19" stroke="#e5484d" stroke-width="1.6"/></svg><span>Export as PDF</span></button>
         <div class="menu-divider"></div>
+        <button class="menu-item" id="backupNowBtn" title="Save a local backup right now (replaces the previous one — only the latest is ever kept)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="backupNowLabel">Backup Now</span></button>
         <button class="menu-item" id="restoreBackupBtn" title="No backup yet — use &quot;Export as Excel&quot; once to create one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span id="restoreBackupLabel">Restore Last Backup</span></button>
       </div>
     </div>
@@ -6180,6 +6181,23 @@ function updateRestoreBackupBtn(){
   btn.title=`Backup taken ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}`;
   if(label) label.textContent=`Restore Last Backup (${dateStr})`;
 }
+
+document.getElementById('backupNowBtn').onclick=async()=>{
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  if(!models.length){await showAlert({title:'Nothing to back up',message:'Add at least one model before backing up.',tone:'warn'});return;}
+  try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
+  try{
+    const wb=buildAllModelsWorkbook();
+    const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
+    saveLastBackup(wb,models.length,totalTasks);
+    // Restart the hourly timer from now, so this manual backup counts as
+    // this cycle's backup instead of leaving one due again in a few minutes.
+    startAutoBackup();
+    toast('💾',`Backed up ${models.length} model${models.length===1?'':'s'} (${totalTasks} tasks) — no file downloaded, saved to this browser only`);
+  }catch(err){
+    await showAlert({title:'Backup failed',message:'Something went wrong while creating the backup. Please try again.',tone:'error'});
+  }
+};
 
 document.getElementById('restoreBackupBtn').onclick=async()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
