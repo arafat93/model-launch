@@ -2228,7 +2228,7 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="exportAllPdfBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#e5484d" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="#e5484d" stroke-width="2"/><line x1="7.5" y1="13" x2="16.5" y2="13" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="16" x2="16.5" y2="16" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="19" x2="13" y2="19" stroke="#e5484d" stroke-width="1.6"/></svg><span>Export as PDF</span></button>
         <div class="menu-divider"></div>
         <button class="menu-item" id="backupNowBtn" title="Save a local backup right now (replaces the previous one — only the latest is ever kept)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="backupNowLabel">Backup Now</span></button>
-        <button class="menu-item" id="restoreBackupBtn" title="No backup yet — use &quot;Export as Excel&quot; once to create one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span id="restoreBackupLabel">Restore Last Backup</span></button>
+        <button class="menu-item" id="restoreBackupBtn" title="No backup yet — use &quot;Backup Now&quot; once to create one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span id="restoreBackupLabel">Restore Last Backup</span></button>
       </div>
     </div>
     <label class="hdr-btn accent" title="Import from Excel — adds new models/tasks, keeps existing data" style="cursor:pointer;">
@@ -6005,8 +6005,7 @@ document.getElementById('exportAllExcelBtn').onclick=async()=>{
   try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   const wb=buildAllModelsWorkbook();
   XLSX.writeFile(wb,'model_launch_dashboard.xlsx');
-  const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
-  saveLastBackup(wb,models.length,totalTasks);
+  saveLastBackup();
   const totalSubs=models.reduce((n,m)=>n+state[m].reduce((s,t)=>s+((Array.isArray(t.subtasks)?t.subtasks.length:0)),0),0);
   toast('📤',`Exported ${models.length} model${models.length===1?'':'s'}${totalSubs?` (incl. ${totalSubs} subtasks)`:''} to Excel`,false);
 };
@@ -6140,19 +6139,37 @@ document.getElementById('importFile').onchange=async e=>{
 };
 
 // ── SINGLE-SLOT LOCAL BACKUP ─────────────────────────────────────────────────
-// Every "Export All Models" also stashes a base64 copy of that same workbook
-// in localStorage, overwriting whatever was there before — so only the most
-// recent backup is ever kept. "Restore Last Backup" reads it straight back
-// and merges it in with the same safe, additive logic as a normal import,
-// without the person needing to hunt down the downloaded file on their device.
-const LAST_BACKUP_KEY='mlc_lastBackupXlsx';
+// Captures a full snapshot of everything on the dashboard — every model's
+// tasks and subtasks (including notes and attached screenshots), model
+// photos, model deadlines, archived/pinned/deleted-model flags, and model
+// order — as plain JSON in localStorage, overwriting whatever was there
+// before so only the most recent backup is ever kept. This is deliberately
+// NOT the Excel workbook: Excel rows can't hold nested images or model-level
+// metadata, so a from-scratch state snapshot is the only way to back up
+// everything rather than just the task list.
+const LAST_BACKUP_KEY='mlc_lastFullBackup';
 
-function saveLastBackup(wb,modelsCount,tasksCount){
+function buildFullBackupPayload(){
+  return {
+    tasks:JSON.parse(JSON.stringify(state)),
+    deadlines:JSON.parse(JSON.stringify(deadlines)),
+    modelImages:JSON.parse(JSON.stringify(modelImages)),
+    deletedModels:[...deletedModelsSet],
+    archivedModels:[...archivedModelsSet],
+    pinnedModels:[...pinnedModelsSet],
+    modelOrder:[...modelOrder],
+    recycleBin:JSON.parse(JSON.stringify(recycleBin))
+  };
+}
+
+function saveLastBackup(){
   try{
-    const base64=XLSX.write(wb,{type:'base64',bookType:'xlsx'});
-    localStorage.setItem(LAST_BACKUP_KEY,JSON.stringify({data:base64,ts:Date.now(),models:modelsCount,tasks:tasksCount}));
+    const payload=buildFullBackupPayload();
+    const modelsCount=models.length;
+    const tasksCount=models.reduce((n,m)=>n+((state[m]||[]).length),0);
+    localStorage.setItem(LAST_BACKUP_KEY,JSON.stringify({payload,ts:Date.now(),models:modelsCount,tasks:tasksCount}));
   }catch(err){
-    console.warn('Could not save local backup (workbook may be too large for localStorage):',err);
+    console.warn('Could not save local backup (data may be too large for localStorage — try removing some photos):',err);
   }
   updateRestoreBackupBtn();
 }
@@ -6171,29 +6188,105 @@ function updateRestoreBackupBtn(){
   const backup=getLastBackup();
   if(!backup){
     btn.disabled=true;
-    btn.title='No backup yet — use "Export as Excel" once to create one';
+    btn.title='No backup yet — use "Backup Now" once to create one';
     if(label) label.textContent='Restore Last Backup';
     return;
   }
   btn.disabled=false;
   const d=new Date(backup.ts);
   const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
-  btn.title=`Backup taken ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}`;
+  btn.title=`Full backup taken ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'} (incl. photos, notes, deadlines)`;
   if(label) label.textContent=`Restore Last Backup (${dateStr})`;
+}
+
+// Merges a full backup payload back into the current dashboard. Same safe,
+// additive philosophy as the Excel import/restore: an existing model is
+// never overwritten, only missing tasks/subtasks are appended back onto it
+// (screenshots included), and a model-level deadline/photo is only filled
+// in if the current model doesn't already have one. A model absent from the
+// current dashboard entirely is restored in full, including its photo,
+// deadline, archived/pinned state, and its position in the model order.
+function mergeFullBackupIntoState(payload){
+  let modelsAdded=0, modelsUpdated=0, tasksAdded=0, tasksSkipped=0, subtasksAdded=0, subtasksSkipped=0, extrasRestored=0;
+  const backupModels=Object.keys(payload.tasks||{});
+
+  backupModels.forEach(m=>{
+    const backupTasks=Array.isArray(payload.tasks[m])?payload.tasks[m]:[];
+    const isExisting=Object.prototype.hasOwnProperty.call(state,m);
+    const targetTasks=isExisting?state[m]:[];
+    const existingNames=new Set(targetTasks.map(t=>t.name.trim().toUpperCase()));
+    let addedHere=0;
+
+    backupTasks.forEach(bt=>{
+      const key=String(bt.name||'').trim().toUpperCase();
+      if(!key) return;
+      if(existingNames.has(key)){
+        // Task already exists — still recover any subtasks missing from it.
+        const existingTask=targetTasks.find(t=>t.name.trim().toUpperCase()===key);
+        if(existingTask && Array.isArray(bt.subtasks) && bt.subtasks.length){
+          if(!Array.isArray(existingTask.subtasks)) existingTask.subtasks=[];
+          const subNames=new Set(existingTask.subtasks.map(s=>s.name.trim().toUpperCase()));
+          bt.subtasks.forEach(bs=>{
+            const skey=String(bs.name||'').trim().toUpperCase();
+            if(!skey){ return; }
+            if(subNames.has(skey)){ subtasksSkipped++; return; }
+            existingTask.subtasks.push(JSON.parse(JSON.stringify(bs)));
+            subNames.add(skey);
+            subtasksAdded++;
+          });
+        }
+        tasksSkipped++;
+        return;
+      }
+      existingNames.add(key);
+      const newTask=JSON.parse(JSON.stringify(bt));
+      newTask.sn=targetTasks.length+1;
+      newTask.name=key;
+      if(!Array.isArray(newTask.subtasks)) newTask.subtasks=[];
+      targetTasks.push(newTask);
+      addedHere++;
+    });
+
+    if(isExisting){
+      if(addedHere){ renumber(targetTasks); modelsUpdated++; tasksAdded+=addedHere; }
+    } else if(targetTasks.length){
+      state[m]=targetTasks;
+      deletedModelsSet.delete(m);
+      modelsAdded++; tasksAdded+=addedHere;
+      if(payload.deadlines && payload.deadlines[m]){ deadlines[m]=payload.deadlines[m]; }
+      if(payload.modelImages && payload.modelImages[m]){ modelImages[m]=payload.modelImages[m]; }
+      if(Array.isArray(payload.archivedModels) && payload.archivedModels.includes(m)) archivedModelsSet.add(m);
+      if(Array.isArray(payload.pinnedModels) && payload.pinnedModels.includes(m)) pinnedModelsSet.add(m);
+      if(Array.isArray(payload.modelOrder) && payload.modelOrder.includes(m) && !modelOrder.includes(m)) modelOrder.push(m);
+    }
+
+    // Fill in a missing photo/deadline on a model that already exists but
+    // currently has neither — never overwrites one that's already set.
+    if(isExisting){
+      if(payload.deadlines && payload.deadlines[m] && !deadlines[m]){ deadlines[m]=payload.deadlines[m]; extrasRestored++; }
+      if(payload.modelImages && payload.modelImages[m] && !modelImages[m]){ modelImages[m]=payload.modelImages[m]; extrasRestored++; }
+    }
+  });
+
+  return {modelsAdded,modelsUpdated,tasksAdded,tasksSkipped,subtasksAdded,subtasksSkipped,extrasRestored};
+}
+
+function fullBackupStatsToMessage(stats){
+  const parts=importStatsToMessage(stats);
+  if(stats.extrasRestored) parts.push(`${stats.extrasRestored} photo/deadline${stats.extrasRestored===1?'':'s'} restored`);
+  return parts;
 }
 
 document.getElementById('backupNowBtn').onclick=async()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
   if(!models.length){await showAlert({title:'Nothing to back up',message:'Add at least one model before backing up.',tone:'warn'});return;}
-  try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   try{
-    const wb=buildAllModelsWorkbook();
-    const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
-    saveLastBackup(wb,models.length,totalTasks);
+    saveLastBackup();
     // Restart the hourly timer from now, so this manual backup counts as
     // this cycle's backup instead of leaving one due again in a few minutes.
     startAutoBackup();
-    toast('💾',`Backed up ${models.length} model${models.length===1?'':'s'} (${totalTasks} tasks) — no file downloaded, saved to this browser only`);
+    const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
+    toast('💾',`Backed up everything — ${models.length} model${models.length===1?'':'s'}, ${totalTasks} tasks, photos & notes — saved to this browser only`);
   }catch(err){
     await showAlert({title:'Backup failed',message:'Something went wrong while creating the backup. Please try again.',tone:'error'});
   }
@@ -6202,25 +6295,23 @@ document.getElementById('backupNowBtn').onclick=async()=>{
 document.getElementById('restoreBackupBtn').onclick=async()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
   const backup=getLastBackup();
-  if(!backup){await showAlert({title:'No backup found',message:'Use "Export as Excel" at least once to create a local backup you can restore from.',tone:'warn'});return;}
+  if(!backup){await showAlert({title:'No backup found',message:'Use "Backup Now" at least once to create a local backup you can restore from.',tone:'warn'});return;}
   const d=new Date(backup.ts);
   const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' at '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
   const ok=await showConfirm({
     title:'Restore from last backup?',
-    message:`This will merge in the backup taken on ${dateStr} (${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}). Existing tasks and models are kept as-is — only tasks/subtasks/models missing from your current dashboard are added back.`,
+    message:`This will merge in the full backup taken on ${dateStr} (${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}, incl. photos & notes). Existing tasks and models are kept as-is — only what's missing from your current dashboard is added back.`,
     confirmText:'Restore',
     icon:'↺'
   });
   if(!ok) return;
-  try{ await loadXLSX(); }catch(err){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   try{
-    const wb=XLSX.read(backup.data,{type:'base64',cellDates:true});
-    const stats=mergeWorkbookIntoState(wb);
-    if(!stats.modelsAdded && !stats.modelsUpdated && !stats.subtasksAdded){await showAlert({title:'Nothing to restore',message:'Your current dashboard already has everything from that backup.',tone:'warn'});return;}
+    const stats=mergeFullBackupIntoState(backup.payload);
+    if(!stats.modelsAdded && !stats.modelsUpdated && !stats.subtasksAdded && !stats.extrasRestored){await showAlert({title:'Nothing to restore',message:'Your current dashboard already has everything from that backup.',tone:'warn'});return;}
     refreshModelsList();
     if(!activeTab && models.length) activeTab=models[0];
     save();renderAll();
-    toast('↺',`Restored from backup: ${importStatsToMessage(stats).join(', ')}`);
+    toast('↺',`Restored from backup: ${fullBackupStatsToMessage(stats).join(', ')}`);
   }catch(err){
     await showAlert({title:'Could not read backup',message:'The stored backup appears to be corrupted.',tone:'error'});
   }
@@ -6229,19 +6320,16 @@ document.getElementById('restoreBackupBtn').onclick=async()=>{
 updateRestoreBackupBtn();
 
 // ── HOURLY AUTO-BACKUP ────────────────────────────────────────────────────────
-// Keeps the local backup fresh even if the person forgets to export
-// manually: builds a workbook from the current state once an hour and
-// overwrites the single stored backup slot via saveLastBackup — so the old
-// backup is always discarded and only the newest copy is ever kept.
+// Keeps the local backup fresh even if the person forgets to back up
+// manually: snapshots the full current state once an hour and overwrites
+// the single stored backup slot via saveLastBackup — so the old backup is
+// always discarded and only the newest copy is ever kept.
 const AUTO_BACKUP_INTERVAL_MS=60*60*1000; // 1 hour
 
-async function runAutoBackup(){
+function runAutoBackup(){
   if(!models.length) return; // nothing to back up yet
-  try{ await loadXLSX(); }catch(err){ return; } // e.g. offline — just skip this cycle
   try{
-    const wb=buildAllModelsWorkbook();
-    const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
-    saveLastBackup(wb,models.length,totalTasks);
+    saveLastBackup();
   }catch(err){
     console.warn('Auto-backup failed:',err);
   }
