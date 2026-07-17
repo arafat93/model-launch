@@ -6005,7 +6005,7 @@ document.getElementById('exportAllExcelBtn').onclick=async()=>{
   try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   const wb=buildAllModelsWorkbook();
   XLSX.writeFile(wb,'model_launch_dashboard.xlsx');
-  saveLastBackup();
+  await saveLastBackup();
   const totalSubs=models.reduce((n,m)=>n+state[m].reduce((s,t)=>s+((Array.isArray(t.subtasks)?t.subtasks.length:0)),0),0);
   toast('📤',`Exported ${models.length} model${models.length===1?'':'s'}${totalSubs?` (incl. ${totalSubs} subtasks)`:''} to Excel`,false);
 };
@@ -6142,11 +6142,12 @@ document.getElementById('importFile').onchange=async e=>{
 // Captures a full snapshot of everything on the dashboard — every model's
 // tasks and subtasks (including notes and attached screenshots), model
 // photos, model deadlines, archived/pinned/deleted-model flags, and model
-// order — as plain JSON in localStorage, overwriting whatever was there
-// before so only the most recent backup is ever kept. This is deliberately
-// NOT the Excel workbook: Excel rows can't hold nested images or model-level
-// metadata, so a from-scratch state snapshot is the only way to back up
-// everything rather than just the task list.
+// order. Saved to the person's Firestore account (dashboards/{uid}/meta/lastBackup)
+// so it's available from any device they sign into — not just this browser.
+// Each new backup overwrites that same document, so only the most recent
+// backup is ever kept. If nobody's signed in (preview mode) or the network
+// write fails, it falls back to localStorage on this device so a backup
+// always exists somewhere rather than silently failing.
 const LAST_BACKUP_KEY='mlc_lastFullBackup';
 
 function buildFullBackupPayload(){
@@ -6162,30 +6163,65 @@ function buildFullBackupPayload(){
   };
 }
 
-function saveLastBackup(){
+function getBackupDocRef(){
+  if(!auth || !auth.currentUser || !db) return null;
+  return db.collection('dashboards').doc(auth.currentUser.uid).collection('meta').doc('lastBackup');
+}
+
+async function saveLastBackup(){
+  const payload=buildFullBackupPayload();
+  const modelsCount=models.length;
+  const tasksCount=models.reduce((n,m)=>n+((state[m]||[]).length),0);
+  const record={payload,ts:Date.now(),models:modelsCount,tasks:tasksCount};
+
+  const ref=getBackupDocRef();
+  if(ref){
+    try{
+      await ref.set({...record,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      record.cloud=true;
+      // Mirror locally too, purely so the Restore button can show status
+      // instantly and a backup still exists if this device goes offline
+      // right after — the cloud copy above remains the source of truth.
+      try{ localStorage.setItem(LAST_BACKUP_KEY,JSON.stringify(record)); }catch(e){}
+      await updateRestoreBackupBtn();
+      return true;
+    }catch(err){
+      console.warn('Cloud backup failed, falling back to a local-only backup on this device:',err);
+    }
+  }
+  // Not signed in, or the cloud write failed — still back up locally so
+  // something is always recoverable.
+  record.cloud=false;
   try{
-    const payload=buildFullBackupPayload();
-    const modelsCount=models.length;
-    const tasksCount=models.reduce((n,m)=>n+((state[m]||[]).length),0);
-    localStorage.setItem(LAST_BACKUP_KEY,JSON.stringify({payload,ts:Date.now(),models:modelsCount,tasks:tasksCount}));
+    localStorage.setItem(LAST_BACKUP_KEY,JSON.stringify(record));
   }catch(err){
     console.warn('Could not save local backup (data may be too large for localStorage — try removing some photos):',err);
   }
-  updateRestoreBackupBtn();
+  await updateRestoreBackupBtn();
+  return !!ref; // true only if we had a cloud ref but its write failed
 }
 
-function getLastBackup(){
+async function getLastBackup(){
+  const ref=getBackupDocRef();
+  if(ref){
+    try{
+      const snap=await ref.get();
+      if(snap.exists) return snap.data();
+    }catch(err){
+      console.warn('Could not read cloud backup, checking for a local one instead:',err);
+    }
+  }
   try{
     const raw=localStorage.getItem(LAST_BACKUP_KEY);
     return raw?JSON.parse(raw):null;
   }catch(err){ return null; }
 }
 
-function updateRestoreBackupBtn(){
+async function updateRestoreBackupBtn(){
   const btn=document.getElementById('restoreBackupBtn');
   const label=document.getElementById('restoreBackupLabel');
   if(!btn) return;
-  const backup=getLastBackup();
+  const backup=await getLastBackup();
   if(!backup){
     btn.disabled=true;
     btn.title='No backup yet — use "Backup Now" once to create one';
@@ -6195,7 +6231,8 @@ function updateRestoreBackupBtn(){
   btn.disabled=false;
   const d=new Date(backup.ts);
   const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
-  btn.title=`Full backup taken ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'} (incl. photos, notes, deadlines)`;
+  const whereStr=backup.cloud?'saved to your account':'saved on this device only — sign in to back up online';
+  btn.title=`Full backup taken ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'} (incl. photos, notes, deadlines) — ${whereStr}`;
   if(label) label.textContent=`Restore Last Backup (${dateStr})`;
 }
 
@@ -6281,12 +6318,13 @@ document.getElementById('backupNowBtn').onclick=async()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
   if(!models.length){await showAlert({title:'Nothing to back up',message:'Add at least one model before backing up.',tone:'warn'});return;}
   try{
-    saveLastBackup();
+    const wentToCloud=await saveLastBackup();
     // Restart the hourly timer from now, so this manual backup counts as
     // this cycle's backup instead of leaving one due again in a few minutes.
     startAutoBackup();
     const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
-    toast('💾',`Backed up everything — ${models.length} model${models.length===1?'':'s'}, ${totalTasks} tasks, photos & notes — saved to this browser only`);
+    const whereMsg=wentToCloud?'saved to your account':'saved on this device only — sign in to back up online';
+    toast('💾',`Backed up everything — ${models.length} model${models.length===1?'':'s'}, ${totalTasks} tasks, photos & notes — ${whereMsg}`);
   }catch(err){
     await showAlert({title:'Backup failed',message:'Something went wrong while creating the backup. Please try again.',tone:'error'});
   }
@@ -6294,13 +6332,14 @@ document.getElementById('backupNowBtn').onclick=async()=>{
 
 document.getElementById('restoreBackupBtn').onclick=async()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
-  const backup=getLastBackup();
-  if(!backup){await showAlert({title:'No backup found',message:'Use "Backup Now" at least once to create a local backup you can restore from.',tone:'warn'});return;}
+  const backup=await getLastBackup();
+  if(!backup){await showAlert({title:'No backup found',message:'Use "Backup Now" at least once to create a backup you can restore from.',tone:'warn'});return;}
   const d=new Date(backup.ts);
   const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' at '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  const whereStr=backup.cloud?'from your account':'from this device';
   const ok=await showConfirm({
     title:'Restore from last backup?',
-    message:`This will merge in the full backup taken on ${dateStr} (${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}, incl. photos & notes). Existing tasks and models are kept as-is — only what's missing from your current dashboard is added back.`,
+    message:`This will merge in the full backup ${whereStr}, taken on ${dateStr} (${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}, incl. photos & notes). Existing tasks and models are kept as-is — only what's missing from your current dashboard is added back.`,
     confirmText:'Restore',
     icon:'↺'
   });
@@ -6320,16 +6359,16 @@ document.getElementById('restoreBackupBtn').onclick=async()=>{
 updateRestoreBackupBtn();
 
 // ── HOURLY AUTO-BACKUP ────────────────────────────────────────────────────────
-// Keeps the local backup fresh even if the person forgets to back up
+// Keeps the cloud backup fresh even if the person forgets to back up
 // manually: snapshots the full current state once an hour and overwrites
-// the single stored backup slot via saveLastBackup — so the old backup is
-// always discarded and only the newest copy is ever kept.
+// the single stored backup document via saveLastBackup — so the old backup
+// is always discarded and only the newest copy is ever kept.
 const AUTO_BACKUP_INTERVAL_MS=60*60*1000; // 1 hour
 
-function runAutoBackup(){
+async function runAutoBackup(){
   if(!models.length) return; // nothing to back up yet
   try{
-    saveLastBackup();
+    await saveLastBackup();
   }catch(err){
     console.warn('Auto-backup failed:',err);
   }
@@ -6341,8 +6380,8 @@ function runAutoBackup(){
 // (e.g. once from preview mode, once from signed-in mode) — any previous
 // timer is cleared first so backups never run twice as often as intended.
 let _autoBackupInterval=null;
-function startAutoBackup(){
-  const last=getLastBackup();
+async function startAutoBackup(){
+  const last=await getLastBackup();
   if(!last || (Date.now()-last.ts)>=AUTO_BACKUP_INTERVAL_MS) runAutoBackup();
   if(_autoBackupInterval) clearInterval(_autoBackupInterval);
   _autoBackupInterval=setInterval(runAutoBackup,AUTO_BACKUP_INTERVAL_MS);
