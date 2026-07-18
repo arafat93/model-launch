@@ -3466,11 +3466,22 @@ function checkDeadlinesAndNotify(){
 
   models.forEach(m=>{
     (state[m]||[]).forEach(t=>{
-      if(t.done||!t.taskDeadline) return;
-      const d=new Date(t.taskDeadline+'T00:00:00');
-      const diff=Math.round((d-today)/(1000*60*60*24));
-      if(diff<0) overdueTasks.push({model:m,task:t});
-      else if(diff<=2) dueSoonTasks.push({model:m,task:t});
+      if(!t.done&&t.taskDeadline){
+        const d=new Date(t.taskDeadline+'T00:00:00');
+        const diff=Math.round((d-today)/(1000*60*60*24));
+        if(diff<0) overdueTasks.push({model:m,task:t});
+        else if(diff<=2) dueSoonTasks.push({model:m,task:t});
+      }
+      // BUGFIX: subtask deadlines were never checked here, so an overdue or
+      // due-soon subtask never triggered a notification even though it's
+      // surfaced everywhere else (KPI card, PDF export, row due-badges).
+      (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>{
+        if(s.done||!s.taskDeadline) return;
+        const d=new Date(s.taskDeadline+'T00:00:00');
+        const diff=Math.round((d-today)/(1000*60*60*24));
+        if(diff<0) overdueTasks.push({model:m,task:s});
+        else if(diff<=2) dueSoonTasks.push({model:m,task:s});
+      });
     });
     const mdl=deadlines[m];
     if(mdl){
@@ -3548,10 +3559,21 @@ function getAllOverdueTasks(){
   const today=new Date(); today.setHours(0,0,0,0);
   models.forEach(m=>{
     (state[m]||[]).forEach((t,idx)=>{
-      if(t.done||!t.taskDeadline) return;
-      const d=new Date(t.taskDeadline+'T00:00:00');
-      const diff=Math.round((d-today)/(1000*60*60*24));
-      if(diff<0) out.push({model:m, idx, task:t, days:-diff});
+      if(!t.done&&t.taskDeadline){
+        const d=new Date(t.taskDeadline+'T00:00:00');
+        const diff=Math.round((d-today)/(1000*60*60*24));
+        if(diff<0) out.push({model:m, idx, task:t, days:-diff});
+      }
+      // BUGFIX: subtasks have their own deadlines and were previously never
+      // checked here, so an overdue subtask under an on-time parent task
+      // was invisible to the global Overdue KPI card and modal even though
+      // it's tracked everywhere else (PDF export, per-row due badges, etc).
+      (Array.isArray(t.subtasks)?t.subtasks:[]).forEach((s,subIdx)=>{
+        if(s.done||!s.taskDeadline) return;
+        const d=new Date(s.taskDeadline+'T00:00:00');
+        const diff=Math.round((d-today)/(1000*60*60*24));
+        if(diff<0) out.push({model:m, idx, subIdx, task:s, parentName:t.name, days:-diff});
+      });
     });
   });
   out.sort((a,b)=>b.days-a.days);
@@ -3766,12 +3788,12 @@ function renderOverdueModal(){
     body.innerHTML=`<div class="overdue-empty">🎉 No overdue tasks across any model.</div>`;
     return;
   }
-  countEl.textContent=`${list.length} task${list.length>1?'s':''} past their deadline, across ${new Set(list.map(x=>x.model)).size} model${new Set(list.map(x=>x.model)).size>1?'s':''}.`;
+  countEl.textContent=`${list.length} item${list.length>1?'s':''} past their deadline, across ${new Set(list.map(x=>x.model)).size} model${new Set(list.map(x=>x.model)).size>1?'s':''}.`;
   body.innerHTML=list.map((item,i)=>`
     <div class="overdue-row" data-i="${i}">
       <div class="overdue-row-main">
         <div class="overdue-row-name">${escHtml(item.task.name)}</div>
-        <div class="overdue-row-model">${escHtml(item.model)}</div>
+        <div class="overdue-row-model">${escHtml(item.model)}${item.parentName?` · sub-task of "${escHtml(item.parentName)}"`:''}</div>
       </div>
       <div class="overdue-row-days">${item.days}d overdue</div>
     </div>
@@ -3779,37 +3801,56 @@ function renderOverdueModal(){
   body.querySelectorAll('.overdue-row').forEach(row=>{
     row.onclick=()=>{
       const item=list[parseInt(row.dataset.i,10)];
-      jumpToOverdueTask(item.model,item.idx);
+      // BUGFIX: subIdx wasn't being passed through, so clicking an overdue
+      // subtask row always jumped to (and pinpointed) the parent task
+      // instead of expanding and highlighting the actual subtask.
+      jumpToOverdueTask(item.model,item.idx,item.subIdx);
     };
   });
 }
-function jumpToOverdueTask(model,idx){
+function jumpToOverdueTask(model,idx,subIdx){
   closeOverdueModal();
   if(!models.includes(model)) return;
   activeTab=model; localStorage.setItem('mlc_activeTab',model);
   editingIdx=null; selectedTasks.clear(); selectedSubtasks.clear();
-  activeFilter='critical';
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  const critBtn=document.querySelector('.filter-btn[data-filter="critical"]');
-  if(critBtn) critBtn.classList.add('active');
   const task=(state[model]||[])[idx];
+  const isSubtaskJump=(typeof subIdx==='number');
+  // BUGFIX: the "critical" filter only ever matches top-level tasks
+  // (see matchesFilter/isOverdueTask), so if only a *subtask* is overdue
+  // while its parent task is on-time, switching to "critical" hid the row
+  // entirely and the person landed on an empty list. Use "all" instead
+  // whenever we're pinpointing a subtask.
+  activeFilter=isSubtaskJump?'all':'critical';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  const activeBtn=document.querySelector(`.filter-btn[data-filter="${activeFilter}"]`);
+  if(activeBtn) activeBtn.classList.add('active');
+  // Pinpoint via search using the parent task's name either way, since the
+  // subtask panel lives nested under its parent task row.
   const sb=document.getElementById('searchBox');
   sb.value=task?task.name:'';
   searchQuery=sb.value;
+  if(isSubtaskJump && task) expandedSubtasksSet.add(subKey(model,idx));
   renderTabs();
   renderTaskList();
   scrollToTaskChecklist();
   // The search box was only filled in to pinpoint this one task — clear it
-  // again as soon as the user clicks anywhere, so it doesn't stay applied.
+  // again on the next click elsewhere, but not if that click lands inside
+  // the search box itself (previously any click at all, including one
+  // meant to edit the search text, wiped it out from under the person).
+  if(_pinpointClearHandler) document.removeEventListener('click',_pinpointClearHandler);
   setTimeout(()=>{
-    document.addEventListener('click',function clearPinpointSearch(){
-      document.removeEventListener('click',clearPinpointSearch);
+    _pinpointClearHandler=e=>{
+      if(e.target===document.getElementById('searchBox')) return;
+      document.removeEventListener('click',_pinpointClearHandler);
+      _pinpointClearHandler=null;
       document.getElementById('searchBox').value='';
       searchQuery='';
       renderTaskList();
-    },{once:true});
+    };
+    document.addEventListener('click',_pinpointClearHandler);
   },0);
 }
+let _pinpointClearHandler=null;
 function openOverdueModal(){
   renderOverdueModal();
   document.getElementById('overdueModal').classList.add('open');
