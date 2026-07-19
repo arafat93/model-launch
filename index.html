@@ -2283,6 +2283,15 @@ document.addEventListener('keydown', e => {
   </div>
 </div>
 <div class="models-grid" id="modelsGrid"></div>
+<div class="empty-state" id="modelsEmptyState" style="border:1px dashed var(--border);border-radius:16px;margin-bottom:24px;">
+  <div class="empty-state-icon" id="modelsEmptyStateIcon">🚀</div>
+  <div class="empty-state-title" id="modelsEmptyStateTitle">No models yet</div>
+  <div class="empty-state-sub" id="modelsEmptyStateSub">Add your first model card above to start tracking its launch checklist.</div>
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button class="add-task-btn" id="modelsEmptyStateBtn">＋ Add Your First Model</button>
+    <button class="hdr-btn accent" id="modelsEmptyStateSignInBtn" style="display:none;">✦ Sign In</button>
+  </div>
+</div>
 
 <!-- DETAIL SECTION -->
 <div class="section-label" id="taskChecklistLabel">Task Checklist</div>
@@ -3358,32 +3367,24 @@ const STANDARD_TASK_TEMPLATE = Object.values(INITIAL_DATA)[0].map(t=>t.name);
 
 // ── STATE LOAD ─────────────────────────────────────────────────────────────────
 function loadState(saved) {
-  const fresh = JSON.parse(JSON.stringify(INITIAL_DATA));
-  if (!saved) {
-    deletedModelsSet.forEach(m=>delete fresh[m]);
-    Object.values(fresh).forEach(tasks=>tasks.forEach(t=>{
-      t.priority=t.priority||'med'; t.notes=t.notes||''; t.taskDeadline=t.taskDeadline||''; if(!Array.isArray(t.screenshots))t.screenshots=[];
-    }));
-    return { tasks: fresh, deadlines:{} };
+  // BUGFIX/FEATURE: this used to always seed in the two INITIAL_DATA demo
+  // models (DUPLEX 2.0 / LUMINOUS PRO 2.0) — for a not-signed-in guest
+  // AND for every signed-in account, even a brand-new one with nothing
+  // saved yet. That meant "fresh start" never actually looked fresh, and
+  // a new signed-in user got two pre-filled demo models instead of an
+  // empty dashboard prompting them to add their own first model.
+  if (!saved || !saved.tasks) {
+    return { tasks: {}, deadlines: (saved && saved.deadlines) || {} };
   }
   const result={};
-  Object.keys(fresh).forEach(model=>{
+  Object.keys(saved.tasks).forEach(model=>{
     if(deletedModelsSet.has(model)) return;
-    const savedModel = saved.tasks&&saved.tasks[model];
-    if(!savedModel||!savedModel.length){result[model]=fresh[model];return;}
+    const savedModel=saved.tasks[model];
+    if(!savedModel||!savedModel.length) return;
     const tasks=savedModel.map(t=>({...t}));
-    const existingNames=new Set(tasks.map(t=>t.name.trim().toUpperCase()));
-    fresh[model].forEach(task=>{
-      if(!existingNames.has(task.name.trim().toUpperCase()))
-        tasks.push({...task,priority:'med',notes:'',taskDeadline:'',screenshots:[]});
-    });
     tasks.forEach(t=>{if(!t.priority)t.priority='med';if(!t.notes)t.notes='';if(!t.taskDeadline)t.taskDeadline='';if(!Array.isArray(t.screenshots))t.screenshots=[];});
     renumber(tasks);
     result[model]=tasks;
-  });
-  if(saved.tasks) Object.keys(saved.tasks).forEach(model=>{
-    if(!(model in result)&&!deletedModelsSet.has(model)&&saved.tasks[model]&&saved.tasks[model].length)
-      result[model]=saved.tasks[model].map(t=>({...t}));
   });
   return { tasks: result, deadlines: saved.deadlines||{} };
 }
@@ -3913,6 +3914,34 @@ let _cardDragSrc = null; // model name being dragged
 function renderModelCards(){
   const grid=document.getElementById('modelsGrid');
   grid.innerHTML='';
+
+  // No models at all — fresh start (pre-login) or a brand-new signed-in
+  // account with everything deleted/never created. Show a clear prompt to
+  // add the first model instead of an empty, unexplained grid.
+  const emptyState=document.getElementById('modelsEmptyState');
+  if(!models.length){
+    grid.style.display='none';
+    emptyState.classList.add('show');
+    const iconEl=document.getElementById('modelsEmptyStateIcon');
+    const titleEl=document.getElementById('modelsEmptyStateTitle');
+    const subEl=document.getElementById('modelsEmptyStateSub');
+    const signInBtn=document.getElementById('modelsEmptyStateSignInBtn');
+    if(previewMode){
+      iconEl.textContent='🚀';
+      titleEl.textContent='Welcome — this is a fresh start';
+      subEl.textContent='Add your first model card below to try things out, or sign in to save your progress.';
+      signInBtn.style.display='';
+    }else{
+      iconEl.textContent='＋';
+      titleEl.textContent='No models yet';
+      subEl.textContent='Add your first model card above to start tracking its launch checklist.';
+      signInBtn.style.display='none';
+    }
+    return;
+  }
+  grid.style.display='';
+  emptyState.classList.remove('show');
+
   models.forEach((m,idx)=>{
     const s=stats(m);
     const[lbl]=statusLabel(s.pct);
@@ -6690,6 +6719,11 @@ document.getElementById('newModelInput').addEventListener('keydown',e=>{
 document.getElementById('newModelDeadline').addEventListener('input',e=>{
   e.target.classList.toggle('has-value',!!e.target.value);
 });
+document.getElementById('modelsEmptyStateBtn').onclick=()=>{
+  document.getElementById('addModelBar').scrollIntoView({behavior:'smooth',block:'center'});
+  document.getElementById('newModelInput').focus();
+};
+document.getElementById('modelsEmptyStateSignInBtn').onclick=showAuthGate;
 document.getElementById('duplicateModelBtn').onclick=()=>{
   if(activeTab==='Compare Models')return;duplicateModel(activeTab);
 };
