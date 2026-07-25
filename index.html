@@ -6663,8 +6663,8 @@ function applyTheme(theme){
   });
   localStorage.setItem('mlc_theme_premium',theme);
 }
-const savedTheme=localStorage.getItem('mlc_theme_premium')||'antigravity';
-applyTheme(['dark','light','midnight','forest','sunset','bangladesh','argentina','brazil','antigravity'].includes(savedTheme)?savedTheme:'antigravity');
+const savedTheme=localStorage.getItem('mlc_theme_premium')||'dark';
+applyTheme(['dark','light','midnight','forest','sunset','bangladesh','argentina','brazil','antigravity'].includes(savedTheme)?savedTheme:'dark');
 document.querySelectorAll('.theme-menu-item').forEach(btn=>{
   btn.addEventListener('click',e=>{
     e.stopPropagation();
