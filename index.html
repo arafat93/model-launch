@@ -3132,17 +3132,44 @@ function formatLastUpdated(ts){
 }
 
 let unsubscribeLastUpdated=null;
+let lastSyncedTasksJson=null; // detects whether an incoming snapshot actually changed anything for us
 function listenForLastUpdated(workspaceId){
-  // Live-updates the "last changed" label — and, since a workspace can now
-  // be shared, this fires the moment ANY teammate saves a change, not just
-  // the current viewer, so everyone stays in sync without refreshing.
+  // Live-syncs the whole dashboard the moment ANY teammate (or this tab,
+  // from another device) saves a change — no refresh needed. Guards against
+  // yanking focus away from whatever the person is actively doing locally.
   if(unsubscribeLastUpdated) unsubscribeLastUpdated();
+  lastSyncedTasksJson=JSON.stringify(state||{});
   unsubscribeLastUpdated=getWorkspaceDocById(workspaceId).onSnapshot(snap=>{
     const data=snap.data();
-    if(data && data.updatedAt){
-      const label=formatLastUpdated(data.updatedAt);
-      document.getElementById('lastUpdated').textContent=label;
+    if(!data) return;
+
+    if(data.updatedAt){
+      document.getElementById('lastUpdated').textContent=formatLastUpdated(data.updatedAt);
     }
+
+    // Don't be intrusive: skip the live merge/re-render if the person is
+    // actively typing somewhere in the task list or a modal is open right
+    // now — the NEXT snapshot (once they finish) will catch them up instead.
+    const activeEl=document.activeElement;
+    const isTypingInTaskArea = activeEl && (activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')
+      && activeEl.closest && (activeEl.closest('#taskRows')||activeEl.closest('.model-rename-input')||activeEl.closest('#modelsGrid'));
+    const modalIsOpen = document.querySelector('.modal-overlay.open, #teamOverlay.open, #exportLogoutOverlay.open, #bulkMoveModelModal.open');
+    if(isTypingInTaskArea || modalIsOpen) return;
+
+    const incomingTasksJson=JSON.stringify(data.tasks||{});
+    if(incomingTasksJson===lastSyncedTasksJson) return; // nothing actually changed
+    lastSyncedTasksJson=incomingTasksJson;
+
+    deletedModelsSet=new Set(data.deletedModels||[]);
+    archivedModelsSet=new Set(data.archivedModels||[]);
+    pinnedModelsSet=new Set(data.pinnedModels||[]);
+    modelOrder=data.modelOrder||[];
+    modelImages=data.modelImages||{};
+    recycleBin=data.recycleBin||{};
+    ({tasks: state, deadlines}=loadState(data));
+    refreshModelsList();
+    if(!activeTab||!models.includes(activeTab)) activeTab=models[0]||'';
+    renderAll();
   }, err=>console.warn('lastUpdated listener error:',err));
 }
 
