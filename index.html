@@ -2195,6 +2195,17 @@ img { -webkit-user-drag: none; }
   margin-left: auto; font-size: 10.5px; color: var(--accent1);
   background: var(--accent1-dim); padding: 2px 8px; border-radius: 20px; font-weight: 600;
 }
+.team-member-remove-btn {
+  margin-left: auto; flex-shrink: 0;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent;
+  color: var(--text-muted); cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.team-member-remove-btn:hover {
+  background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: var(--red);
+}
 .team-invite-row { display: flex; gap: 8px; align-items: center; }
 .team-invite-code {
   flex: 1; font-family: 'SF Mono', 'Courier New', monospace;
@@ -7570,9 +7581,11 @@ function renderTeamModal(){
   }
 
   const listEl=document.getElementById('teamMembersList');
+  const iAmOwner=isCurrentWorkspaceOwner();
   listEl.innerHTML=Object.entries(workspaceMembers).map(([uid,info])=>{
     const initial=((info.displayName||info.email||'?')[0]||'?').toUpperCase();
     const isOwner=uid===workspaceOwnerUid;
+    const showRemove=iAmOwner&&!isOwner;
     return `<div class="team-member-row">
       <div class="team-member-avatar">${escHtml(initial)}</div>
       <div>
@@ -7580,8 +7593,21 @@ function renderTeamModal(){
         <div class="team-member-email">${escHtml(info.email||'')}</div>
       </div>
       ${isOwner?'<span class="team-member-owner-tag">Owner</span>':''}
+      ${showRemove?`<button class="team-member-remove-btn" data-uid="${escHtml(uid)}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="Remove from workspace">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`:''}
     </div>`;
   }).join('') || '<div class="elmodal-desc" style="margin:0;">No members found.</div>';
+
+  listEl.querySelectorAll('.team-member-remove-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      const uid=btn.dataset.uid;
+      const name=btn.dataset.name;
+      if(confirm(`Remove ${name} from this workspace? They'll lose access to these tasks immediately.`)){
+        removeMemberFromWorkspace(uid);
+      }
+    };
+  });
 
   // Only the workspace owner can generate/share an invite code.
   document.getElementById('teamInviteSection').style.display = isCurrentWorkspaceOwner()?'':'none';
@@ -7612,6 +7638,29 @@ function updateTeamUI(){
     activeFilter='all';
     document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));
     if(typeof renderTaskList==='function') renderTaskList();
+  }
+}
+
+// Removes a teammate from the current workspace. Restricted to the owner
+// at the UI level; note the underlying Firestore rule allows any existing
+// member to write to the workspace doc (see the "trusted team" tradeoff
+// mentioned when these rules were set up), so this button is a UI-level
+// safeguard, not the only thing stopping a non-owner from doing this via
+// the API directly.
+async function removeMemberFromWorkspace(uid){
+  if(!isCurrentWorkspaceOwner()||!currentWorkspaceId) return;
+  try{
+    await getWorkspaceDoc().update({
+      memberUids: firebase.firestore.FieldValue.arrayRemove(uid),
+      ['members.'+uid]: firebase.firestore.FieldValue.delete()
+    });
+    delete workspaceMembers[uid];
+    renderTeamModal();
+    updateTeamUI();
+    toast('👋','Removed from workspace',false);
+  }catch(e){
+    console.error('Remove member failed:',e);
+    toast('⚠','Could not remove member — check your connection',false);
   }
 }
 
