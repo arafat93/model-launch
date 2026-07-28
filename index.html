@@ -1016,15 +1016,63 @@ footer {
 
 /* task deadline icon (sits beside notes icon) */
 .task-icons-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
-.assignee-select {
-  max-width: 84px; font-family: inherit; font-size: 10.5px; font-weight: 600;
-  color: var(--accent1); background: var(--accent1-dim);
-  border: 1px solid var(--border); border-radius: 20px;
-  padding: 3px 6px; cursor: pointer; appearance: none; -webkit-appearance: none;
-  text-align: center; text-overflow: ellipsis;
+.assignee-picker {
+  position: relative; width: 24px; height: 24px; flex-shrink: 0;
 }
-.assignee-select:hover { border-color: var(--accent1); }
-.assignee-select:focus { outline: none; border-color: var(--accent1); }
+.assignee-avatar-icon {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px;
+  color: var(--text-muted); background: var(--surface2);
+  border: 1.5px solid var(--border-hover);
+  opacity: 0.7;
+  pointer-events: none; /* clicks pass through to the select below */
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), opacity 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.assignee-avatar-icon.is-assigned {
+  opacity: 1;
+  color: #fff;
+  background: linear-gradient(145deg, var(--accent1-hover), var(--accent1));
+  border: 1.5px solid transparent;
+  box-shadow: 0 2px 6px -1px var(--accent1-dim), inset 0 1px 0 rgba(255,255,255,0.18);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+}
+.assignee-select {
+  position: absolute; inset: 0; width: 24px; height: 24px;
+  opacity: 0; cursor: pointer; appearance: none; -webkit-appearance: none; border: none;
+}
+.assignee-picker:hover .assignee-avatar-icon {
+  transform: scale(1.12);
+  opacity: 1;
+  border-color: var(--accent1);
+}
+.assignee-picker:hover .assignee-avatar-icon.is-assigned {
+  box-shadow: 0 4px 10px -2px var(--accent1-dim), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+
+/* Custom assignee picker dropdown — replaces the native <select> popup
+   (which can't be restyled and looked out of place against the app theme). */
+.assignee-dropdown {
+  position: fixed; z-index: 500;
+  background: var(--surface); border: 1px solid var(--border-hover);
+  border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.35), var(--shadow-md);
+  padding: 6px; min-width: 180px; max-height: 260px; overflow-y: auto;
+  display: none;
+}
+.assignee-dropdown.open { display: block; }
+.assignee-dropdown-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 9px; cursor: pointer;
+  font-size: 13px; color: var(--text); white-space: nowrap;
+}
+.assignee-dropdown-item:hover { background: var(--surface2); }
+.assignee-dropdown-item.selected { background: var(--accent1-dim); color: var(--accent1); font-weight: 600; }
+.assignee-dropdown-avatar {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  background: var(--surface2); border: 1px solid var(--border-hover);
+}
 
 /* Deadline icon button: a purely visual wrapper div (drawn with our own
    ::before calendar glyph) with the *real* <input type="date"> stretched
@@ -2608,6 +2656,9 @@ document.addEventListener('keydown', e => {
   <button class="toast-undo-btn" id="toastUndoBtn" style="display:none;">Undo</button>
 </div>
 
+<!-- ASSIGNEE PICKER DROPDOWN (single shared instance, positioned per-click) -->
+<div class="assignee-dropdown" id="assigneeDropdown"></div>
+
 <!-- NOTES MODAL -->
 <div class="modal-overlay" id="notesModal">
   <div class="modal-box" id="notesModalBox" style="width:min(560px, 92vw);">
@@ -3018,21 +3069,30 @@ async function resolveWorkspace(user){
   const uid=user.uid;
   personalWorkspaceId=uid;
   const profileRef=getUserProfileDoc(uid);
-  let profileSnap;
-  try{ profileSnap=await withTimeout(profileRef.get(),6000); }
-  catch(e){ console.error('Profile load error:',e); profileSnap=null; }
+  let profileSnap=null;
+  // Cache-first: this profile rarely changes (basically just workspaceId),
+  // so a stale local copy is fine — it avoids waiting on a full network
+  // round trip on every single login when we already know the answer.
+  try{
+    const cached=await profileRef.get({source:'cache'});
+    if(cached.exists) profileSnap=cached;
+  }catch(e){ /* nothing cached yet — fall through to network below */ }
+  if(!profileSnap){
+    try{ profileSnap=await withTimeout(profileRef.get(),6000); }
+    catch(e){ console.error('Profile load error:',e); profileSnap=null; }
+  }
 
   const profile=profileSnap&&profileSnap.exists?profileSnap.data():null;
   const myInfo={email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]};
 
   if(profile && profile.workspaceId){
-    // Keep the denormalized member info fresh (in case display name changed).
-    try{
-      await getWorkspaceDocById(profile.workspaceId).set(
-        {members:{[uid]:myInfo}}, {merge:true}
-      );
-    }catch(e){ console.warn('Could not refresh member info:',e); }
-    return profile.workspaceId;
+    // Keep the denormalized member info fresh (in case display name
+    // changed) — but don't make every login wait on this network write,
+    // it's purely cosmetic and safe to finish in the background.
+    getWorkspaceDocById(profile.workspaceId).set(
+      {members:{[uid]:myInfo}}, {merge:true}
+    ).catch(e=>console.warn('Could not refresh member info:',e));
+    return {workspaceId:profile.workspaceId};
   }
 
   // First time we've seen this account — migrate any pre-existing
@@ -3066,7 +3126,11 @@ async function resolveWorkspace(user){
     console.error('Workspace creation failed:',e);
     toast('⚠','Could not set up your workspace — check your connection',false);
   }
-  return uid;
+  // Return the data we just wrote directly, rather than just the id — a
+  // parallel speculative read (see handleAuthState) could otherwise have
+  // started before this migration finished and would resolve with stale
+  // "doesn't exist yet" data instead of the newly-migrated content.
+  return {workspaceId:uid, freshData:newWorkspace};
 }
 function getWorkspaceDocById(id){ return db.collection('workspaces').doc(id); }
 
@@ -3438,12 +3502,18 @@ async function handleAuthState(user){
 
     // Resolve which workspace this account should load (auto-migrates any
     // pre-existing single-user data into a personal workspace the first
-    // time this runs for an account).
-    currentWorkspaceId=await resolveWorkspace(user);
-    await refreshWorkspaceMembers();
-
-    // Load user's data from Firestore
-    const saved=await loadFromFirestore(currentWorkspaceId);
+    // time this runs for an account) — kicked off in PARALLEL with a
+    // speculative load of the personal workspace, since for most accounts
+    // (no shared workspace joined) that's the exact same document we end
+    // up needing anyway. Turns two sequential reads into one wait.
+    const speculativeLoad=loadFromFirestore(user.uid);
+    const resolved=await resolveWorkspace(user);
+    currentWorkspaceId=resolved.workspaceId;
+    const saved = resolved.freshData
+      ? resolved.freshData // first-time migration — use what we just wrote, not a possibly-stale parallel read
+      : (currentWorkspaceId===user.uid ? await speculativeLoad : await loadFromFirestore(currentWorkspaceId));
+    workspaceMembers=(saved&&saved.members)||{[user.uid]:{email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]}};
+    workspaceOwnerUid=(saved&&saved.ownerUid)||user.uid;
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
     pinnedModelsSet=new Set(saved?.pinnedModels||[]);
@@ -4994,6 +5064,69 @@ function buildAssigneeOptionsHtml(selectedUid){
   }).join('');
 }
 
+// Gives each teammate a consistent, distinct avatar color (same person
+// always gets the same color, derived from their uid so no lookup/storage
+// is needed).
+const ASSIGNEE_COLOR_PALETTE=['#f87171','#fb923c','#fbbf24','#4ade80','#2dd4bf','#38bdf8','#818cf8','#c084fc','#f472b6','#a3a86a'];
+function colorForAssignee(uid){
+  if(!uid) return null;
+  let hash=0;
+  for(let i=0;i<uid.length;i++){ hash=(hash*31+uid.charCodeAt(i))>>>0; }
+  return ASSIGNEE_COLOR_PALETTE[hash%ASSIGNEE_COLOR_PALETTE.length];
+}
+
+// Custom-styled assignee picker popover — a single shared element,
+// repositioned under whichever avatar was clicked. Replaces a native
+// <select> so it can actually match the app's dark theme instead of
+// popping up as an unstyled browser dropdown.
+function closeAssigneeDropdown(){
+  const dd=document.getElementById('assigneeDropdown');
+  if(dd) dd.classList.remove('open');
+}
+function openAssigneeDropdown(triggerEl, idx){
+  const dd=document.getElementById('assigneeDropdown');
+  const task=(state[activeTab]||[])[idx];
+  if(!dd||!task) return;
+
+  const teamIconSvg='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+  const items=[{uid:'',label:'Unassigned'}].concat(
+    Object.entries(workspaceMembers).map(([uid,info])=>({uid,label:info.displayName||info.email||uid}))
+  );
+  dd.innerHTML=items.map(it=>{
+    const isSelected=(task.assignee||'')===it.uid;
+    const color=it.uid?colorForAssignee(it.uid):null;
+    const avatarHtml=it.uid
+      ?`<span class="assignee-dropdown-avatar" style="background:linear-gradient(145deg, ${color}dd, ${color});color:#fff;border-color:transparent;">${escHtml((it.label[0]||'?').toUpperCase())}</span>`
+      :`<span class="assignee-dropdown-avatar">${teamIconSvg}</span>`;
+    return `<div class="assignee-dropdown-item${isSelected?' selected':''}" data-uid="${escHtml(it.uid)}">${avatarHtml}<span>${escHtml(it.label)}</span></div>`;
+  }).join('');
+
+  dd.querySelectorAll('.assignee-dropdown-item').forEach(item=>{
+    item.onclick=()=>{
+      const t=(state[activeTab]||[])[idx];
+      if(t){ t.assignee=item.dataset.uid||''; save(); renderAll(); }
+      closeAssigneeDropdown();
+    };
+  });
+
+  // Position under the clicked avatar, flipping left if it would overflow.
+  const rect=triggerEl.getBoundingClientRect();
+  dd.classList.add('open'); // needs to be visible to measure its width
+  const ddWidth=dd.offsetWidth||180;
+  let left=rect.left;
+  if(left+ddWidth>window.innerWidth-8) left=window.innerWidth-ddWidth-8;
+  dd.style.left=Math.max(8,left)+'px';
+  dd.style.top=(rect.bottom+6)+'px';
+}
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('assigneeDropdown');
+  if(!dd||!dd.classList.contains('open')) return;
+  if(e.target.closest('#assigneeDropdown')||e.target.closest('.assignee-picker')) return;
+  closeAssigneeDropdown();
+});
+document.addEventListener('scroll',closeAssigneeDropdown,true);
+window.addEventListener('resize',closeAssigneeDropdown);
+
 function renderTaskList(){
   const table=document.getElementById('checklistTable');
   const compare=document.getElementById('compareGrid');
@@ -5189,6 +5322,8 @@ function renderTaskList(){
       }
     }
 
+    const assigneeColor=task.assignee?colorForAssignee(task.assignee):null;
+
     row.innerHTML=`
       <div class="task-sn">${task.sn}</div>
       <div><input type="checkbox" class="task-checkbox row-chk" ${checked?'checked':''}></div>
@@ -5201,10 +5336,9 @@ function renderTaskList(){
         <div class="task-deadline-wrap ${dlIconCls}" data-idx="${idx}" title="${dlTitle}">
           <input type="date" class="task-deadline-native" tabindex="-1" value="${task.taskDeadline||''}">
         </div>
-        ${Object.keys(workspaceMembers).length>1?`<select class="assignee-select" data-idx="${idx}" title="Assign to a teammate">
-          <option value="">Unassigned</option>
-          ${buildAssigneeOptionsHtml(task.assignee)}
-        </select>`:''}
+        ${Object.keys(workspaceMembers).length>1?`<div class="assignee-picker" data-idx="${idx}" title="${task.assignee&&workspaceMembers[task.assignee]?'Assigned to '+escHtml(workspaceMembers[task.assignee].displayName||workspaceMembers[task.assignee].email):'Assign to a teammate'}">
+          <span class="assignee-avatar-icon${task.assignee?' is-assigned':''}"${assigneeColor?` style="background:linear-gradient(145deg, ${assigneeColor}dd, ${assigneeColor});box-shadow:0 2px 6px -1px ${assigneeColor}55, inset 0 1px 0 rgba(255,255,255,0.18);"`:''}>${task.assignee&&workspaceMembers[task.assignee]?escHtml(((workspaceMembers[task.assignee].displayName||workspaceMembers[task.assignee].email||'?')[0]||'?').toUpperCase()):'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'}</span>
+        </div>`:''}
       </div>
       ${actionsCell}`;
 
@@ -5246,12 +5380,11 @@ function renderTaskList(){
       save();renderAll();
     };
 
-    const assigneeSelectEl=row.querySelector('.assignee-select');
-    if(assigneeSelectEl){
-      assigneeSelectEl.onclick=e=>e.stopPropagation();
-      assigneeSelectEl.onchange=e=>{
-        task.assignee=e.target.value||'';
-        save();renderAll();
+    const assigneePickerEl=row.querySelector('.assignee-picker');
+    if(assigneePickerEl){
+      assigneePickerEl.onclick=e=>{
+        e.stopPropagation();
+        openAssigneeDropdown(assigneePickerEl, idx);
       };
     }
 
@@ -7511,8 +7644,9 @@ async function switchToWorkspace(workspaceId){
   showLoading();
   try{
     currentWorkspaceId=workspaceId;
-    await refreshWorkspaceMembers();
     const saved=await loadFromFirestore(currentWorkspaceId);
+    workspaceMembers=(saved&&saved.members)||{};
+    workspaceOwnerUid=(saved&&saved.ownerUid)||null;
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
     pinnedModelsSet=new Set(saved?.pinnedModels||[]);
