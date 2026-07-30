@@ -3242,6 +3242,9 @@ function listenForLastUpdated(workspaceId){
     modelImages=data.modelImages||{};
     recycleBin=data.recycleBin||{};
     ({tasks: state, deadlines}=loadState(data));
+    // Local state now exactly matches the server — re-baseline so the next
+    // save() correctly diffs against this, not stale pre-sync keys.
+    syncLastSavedKeysFromCurrent();
     refreshModelsList();
     if(!activeTab||!models.includes(activeTab)) activeTab=models[0]||'';
     renderAll();
@@ -3256,21 +3259,9 @@ function save(){
   if(!auth||!auth.currentUser) return;
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
-    try{
-      await getWorkspaceDoc().set({
-        tasks:state,
-        deadlines,
-        modelImages,
-        deletedModels:[...deletedModelsSet],
-        archivedModels:[...archivedModelsSet],
-        pinnedModels:[...pinnedModelsSet],
-        modelOrder:[...modelOrder],
-        recycleBin,
-        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-      }, {merge:true});
-      // lastUpdated label is refreshed automatically by the live Firestore
-      // listener (listenForLastUpdated) once the server timestamp lands.
-    }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
+    // lastUpdated label is refreshed automatically by the live Firestore
+    // listener (listenForLastUpdated) once the server timestamp lands.
+    await persistWorkspaceNow();
   },800); // debounce — max one write per 800ms
 }
 
@@ -3348,14 +3339,7 @@ function undo(){
   updateRedoBtn();
   if(auth&&auth.currentUser){
     clearTimeout(saveTimer);
-    saveTimer=setTimeout(async()=>{
-      try{
-        await getWorkspaceDoc().set({
-          tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
-          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-        }, {merge:true});
-      }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
-    },800);
+    saveTimer=setTimeout(persistWorkspaceNow,800);
   }
   renderAll();
   toast('↺','Undone',false);
@@ -3384,14 +3368,7 @@ function redo(){
   updateRedoBtn();
   if(auth&&auth.currentUser){
     clearTimeout(saveTimer);
-    saveTimer=setTimeout(async()=>{
-      try{
-        await getWorkspaceDoc().set({
-          tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
-          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-        }, {merge:true});
-      }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
-    },800);
+    saveTimer=setTimeout(persistWorkspaceNow,800);
   }
   renderAll();
   toast('↻','Redone',false);
@@ -3411,6 +3388,54 @@ let archiveViewActive=false;
 let recycleBin={};
 let recycleViewActive=false;
 const RECYCLE_RETENTION_DAYS=30;
+
+// ── MERGE-SAFE PERSISTENCE ────────────────────────────────────────────────────
+// save() writes with {merge:true} so unrelated fields (ownerUid, members,
+// inviteCode, etc.) are never clobbered. BUT Firestore's merge:true does a
+// *recursive* merge on nested map fields (tasks/deadlines/modelImages/
+// recycleBin) — any model key removed locally (delete a model, empty the
+// recycle bin, etc.) would otherwise silently survive on the server forever,
+// and the next real-time sync (listenForLastUpdated) would hand it right
+// back, making a "deleted" model card reappear. lastSavedKeys tracks which
+// keys were last known to exist on the server so save() can explicitly
+// FieldValue.delete() any that vanished locally, instead of leaving them.
+let lastSavedKeys={tasks:new Set(),deadlines:new Set(),modelImages:new Set(),recycleBin:new Set()};
+function syncLastSavedKeysFromCurrent(){
+  lastSavedKeys={
+    tasks:new Set(Object.keys(state||{})),
+    deadlines:new Set(Object.keys(deadlines||{})),
+    modelImages:new Set(Object.keys(modelImages||{})),
+    recycleBin:new Set(Object.keys(recycleBin||{}))
+  };
+}
+function withDeletionSentinels(currentObj,previousKeys){
+  const out={...currentObj};
+  previousKeys.forEach(k=>{
+    if(!(k in currentObj)) out[k]=firebase.firestore.FieldValue.delete();
+  });
+  return out;
+}
+function buildWorkspaceSavePayload(){
+  return {
+    tasks:withDeletionSentinels(state,lastSavedKeys.tasks),
+    deadlines:withDeletionSentinels(deadlines,lastSavedKeys.deadlines),
+    modelImages:withDeletionSentinels(modelImages,lastSavedKeys.modelImages),
+    recycleBin:withDeletionSentinels(recycleBin,lastSavedKeys.recycleBin),
+    deletedModels:[...deletedModelsSet],
+    archivedModels:[...archivedModelsSet],
+    pinnedModels:[...pinnedModelsSet],
+    modelOrder:[...modelOrder],
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+}
+async function persistWorkspaceNow(){
+  try{
+    await getWorkspaceDoc().set(buildWorkspaceSavePayload(),{merge:true});
+    // Only adopt the new key set once the write actually succeeds, so a
+    // failed save doesn't make us think the server is already caught up.
+    syncLastSavedKeysFromCurrent();
+  }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false); }
+}
 
 function recycleBinCount(){
   return Object.values(recycleBin).reduce((n,arr)=>n+arr.length,0);
@@ -3531,6 +3556,16 @@ async function handleAuthState(user){
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
     recycleBin=saved?.recycleBin||{};
+    // Baseline the merge-safe key tracker against what the server *actually*
+    // has, before purgeExpiredRecycleItems() (below) removes anything
+    // locally — otherwise that purge's removals would never get detected
+    // and cleared server-side (see persistWorkspaceNow above).
+    lastSavedKeys={
+      tasks:new Set(Object.keys(saved&&saved.tasks||{})),
+      deadlines:new Set(Object.keys(saved&&saved.deadlines||{})),
+      modelImages:new Set(Object.keys(modelImages)),
+      recycleBin:new Set(Object.keys(recycleBin))
+    };
     const expiredPurged=purgeExpiredRecycleItems();
     setArchiveView(false);
     setRecycleView(false);
@@ -3553,14 +3588,7 @@ async function handleAuthState(user){
     // without disturbing the undo baseline we just reset.
     if(expiredPurged && auth && auth.currentUser){
       clearTimeout(saveTimer);
-      saveTimer=setTimeout(async()=>{
-        try{
-          await getWorkspaceDoc().set({
-            tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
-            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-          }, {merge:true});
-        }catch(e){ console.error('Save error:',e); }
-      },800);
+      saveTimer=setTimeout(persistWorkspaceNow,800);
     }
   } else {
     // Signed out (or never signed in) — fall back to the local preview
@@ -7318,6 +7346,7 @@ async function freshStart(){
   clearAllPendingTimers();
   state = {};
   deadlines = {};
+  modelImages = {};
   deletedModelsSet = new Set();
   archivedModelsSet = new Set();
   pinnedModelsSet = new Set();
@@ -7334,21 +7363,14 @@ async function freshStart(){
   refreshModelsList();
   resetUndo();
 
-  // Persist to Firestore if signed in
+  // Persist to Firestore if signed in. Uses the shared merge-safe persist
+  // function rather than a raw set({...}, {merge:true}) — merging an EMPTY
+  // object onto an existing map field is a no-op in Firestore, so a plain
+  // set() here would leave every old model/task/image sitting on the
+  // server untouched, and the next real-time sync would bring it all back.
   if(auth && auth.currentUser){
     clearTimeout(saveTimer);
-    try {
-      await getWorkspaceDoc().set({
-        tasks: {},
-        deadlines: {},
-        deletedModels: [],
-        archivedModels: [],
-        pinnedModels: [],
-        modelOrder: [],
-        recycleBin: {},
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, {merge:true});
-    } catch(e){ console.error('Fresh start save error:',e); }
+    await persistWorkspaceNow();
   }
 
   renderAll();
@@ -7712,6 +7734,16 @@ async function switchToWorkspace(workspaceId){
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
     recycleBin=saved?.recycleBin||{};
+    // Re-baseline against the NEWLY loaded workspace's actual server data —
+    // otherwise a later save() in this workspace would still be diffing
+    // against the previous workspace's keys, which could wrongly delete
+    // fields that are perfectly valid here.
+    lastSavedKeys={
+      tasks:new Set(Object.keys(saved&&saved.tasks||{})),
+      deadlines:new Set(Object.keys(saved&&saved.deadlines||{})),
+      modelImages:new Set(Object.keys(modelImages)),
+      recycleBin:new Set(Object.keys(recycleBin))
+    };
     purgeExpiredRecycleItems();
     setArchiveView(false);
     setRecycleView(false);
