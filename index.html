@@ -1016,6 +1016,63 @@ footer {
 
 /* task deadline icon (sits beside notes icon) */
 .task-icons-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.assignee-picker {
+  position: relative; width: 24px; height: 24px; flex-shrink: 0; cursor: pointer;
+}
+.assignee-avatar-icon {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px;
+  color: var(--text-muted); background: var(--surface2);
+  border: 1.5px solid var(--border-hover);
+  opacity: 0.7;
+  pointer-events: none; /* clicks pass through to the select below */
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), opacity 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.assignee-avatar-icon.is-assigned {
+  opacity: 1;
+  color: #fff;
+  background: linear-gradient(145deg, var(--accent1-hover), var(--accent1));
+  border: 1.5px solid transparent;
+  box-shadow: 0 2px 6px -1px var(--accent1-dim), inset 0 1px 0 rgba(255,255,255,0.18);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+}
+.assignee-select {
+  position: absolute; inset: 0; width: 24px; height: 24px;
+  opacity: 0; cursor: pointer; appearance: none; -webkit-appearance: none; border: none;
+}
+.assignee-picker:hover .assignee-avatar-icon {
+  transform: scale(1.12);
+  opacity: 1;
+  border-color: var(--accent1);
+}
+.assignee-picker:hover .assignee-avatar-icon.is-assigned {
+  box-shadow: 0 4px 10px -2px var(--accent1-dim), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+
+/* Custom assignee picker dropdown — replaces the native <select> popup
+   (which can't be restyled and looked out of place against the app theme). */
+.assignee-dropdown {
+  position: fixed; z-index: 500;
+  background: var(--surface); border: 1px solid var(--border-hover);
+  border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.35), var(--shadow-md);
+  padding: 6px; min-width: 180px; max-height: 260px; overflow-y: auto;
+  display: none;
+}
+.assignee-dropdown.open { display: block; }
+.assignee-dropdown-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 9px; cursor: pointer;
+  font-size: 13px; color: var(--text); white-space: nowrap;
+}
+.assignee-dropdown-item:hover { background: var(--surface2); }
+.assignee-dropdown-item.selected { background: var(--accent1-dim); color: var(--accent1); font-weight: 600; }
+.assignee-dropdown-avatar {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  background: var(--surface2); border: 1px solid var(--border-hover);
+}
 
 /* Deadline icon button: a purely visual wrapper div (drawn with our own
    ::before calendar glyph) with the *real* <input type="date"> stretched
@@ -2092,6 +2149,78 @@ img { -webkit-user-drag: none; }
   transition: all 0.18s ease;
 }
 .elmodal-cancel-btn:hover { background: var(--surface3); color: var(--text); border-color: var(--border-hover); }
+
+/* ── Team / Workspace modal ── */
+#teamOverlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 20px;
+}
+#teamOverlay.open { opacity: 1; pointer-events: all; }
+#teamModal {
+  background: var(--surface);
+  border: 1px solid var(--border-hover);
+  border-radius: 24px;
+  padding: 32px 30px 26px;
+  max-width: 460px; width: 100%; max-height: 85vh; overflow-y: auto;
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--border);
+  transform: translateY(14px) scale(0.97);
+  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
+}
+#teamOverlay.open #teamModal { transform: translateY(0) scale(1); }
+.team-section-label {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 8px;
+}
+.team-members-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.team-member-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.team-member-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent1-dim); color: var(--accent1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.team-member-name { font-size: 13.5px; color: var(--text); font-weight: 500; }
+.team-member-email { font-size: 11.5px; color: var(--text-muted); }
+.team-member-owner-tag {
+  margin-left: auto; font-size: 10.5px; color: var(--accent1);
+  background: var(--accent1-dim); padding: 2px 8px; border-radius: 20px; font-weight: 600;
+}
+.team-member-remove-btn {
+  margin-left: auto; flex-shrink: 0;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent;
+  color: var(--text-muted); cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.team-member-remove-btn:hover {
+  background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: var(--red);
+}
+.team-invite-row { display: flex; gap: 8px; align-items: center; }
+.team-invite-code {
+  flex: 1; font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 18px; font-weight: 700; letter-spacing: 3px; text-align: center;
+  padding: 11px; border-radius: 12px; background: var(--surface2);
+  border: 1px dashed var(--border-hover); color: var(--accent1);
+}
+.team-join-input {
+  flex: 1; font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 15px; letter-spacing: 2px; text-align: center; text-transform: uppercase;
+  padding: 11px; border-radius: 12px; background: var(--surface2);
+  border: 1px solid var(--border); color: var(--text);
+}
+.team-join-input:focus { outline: none; border-color: var(--accent1); }
+.team-join-error { font-size: 12px; color: var(--red); margin-top: 6px; min-height: 14px; }
 </style>
 </head>
 <body>
@@ -2232,6 +2361,7 @@ document.addEventListener('keydown', e => {
       <span id="userEmail" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <span class="user-badge-caret">▾</span>
       <div class="user-menu" id="userMenu">
+        <button class="menu-item" id="teamMenuBtn" title="Invite teammates or manage your shared workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span><span class="archive-count-badge" id="teamCountBadge" style="display:none;">1</span></button>
         <button class="menu-item" id="archiveViewBtn" title="View archived models"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg><span>Archived</span><span class="archive-count-badge" id="archiveCountBadge" style="display:none;">0</span></button>
         <button class="menu-item" id="recycleViewBtn" title="View deleted tasks (kept for 30 days)" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Recycle Bin</span><span class="archive-count-badge" id="recycleCountBadge" style="display:none;">0</span></button>
         <button class="menu-item" id="userManualBtn" title="Download the user manual (PDF)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg><span>User Manual</span></button>
@@ -2367,6 +2497,7 @@ document.addEventListener('keydown', e => {
   <button class="filter-btn" data-filter="med">Medium<span class="filter-count" id="fc-med">0</span></button>
   <button class="filter-btn" data-filter="low">Low<span class="filter-count" id="fc-low">0</span></button>
   <button class="filter-btn filter-btn-critical" data-filter="critical">⚠ Critical<span class="filter-count" id="fc-critical">0</span></button>
+  <button class="filter-btn" data-filter="mine" id="mineFilterBtn" style="display:none;">👤 My Tasks<span class="filter-count" id="fc-mine">0</span></button>
   <button class="filter-btn select-completed-btn" id="selectCompletedBtn" title="Select all completed tasks for bulk actions, regardless of the current filter">☑ Select Completed</button>
   <button class="filter-btn select-pending-btn" id="selectPendingBtn" title="Select all pending tasks for bulk actions, regardless of the current filter">☐ Select Pending</button>
   <div class="kbd-hint">Shortcuts: <kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</div>
@@ -2535,6 +2666,9 @@ document.addEventListener('keydown', e => {
   <span id="toastMsg"></span>
   <button class="toast-undo-btn" id="toastUndoBtn" style="display:none;">Undo</button>
 </div>
+
+<!-- ASSIGNEE PICKER DROPDOWN (single shared instance, positioned per-click) -->
+<div class="assignee-dropdown" id="assigneeDropdown"></div>
 
 <!-- NOTES MODAL -->
 <div class="modal-overlay" id="notesModal">
@@ -2919,6 +3053,111 @@ function friendlyAuthError(code){
 // ── FIRESTORE SAVE / LOAD ─────────────────────────────────────────────────────
 function getUserDoc(uid){ return db.collection('dashboards').doc(uid); }
 
+// ── WORKSPACES (shared/team data) ─────────────────────────────────────────────
+// A "workspace" is the shared document multiple people can read/write.
+// Every account gets its own personal workspace automatically (workspaceId ==
+// their own uid, reusing any pre-existing single-user `dashboards/{uid}` data
+// so nobody's existing data is lost). Joining a teammate's workspace via an
+// invite code switches which workspace this browser is currently pointed at.
+let currentWorkspaceId=null;     // workspace this session is currently reading/writing
+let personalWorkspaceId=null;    // this account's own workspace — always == their uid
+let workspaceOwnerUid=null;
+let workspaceMembers={};         // {uid: {email, displayName}} for everyone in currentWorkspaceId
+function getWorkspaceDoc(){ return db.collection('workspaces').doc(currentWorkspaceId); }
+function getUserProfileDoc(uid){ return db.collection('users').doc(uid); }
+function isCurrentWorkspaceOwner(){ return !!auth&&!!auth.currentUser&&workspaceOwnerUid===auth.currentUser.uid; }
+
+function randomInviteCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid ambiguity
+  let out='';
+  for(let i=0;i<6;i++) out+=chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+
+// Resolves (and migrates/creates as needed) which workspace this signed-in
+// user should load. Populates the module-level workspace state above.
+async function resolveWorkspace(user){
+  const uid=user.uid;
+  personalWorkspaceId=uid;
+  const profileRef=getUserProfileDoc(uid);
+  let profileSnap=null;
+  // Cache-first: this profile rarely changes (basically just workspaceId),
+  // so a stale local copy is fine — it avoids waiting on a full network
+  // round trip on every single login when we already know the answer.
+  try{
+    const cached=await profileRef.get({source:'cache'});
+    if(cached.exists) profileSnap=cached;
+  }catch(e){ /* nothing cached yet — fall through to network below */ }
+  if(!profileSnap){
+    try{ profileSnap=await withTimeout(profileRef.get(),6000); }
+    catch(e){ console.error('Profile load error:',e); profileSnap=null; }
+  }
+
+  const profile=profileSnap&&profileSnap.exists?profileSnap.data():null;
+  const myInfo={email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]};
+
+  if(profile && profile.workspaceId){
+    // Keep the denormalized member info fresh (in case display name
+    // changed) — but don't make every login wait on this network write,
+    // it's purely cosmetic and safe to finish in the background.
+    getWorkspaceDocById(profile.workspaceId).set(
+      {members:{[uid]:myInfo}}, {merge:true}
+    ).catch(e=>console.warn('Could not refresh member info:',e));
+    return {workspaceId:profile.workspaceId};
+  }
+
+  // First time we've seen this account — migrate any pre-existing
+  // single-user data from the old `dashboards/{uid}` doc into a brand new
+  // personal workspace at `workspaces/{uid}`, so nothing is lost.
+  let legacyData=null;
+  try{
+    const legacySnap=await withTimeout(getUserDoc(uid).get(),6000);
+    if(legacySnap.exists) legacyData=legacySnap.data();
+  }catch(e){ console.warn('Legacy data check failed:',e); }
+
+  const newWorkspace={
+    ownerUid:uid,
+    memberUids:[uid],
+    members:{[uid]:myInfo},
+    inviteCode:null,
+    tasks:(legacyData&&legacyData.tasks)||{},
+    deadlines:(legacyData&&legacyData.deadlines)||{},
+    modelImages:(legacyData&&legacyData.modelImages)||{},
+    deletedModels:(legacyData&&legacyData.deletedModels)||[],
+    archivedModels:(legacyData&&legacyData.archivedModels)||[],
+    pinnedModels:(legacyData&&legacyData.pinnedModels)||[],
+    modelOrder:(legacyData&&legacyData.modelOrder)||[],
+    recycleBin:(legacyData&&legacyData.recycleBin)||{},
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try{
+    await getWorkspaceDocById(uid).set(newWorkspace);
+    await profileRef.set({workspaceId:uid,personalWorkspaceId:uid,email:myInfo.email,displayName:myInfo.displayName},{merge:true});
+  }catch(e){
+    console.error('Workspace creation failed:',e);
+    toast('⚠','Could not set up your workspace — check your connection',false);
+  }
+  // Return the data we just wrote directly, rather than just the id — a
+  // parallel speculative read (see handleAuthState) could otherwise have
+  // started before this migration finished and would resolve with stale
+  // "doesn't exist yet" data instead of the newly-migrated content.
+  return {workspaceId:uid, freshData:newWorkspace};
+}
+function getWorkspaceDocById(id){ return db.collection('workspaces').doc(id); }
+
+// Loads the {members, ownerUid} side of the current workspace into the
+// module-level vars above, so the assignee dropdown/team panel can use them.
+async function refreshWorkspaceMembers(){
+  try{
+    const snap=await withTimeout(getWorkspaceDoc().get(),6000);
+    if(snap.exists){
+      const d=snap.data();
+      workspaceMembers=d.members||{};
+      workspaceOwnerUid=d.ownerUid||null;
+    }
+  }catch(e){ console.warn('Could not refresh workspace members:',e); }
+}
+
 // Rejects if `promise` doesn't settle within `ms` milliseconds, so the UI
 // never hangs forever waiting on a slow/stalled network request.
 function withTimeout(promise, ms){
@@ -2928,8 +3167,8 @@ function withTimeout(promise, ms){
   ]);
 }
 
-async function loadFromFirestore(uid){
-  const ref=getUserDoc(uid);
+async function loadFromFirestore(workspaceId){
+  const ref=getWorkspaceDocById(workspaceId);
   // Try cache first — if persistence is enabled and we've loaded before,
   // this resolves instantly with no network round-trip.
   try{
@@ -2968,16 +3207,44 @@ function formatLastUpdated(ts){
 }
 
 let unsubscribeLastUpdated=null;
-function listenForLastUpdated(uid){
-  // Live-updates the "last changed" label for EVERY logged-in user the moment
-  // anyone saves a change — no refresh needed.
+let lastSyncedTasksJson=null; // detects whether an incoming snapshot actually changed anything for us
+function listenForLastUpdated(workspaceId){
+  // Live-syncs the whole dashboard the moment ANY teammate (or this tab,
+  // from another device) saves a change — no refresh needed. Guards against
+  // yanking focus away from whatever the person is actively doing locally.
   if(unsubscribeLastUpdated) unsubscribeLastUpdated();
-  unsubscribeLastUpdated=getUserDoc(uid).onSnapshot(snap=>{
+  lastSyncedTasksJson=JSON.stringify(state||{});
+  unsubscribeLastUpdated=getWorkspaceDocById(workspaceId).onSnapshot(snap=>{
     const data=snap.data();
-    if(data && data.updatedAt){
-      const label=formatLastUpdated(data.updatedAt);
-      document.getElementById('lastUpdated').textContent=label;
+    if(!data) return;
+
+    if(data.updatedAt){
+      document.getElementById('lastUpdated').textContent=formatLastUpdated(data.updatedAt);
     }
+
+    // Don't be intrusive: skip the live merge/re-render if the person is
+    // actively typing somewhere in the task list or a modal is open right
+    // now — the NEXT snapshot (once they finish) will catch them up instead.
+    const activeEl=document.activeElement;
+    const isTypingInTaskArea = activeEl && (activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')
+      && activeEl.closest && (activeEl.closest('#taskRows')||activeEl.closest('.model-rename-input')||activeEl.closest('#modelsGrid'));
+    const modalIsOpen = document.querySelector('.modal-overlay.open, #teamOverlay.open, #exportLogoutOverlay.open, #bulkMoveModelModal.open');
+    if(isTypingInTaskArea || modalIsOpen) return;
+
+    const incomingTasksJson=JSON.stringify(data.tasks||{});
+    if(incomingTasksJson===lastSyncedTasksJson) return; // nothing actually changed
+    lastSyncedTasksJson=incomingTasksJson;
+
+    deletedModelsSet=new Set(data.deletedModels||[]);
+    archivedModelsSet=new Set(data.archivedModels||[]);
+    pinnedModelsSet=new Set(data.pinnedModels||[]);
+    modelOrder=data.modelOrder||[];
+    modelImages=data.modelImages||{};
+    recycleBin=data.recycleBin||{};
+    ({tasks: state, deadlines}=loadState(data));
+    refreshModelsList();
+    if(!activeTab||!models.includes(activeTab)) activeTab=models[0]||'';
+    renderAll();
   }, err=>console.warn('lastUpdated listener error:',err));
 }
 
@@ -2990,7 +3257,7 @@ function save(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     try{
-      await getUserDoc(auth.currentUser.uid).set({
+      await getWorkspaceDoc().set({
         tasks:state,
         deadlines,
         modelImages,
@@ -3000,7 +3267,7 @@ function save(){
         modelOrder:[...modelOrder],
         recycleBin,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-      });
+      }, {merge:true});
       // lastUpdated label is refreshed automatically by the live Firestore
       // listener (listenForLastUpdated) once the server timestamp lands.
     }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
@@ -3083,10 +3350,10 @@ function undo(){
     clearTimeout(saveTimer);
     saveTimer=setTimeout(async()=>{
       try{
-        await getUserDoc(auth.currentUser.uid).set({
+        await getWorkspaceDoc().set({
           tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }, {merge:true});
       }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
     },800);
   }
@@ -3119,10 +3386,10 @@ function redo(){
     clearTimeout(saveTimer);
     saveTimer=setTimeout(async()=>{
       try{
-        await getUserDoc(auth.currentUser.uid).set({
+        await getWorkspaceDoc().set({
           tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }, {merge:true});
       }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
     },800);
   }
@@ -3169,7 +3436,7 @@ function recycleSubtask(model,taskName,sub,subIdx){
 }
 // Store a whole model (its tasks + deadline + order position) in the recycle bin.
 // Keyed under __models__ so it stays accessible after state[name] is deleted.
-const RECYCLE_MODELS_KEY='_models_'; // NOTE: must not start AND end with "__" — Firestore rejects such field names
+const RECYCLE_MODELS_KEY='__models__';
 function recycleModel(name){
   if(!recycleBin[RECYCLE_MODELS_KEY]) recycleBin[RECYCLE_MODELS_KEY]=[];
   recycleBin[RECYCLE_MODELS_KEY].push({
@@ -3244,8 +3511,20 @@ async function handleAuthState(user){
     document.getElementById('archiveViewBtn').style.display='';
     document.getElementById('recycleViewBtn').style.display='';
 
-    // Load user's data from Firestore
-    const saved=await loadFromFirestore(user.uid);
+    // Resolve which workspace this account should load (auto-migrates any
+    // pre-existing single-user data into a personal workspace the first
+    // time this runs for an account) — kicked off in PARALLEL with a
+    // speculative load of the personal workspace, since for most accounts
+    // (no shared workspace joined) that's the exact same document we end
+    // up needing anyway. Turns two sequential reads into one wait.
+    const speculativeLoad=loadFromFirestore(user.uid);
+    const resolved=await resolveWorkspace(user);
+    currentWorkspaceId=resolved.workspaceId;
+    const saved = resolved.freshData
+      ? resolved.freshData // first-time migration — use what we just wrote, not a possibly-stale parallel read
+      : (currentWorkspaceId===user.uid ? await speculativeLoad : await loadFromFirestore(currentWorkspaceId));
+    workspaceMembers=(saved&&saved.members)||{[user.uid]:{email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]}};
+    workspaceOwnerUid=(saved&&saved.ownerUid)||user.uid;
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
     pinnedModelsSet=new Set(saved?.pinnedModels||[]);
@@ -3262,7 +3541,8 @@ async function handleAuthState(user){
     else if(!activeTab||!models.includes(activeTab)) activeTab=models[0]||'';
     document.querySelector('.wrap').classList.add('unlocked');
     document.getElementById('lastUpdated').textContent=formatLastUpdated(saved&&saved.updatedAt)||'';
-    listenForLastUpdated(user.uid);
+    listenForLastUpdated(currentWorkspaceId);
+    updateTeamUI();
     resetUndo();
     renderAll();
     hideLoading();
@@ -3275,10 +3555,10 @@ async function handleAuthState(user){
       clearTimeout(saveTimer);
       saveTimer=setTimeout(async()=>{
         try{
-          await getUserDoc(auth.currentUser.uid).set({
+          await getWorkspaceDoc().set({
             tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
             updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-          });
+          }, {merge:true});
         }catch(e){ console.error('Save error:',e); }
       },800);
     }
@@ -4780,11 +5060,84 @@ function matchesFilter(task){
   if(activeFilter==='high'&&task.priority!=='high') return false;
   if(activeFilter==='med'&&task.priority!=='med') return false;
   if(activeFilter==='low'&&task.priority!=='low') return false;
+  if(activeFilter==='mine'&&(!auth||!auth.currentUser||task.assignee!==auth.currentUser.uid)) return false;
   if(searchQuery&&!task.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
   return true;
 }
 
 // ── TASK LIST ─────────────────────────────────────────────────────────────────
+// Builds the <option> list for a task's assignee dropdown from the current
+// workspace's member list, marking whichever uid is currently assigned.
+function buildAssigneeOptionsHtml(selectedUid){
+  return Object.entries(workspaceMembers).map(([uid,info])=>{
+    const label=info.displayName||info.email||uid;
+    return `<option value="${escHtml(uid)}"${uid===selectedUid?' selected':''}>${escHtml(label)}</option>`;
+  }).join('');
+}
+
+// Gives each teammate a consistent, distinct avatar color (same person
+// always gets the same color, derived from their uid so no lookup/storage
+// is needed).
+const ASSIGNEE_COLOR_PALETTE=['#f87171','#fb923c','#fbbf24','#4ade80','#2dd4bf','#38bdf8','#818cf8','#c084fc','#f472b6','#a3a86a'];
+function colorForAssignee(uid){
+  if(!uid) return null;
+  let hash=0;
+  for(let i=0;i<uid.length;i++){ hash=(hash*31+uid.charCodeAt(i))>>>0; }
+  return ASSIGNEE_COLOR_PALETTE[hash%ASSIGNEE_COLOR_PALETTE.length];
+}
+
+// Custom-styled assignee picker popover — a single shared element,
+// repositioned under whichever avatar was clicked. Replaces a native
+// <select> so it can actually match the app's dark theme instead of
+// popping up as an unstyled browser dropdown.
+function closeAssigneeDropdown(){
+  const dd=document.getElementById('assigneeDropdown');
+  if(dd) dd.classList.remove('open');
+}
+function openAssigneeDropdown(triggerEl, idx){
+  const dd=document.getElementById('assigneeDropdown');
+  const task=(state[activeTab]||[])[idx];
+  if(!dd||!task) return;
+
+  const teamIconSvg='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+  const items=[{uid:'',label:'Unassigned'}].concat(
+    Object.entries(workspaceMembers).map(([uid,info])=>({uid,label:info.displayName||info.email||uid}))
+  );
+  dd.innerHTML=items.map(it=>{
+    const isSelected=(task.assignee||'')===it.uid;
+    const color=it.uid?colorForAssignee(it.uid):null;
+    const avatarHtml=it.uid
+      ?`<span class="assignee-dropdown-avatar" style="background:linear-gradient(145deg, ${color}dd, ${color});color:#fff;border-color:transparent;">${escHtml((it.label[0]||'?').toUpperCase())}</span>`
+      :`<span class="assignee-dropdown-avatar">${teamIconSvg}</span>`;
+    return `<div class="assignee-dropdown-item${isSelected?' selected':''}" data-uid="${escHtml(it.uid)}">${avatarHtml}<span>${escHtml(it.label)}</span></div>`;
+  }).join('');
+
+  dd.querySelectorAll('.assignee-dropdown-item').forEach(item=>{
+    item.onclick=()=>{
+      const t=(state[activeTab]||[])[idx];
+      if(t){ t.assignee=item.dataset.uid||''; save(); renderAll(); }
+      closeAssigneeDropdown();
+    };
+  });
+
+  // Position under the clicked avatar, flipping left if it would overflow.
+  const rect=triggerEl.getBoundingClientRect();
+  dd.classList.add('open'); // needs to be visible to measure its width
+  const ddWidth=dd.offsetWidth||180;
+  let left=rect.left;
+  if(left+ddWidth>window.innerWidth-8) left=window.innerWidth-ddWidth-8;
+  dd.style.left=Math.max(8,left)+'px';
+  dd.style.top=(rect.bottom+6)+'px';
+}
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('assigneeDropdown');
+  if(!dd||!dd.classList.contains('open')) return;
+  if(e.target.closest('#assigneeDropdown')||e.target.closest('.assignee-picker')) return;
+  closeAssigneeDropdown();
+});
+document.addEventListener('scroll',closeAssigneeDropdown,true);
+window.addEventListener('resize',closeAssigneeDropdown);
+
 function renderTaskList(){
   const table=document.getElementById('checklistTable');
   const compare=document.getElementById('compareGrid');
@@ -4818,7 +5171,7 @@ function renderTaskList(){
     delBtn.style.display='none';archBtn.style.display='none';
     exportBtn.style.display='none';importLbl.style.display='none';
     searchBoxEl.style.display='none';filterBarEl.style.display='none';
-    ['all','done','pending','critical','high','med','low'].forEach(k=>{
+    ['all','done','pending','critical','high','med','low','mine'].forEach(k=>{
       const el=document.getElementById('fc-'+k); if(el) el.textContent='0';
     });
     return;
@@ -4838,6 +5191,7 @@ function renderTaskList(){
     high: tasks.filter(t=>t.priority==='high').length,
     med: tasks.filter(t=>t.priority==='med').length,
     low: tasks.filter(t=>t.priority==='low').length,
+    mine: (auth&&auth.currentUser)?tasks.filter(t=>t.assignee===auth.currentUser.uid).length:0,
   };
   Object.entries(fc).forEach(([key,val])=>{
     const el=document.getElementById('fc-'+key);
@@ -4979,6 +5333,8 @@ function renderTaskList(){
       }
     }
 
+    const assigneeColor=task.assignee?colorForAssignee(task.assignee):null;
+
     row.innerHTML=`
       <div class="task-sn">${task.sn}</div>
       <div><input type="checkbox" class="task-checkbox row-chk" ${checked?'checked':''}></div>
@@ -4991,6 +5347,9 @@ function renderTaskList(){
         <div class="task-deadline-wrap ${dlIconCls}" data-idx="${idx}" title="${dlTitle}">
           <input type="date" class="task-deadline-native" tabindex="-1" value="${task.taskDeadline||''}">
         </div>
+        ${Object.keys(workspaceMembers).length>1?`<div class="assignee-picker" data-idx="${idx}" title="${task.assignee&&workspaceMembers[task.assignee]?'Assigned to '+escHtml(workspaceMembers[task.assignee].displayName||workspaceMembers[task.assignee].email):'Assign to a teammate'}">
+          <span class="assignee-avatar-icon${task.assignee?' is-assigned':''}"${assigneeColor?` style="background:linear-gradient(145deg, ${assigneeColor}dd, ${assigneeColor});box-shadow:0 2px 6px -1px ${assigneeColor}55, inset 0 1px 0 rgba(255,255,255,0.18);"`:''}>${task.assignee&&workspaceMembers[task.assignee]?escHtml(((workspaceMembers[task.assignee].displayName||workspaceMembers[task.assignee].email||'?')[0]||'?').toUpperCase()):'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'}</span>
+        </div>`:''}
       </div>
       ${actionsCell}`;
 
@@ -5031,6 +5390,14 @@ function renderTaskList(){
       task.priority=cycle[task.priority||'med'];
       save();renderAll();
     };
+
+    const assigneePickerEl=row.querySelector('.assignee-picker');
+    if(assigneePickerEl){
+      assigneePickerEl.onclick=e=>{
+        e.stopPropagation();
+        openAssigneeDropdown(assigneePickerEl, idx);
+      };
+    }
 
     if(isEditing){
       const input=row.querySelector('#editInput');
@@ -6272,8 +6639,8 @@ function buildFullBackupPayload(){
 }
 
 function getBackupDocRef(){
-  if(!auth || !auth.currentUser || !db) return null;
-  return db.collection('dashboards').doc(auth.currentUser.uid).collection('meta').doc('lastBackup');
+  if(!auth || !auth.currentUser || !db || !currentWorkspaceId) return null;
+  return db.collection('workspaces').doc(currentWorkspaceId).collection('meta').doc('lastBackup');
 }
 
 async function saveLastBackup(){
@@ -6961,7 +7328,7 @@ async function freshStart(){
   if(auth && auth.currentUser){
     clearTimeout(saveTimer);
     try {
-      await getUserDoc(auth.currentUser.uid).set({
+      await getWorkspaceDoc().set({
         tasks: {},
         deadlines: {},
         deletedModels: [],
@@ -6970,7 +7337,7 @@ async function freshStart(){
         modelOrder: [],
         recycleBin: {},
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      }, {merge:true});
     } catch(e){ console.error('Fresh start save error:',e); }
   }
 
@@ -7147,6 +7514,268 @@ updateStickyBarPin();
     </div>
   </div>
 </div>
+
+<div id="teamOverlay" role="dialog" aria-modal="true" aria-labelledby="teamModalTitle">
+  <div id="teamModal">
+    <div class="elmodal-icon" style="background:var(--accent1-dim);border-color:var(--border-hover);">👥</div>
+    <div class="elmodal-title" id="teamModalTitle">Team &amp; Workspace</div>
+    <div class="elmodal-desc" id="teamWorkspaceDesc">This is your personal workspace — only you can see it.</div>
+
+    <div class="team-section-label">Members</div>
+    <div class="team-members-list" id="teamMembersList"></div>
+
+    <div id="teamInviteSection">
+      <div class="team-section-label">Invite a teammate</div>
+      <div class="team-invite-row">
+        <div class="team-invite-code" id="teamInviteCodeDisplay">— — — — — —</div>
+        <button class="elmodal-export-btn" id="teamGenerateCodeBtn" style="flex:0 0 auto;">Get Code</button>
+        <button class="elmodal-export-btn" id="teamCopyCodeBtn" style="display:none;flex:0 0 auto;">Copy</button>
+      </div>
+      <div class="elmodal-desc" style="margin:8px 0 0;font-size:12.5px;">Share this code with a teammate — they enter it below to join and start seeing/editing this workspace together.</div>
+    </div>
+
+    <div class="elmodal-divider">or</div>
+
+    <div id="teamJoinSection">
+      <div class="team-section-label">Join a teammate's workspace</div>
+      <div class="team-invite-row">
+        <input type="text" id="teamJoinCodeInput" maxlength="6" placeholder="Enter code" class="team-join-input">
+        <button class="elmodal-export-btn" id="teamJoinBtn" style="flex:0 0 auto;">Join</button>
+      </div>
+      <div id="teamJoinError" class="team-join-error"></div>
+    </div>
+
+    <div id="teamBackToPersonalRow" style="display:none;margin-top:14px;">
+      <button class="elmodal-cancel-btn" id="teamBackToPersonalBtn" style="width:100%;">← Back to my personal workspace</button>
+    </div>
+
+    <div class="elmodal-actions" style="margin-top:20px;">
+      <button class="elmodal-cancel-btn" id="teamCloseBtn" style="flex:1;">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── TEAM / SHARED WORKSPACE MODAL ─────────────────────────────────────────────
+function openTeamModal(){
+  document.getElementById('userBadge').classList.remove('menu-open');
+  renderTeamModal();
+  document.getElementById('teamOverlay').classList.add('open');
+}
+function closeTeamModal(){
+  document.getElementById('teamOverlay').classList.remove('open');
+  document.getElementById('teamJoinCodeInput').value='';
+  document.getElementById('teamJoinError').textContent='';
+}
+function renderTeamModal(){
+  const isPersonal = currentWorkspaceId===personalWorkspaceId;
+  const memberCount = Object.keys(workspaceMembers).length;
+  const descEl=document.getElementById('teamWorkspaceDesc');
+  if(isPersonal && memberCount<=1){
+    descEl.textContent='This is your personal workspace — only you can see it. Invite a teammate below to start sharing tasks.';
+  }else if(isPersonal){
+    descEl.textContent='This is your personal workspace, shared with your team below.';
+  }else{
+    const ownerInfo=workspaceMembers[workspaceOwnerUid];
+    descEl.textContent=`You're viewing ${ownerInfo?escHtml(ownerInfo.displayName)+"'s":"a teammate's"} shared workspace.`;
+  }
+
+  const listEl=document.getElementById('teamMembersList');
+  const iAmOwner=isCurrentWorkspaceOwner();
+  listEl.innerHTML=Object.entries(workspaceMembers).map(([uid,info])=>{
+    const initial=((info.displayName||info.email||'?')[0]||'?').toUpperCase();
+    const isOwner=uid===workspaceOwnerUid;
+    const showRemove=iAmOwner&&!isOwner;
+    return `<div class="team-member-row">
+      <div class="team-member-avatar">${escHtml(initial)}</div>
+      <div>
+        <div class="team-member-name">${escHtml(info.displayName||info.email||'Unknown')}</div>
+        <div class="team-member-email">${escHtml(info.email||'')}</div>
+      </div>
+      ${isOwner?'<span class="team-member-owner-tag">Owner</span>':''}
+      ${showRemove?`<button class="team-member-remove-btn" data-uid="${escHtml(uid)}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="Remove from workspace">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`:''}
+    </div>`;
+  }).join('') || '<div class="elmodal-desc" style="margin:0;">No members found.</div>';
+
+  listEl.querySelectorAll('.team-member-remove-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      const uid=btn.dataset.uid;
+      const name=btn.dataset.name;
+      if(confirm(`Remove ${name} from this workspace? They'll lose access to these tasks immediately.`)){
+        removeMemberFromWorkspace(uid);
+      }
+    };
+  });
+
+  // Only the workspace owner can generate/share an invite code.
+  document.getElementById('teamInviteSection').style.display = isCurrentWorkspaceOwner()?'':'none';
+  document.getElementById('teamBackToPersonalRow').style.display = isPersonal?'none':'';
+
+  document.getElementById('teamInviteCodeDisplay').textContent='— — — — — —';
+  document.getElementById('teamCopyCodeBtn').style.display='none';
+  if(currentWorkspaceId){
+    getWorkspaceDoc().get().then(snap=>{
+      const code=snap.exists?snap.data().inviteCode:null;
+      if(code){
+        document.getElementById('teamInviteCodeDisplay').textContent=code;
+        document.getElementById('teamCopyCodeBtn').style.display='';
+      }
+    }).catch(e=>console.warn('Could not load invite code:',e));
+  }
+}
+function updateTeamUI(){
+  const badge=document.getElementById('teamCountBadge');
+  const count=Object.keys(workspaceMembers).length;
+  if(count>1){ badge.style.display=''; badge.textContent=String(count); }
+  else{ badge.style.display='none'; }
+  const mineBtn=document.getElementById('mineFilterBtn');
+  if(mineBtn) mineBtn.style.display=count>1?'':'none';
+  // If the workspace shrank back to just you, don't leave the UI stuck
+  // filtered on a chip that's now hidden.
+  if(count<=1 && activeFilter==='mine'){
+    activeFilter='all';
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));
+    if(typeof renderTaskList==='function') renderTaskList();
+  }
+}
+
+// Removes a teammate from the current workspace. Restricted to the owner
+// at the UI level; note the underlying Firestore rule allows any existing
+// member to write to the workspace doc (see the "trusted team" tradeoff
+// mentioned when these rules were set up), so this button is a UI-level
+// safeguard, not the only thing stopping a non-owner from doing this via
+// the API directly.
+async function removeMemberFromWorkspace(uid){
+  if(!isCurrentWorkspaceOwner()||!currentWorkspaceId) return;
+  try{
+    await getWorkspaceDoc().update({
+      memberUids: firebase.firestore.FieldValue.arrayRemove(uid),
+      ['members.'+uid]: firebase.firestore.FieldValue.delete()
+    });
+    delete workspaceMembers[uid];
+    renderTeamModal();
+    updateTeamUI();
+    toast('👋','Removed from workspace',false);
+  }catch(e){
+    console.error('Remove member failed:',e);
+    toast('⚠','Could not remove member — check your connection',false);
+  }
+}
+
+async function generateInviteCode(){
+  if(!auth||!auth.currentUser||!currentWorkspaceId) return;
+  const btn=document.getElementById('teamGenerateCodeBtn');
+  btn.disabled=true;
+  try{
+    const snap=await withTimeout(getWorkspaceDoc().get(),6000);
+    let code=snap.exists?snap.data().inviteCode:null;
+    if(!code){
+      code=randomInviteCode();
+      await db.collection('inviteCodes').doc(code).set({workspaceId:currentWorkspaceId,createdBy:auth.currentUser.uid});
+      await getWorkspaceDoc().set({inviteCode:code},{merge:true});
+    }
+    document.getElementById('teamInviteCodeDisplay').textContent=code;
+    document.getElementById('teamCopyCodeBtn').style.display='';
+  }catch(e){
+    console.error('Generate invite code failed:',e);
+    toast('⚠','Could not generate an invite code — check your connection',false);
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+// Switches the whole dashboard over to a different workspace's data —
+// used both when joining a teammate's workspace and when switching back
+// to your own personal one.
+async function switchToWorkspace(workspaceId){
+  showLoading();
+  try{
+    currentWorkspaceId=workspaceId;
+    const saved=await loadFromFirestore(currentWorkspaceId);
+    workspaceMembers=(saved&&saved.members)||{};
+    workspaceOwnerUid=(saved&&saved.ownerUid)||null;
+    deletedModelsSet=new Set(saved?.deletedModels||[]);
+    archivedModelsSet=new Set(saved?.archivedModels||[]);
+    pinnedModelsSet=new Set(saved?.pinnedModels||[]);
+    modelOrder=saved?.modelOrder||[];
+    modelImages=saved?.modelImages||{};
+    recycleBin=saved?.recycleBin||{};
+    purgeExpiredRecycleItems();
+    setArchiveView(false);
+    setRecycleView(false);
+    ({tasks: state, deadlines}=loadState(saved));
+    refreshModelsList();
+    activeTab=models[0]||'';
+    localStorage.setItem('mlc_activeTab',activeTab);
+    document.getElementById('lastUpdated').textContent=formatLastUpdated(saved&&saved.updatedAt)||'';
+    listenForLastUpdated(currentWorkspaceId);
+    resetUndo();
+    editingIdx=null; selectedTasks.clear(); selectedSubtasks.clear(); expandedSubtasksSet.clear();
+    renderAll();
+    updateTeamUI();
+    if(auth&&auth.currentUser){
+      await getUserProfileDoc(auth.currentUser.uid).set({workspaceId:currentWorkspaceId},{merge:true});
+    }
+  }catch(e){
+    console.error('Switch workspace failed:',e);
+    toast('⚠','Could not switch workspace',false);
+  }finally{
+    hideLoading();
+  }
+}
+
+async function joinWorkspaceByCode(rawCode){
+  const errEl=document.getElementById('teamJoinError');
+  errEl.textContent='';
+  const code=(rawCode||'').trim().toUpperCase();
+  if(!code){ errEl.textContent='Enter a code first.'; return; }
+  if(!auth||!auth.currentUser){ errEl.textContent='You need to be signed in to join a workspace.'; return; }
+  const joinBtn=document.getElementById('teamJoinBtn');
+  joinBtn.disabled=true; joinBtn.textContent='Joining…';
+  try{
+    const lookupSnap=await withTimeout(db.collection('inviteCodes').doc(code).get(),6000);
+    if(!lookupSnap.exists){ errEl.textContent="That code doesn't match any workspace."; return; }
+    const targetId=lookupSnap.data().workspaceId;
+    if(targetId===currentWorkspaceId){ errEl.textContent="You're already in this workspace."; return; }
+    const user=auth.currentUser;
+    const myInfo={email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]};
+    await db.collection('workspaces').doc(targetId).update({
+      memberUids: firebase.firestore.FieldValue.arrayUnion(user.uid),
+      ['members.'+user.uid]: myInfo
+    });
+    await switchToWorkspace(targetId);
+    toast('👥','Joined the shared workspace',false);
+    closeTeamModal();
+  }catch(e){
+    console.error('Join workspace failed:',e);
+    errEl.textContent='Could not join — double-check the code and your connection.';
+  }finally{
+    joinBtn.disabled=false; joinBtn.textContent='Join';
+  }
+}
+
+document.getElementById('teamMenuBtn').onclick=openTeamModal;
+document.getElementById('teamCloseBtn').onclick=closeTeamModal;
+document.getElementById('teamOverlay').addEventListener('click',e=>{ if(e.target.id==='teamOverlay') closeTeamModal(); });
+document.getElementById('teamGenerateCodeBtn').onclick=generateInviteCode;
+document.getElementById('teamCopyCodeBtn').onclick=()=>{
+  const code=document.getElementById('teamInviteCodeDisplay').textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(()=>toast('📋','Code copied',false)).catch(()=>{});
+  }
+};
+document.getElementById('teamJoinBtn').onclick=()=>joinWorkspaceByCode(document.getElementById('teamJoinCodeInput').value);
+document.getElementById('teamJoinCodeInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('teamJoinBtn').click(); }
+});
+document.getElementById('teamBackToPersonalBtn').onclick=async()=>{
+  await switchToWorkspace(personalWorkspaceId);
+  toast('🏠','Back to your personal workspace',false);
+  renderTeamModal();
+};
+</script>
 
 <script>
 // ── EXPORT-BEFORE-LOGOUT MODAL ────────────────────────────────────────────────
