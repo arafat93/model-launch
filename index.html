@@ -3169,7 +3169,7 @@ function recycleSubtask(model,taskName,sub,subIdx){
 }
 // Store a whole model (its tasks + deadline + order position) in the recycle bin.
 // Keyed under __models__ so it stays accessible after state[name] is deleted.
-const RECYCLE_MODELS_KEY='__models__';
+const RECYCLE_MODELS_KEY='_models_'; // NOTE: must not start AND end with "__" — Firestore rejects such field names
 function recycleModel(name){
   if(!recycleBin[RECYCLE_MODELS_KEY]) recycleBin[RECYCLE_MODELS_KEY]=[];
   recycleBin[RECYCLE_MODELS_KEY].push({
