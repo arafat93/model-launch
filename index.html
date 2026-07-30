@@ -3436,7 +3436,7 @@ function recycleSubtask(model,taskName,sub,subIdx){
 }
 // Store a whole model (its tasks + deadline + order position) in the recycle bin.
 // Keyed under __models__ so it stays accessible after state[name] is deleted.
-const RECYCLE_MODELS_KEY='__models__';
+const RECYCLE_MODELS_KEY='_models_'; // NOTE: must not start AND end with "__" — Firestore rejects such field names
 function recycleModel(name){
   if(!recycleBin[RECYCLE_MODELS_KEY]) recycleBin[RECYCLE_MODELS_KEY]=[];
   recycleBin[RECYCLE_MODELS_KEY].push({
@@ -5970,8 +5970,17 @@ function moveTask(model,idx,dir){
   if(editingIdx!==null) editingIdx=null;
   save();renderAll();
 }
+// Model names are stored directly as Firestore field names (tasks.<name>,
+// deadlines.<name>, modelImages.<name>, recycleBin.<name>) — Firestore
+// rejects any field name that both starts AND ends with "__", so block
+// those at creation/rename time rather than let a future save fail silently.
+function isFirestoreSafeFieldName(name){
+  return !(name.startsWith('__') && name.endsWith('__'));
+}
+
 async function addModel(name,deadline){
   const trimmed=name.trim();if(!trimmed)return;
+  if(!isFirestoreSafeFieldName(trimmed)){await showAlert({title:'Invalid model name',message:'Model names can\'t both start and end with "__" — please choose a different name.',tone:'warn'});return;}
   const key=trimmed.toUpperCase();
   if(Object.keys(state).some(m=>m.toUpperCase()===key)){await showAlert({title:'Model already exists',message:`A model named "${trimmed}" is already on your list.`,tone:'warn'});return;}
 
@@ -6035,6 +6044,7 @@ async function deleteModel(name){
 async function renameModel(oldName, newName){
   const trimmed=newName.trim();
   if(!trimmed||trimmed.toUpperCase()===oldName.toUpperCase()){renderModelCards();renderTabs();return;}
+  if(!isFirestoreSafeFieldName(trimmed)){await showAlert({title:'Invalid model name',message:'Model names can\'t both start and end with "__" — please choose a different name.',tone:'warn'});renderModelCards();renderTabs();return;}
   const key=trimmed.toUpperCase();
   if(Object.keys(state).some(m=>m.toUpperCase()!==oldName.toUpperCase()&&m.toUpperCase()===key)){
     await showAlert({title:'Name already taken',message:`A model named "${trimmed}" already exists.`,tone:'warn'});
