@@ -528,30 +528,6 @@ footer {
   cursor: pointer; box-shadow: var(--shadow-sm);
 }
 .model-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--border-hover); }
-
-/* 90%+ complete — call it out so it's obvious at a glance which models are
-   nearly done, without waiting for the 100% "Completed" state. */
-.model-card.near-complete {
-  border-color: rgba(16,185,129,0.5);
-  box-shadow: 0 0 0 1px rgba(16,185,129,0.28), 0 10px 32px -10px rgba(16,185,129,0.4), var(--shadow-sm);
-  animation: fadeUp 0.6s ease both, nearCompleteGlow 2.6s ease-in-out infinite;
-  animation-delay: 0.25s, 0.6s;
-}
-.model-card.near-complete:hover {
-  box-shadow: 0 0 0 1px rgba(16,185,129,0.4), 0 14px 38px -10px rgba(16,185,129,0.5), var(--shadow-md);
-}
-@keyframes nearCompleteGlow {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(16,185,129,0.28), 0 10px 32px -10px rgba(16,185,129,0.4), var(--shadow-sm); }
-  50%      { box-shadow: 0 0 0 1px rgba(16,185,129,0.5), 0 10px 36px -8px rgba(16,185,129,0.6), var(--shadow-sm); }
-}
-.model-near-complete-badge {
-  position: absolute; top: 14px; left: 14px; z-index: 2;
-  font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px;
-  color: #10b981; background: rgba(16,185,129,0.12);
-  border: 1px solid rgba(16,185,129,0.35);
-  padding: 3px 9px; border-radius: 20px;
-  display: flex; align-items: center; gap: 4px;
-}
 .model-pin-btn {
   position: absolute; top: 14px; right: 14px; z-index: 3;
   width: 32px; height: 32px; border-radius: 50%;
@@ -1041,7 +1017,7 @@ footer {
 /* task deadline icon (sits beside notes icon) */
 .task-icons-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .assignee-picker {
-  position: relative; width: 24px; height: 24px; flex-shrink: 0; cursor: pointer;
+  position: relative; width: 24px; height: 24px; flex-shrink: 0;
 }
 .assignee-avatar-icon {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -3130,40 +3106,9 @@ async function resolveWorkspace(user){
     return {workspaceId:profile.workspaceId};
   }
 
-  // First time we've seen a profile for this account — but before assuming
-  // that means "brand new account", check whether a workspace already
-  // exists for this uid. If it does, this was just a missing/failed
-  // profile read (slow network, timeout, etc.), NOT a new account — and we
-  // must NOT re-run migration, which would overwrite real, current data
-  // with an old frozen legacy snapshot. This was the actual cause of data
-  // occasionally appearing to "vanish" after login.
-  let existingWorkspaceSnap=null;
-  let existenceCheckFailed=false;
-  try{ existingWorkspaceSnap=await withTimeout(getWorkspaceDocById(uid).get(),6000); }
-  catch(e){ console.warn('Existing-workspace check failed:',e); existenceCheckFailed=true; }
-
-  if(existingWorkspaceSnap && existingWorkspaceSnap.exists){
-    // Just repair the missing profile pointer — the workspace itself,
-    // and everything in it, is left completely untouched.
-    try{
-      await profileRef.set({workspaceId:uid,personalWorkspaceId:uid,email:myInfo.email,displayName:myInfo.displayName},{merge:true});
-    }catch(e){ console.warn('Could not repair profile doc:',e); }
-    return {workspaceId:uid, freshData:existingWorkspaceSnap.data()};
-  }
-
-  if(existenceCheckFailed){
-    // Couldn't confirm one way or the other (e.g. genuinely offline) —
-    // rather than gamble on "must be new" and risk overwriting real data,
-    // do nothing here. The normal cache-first load path below will still
-    // show whatever's cached locally, and migration will simply be
-    // retried cleanly on the next successful login.
-    return {workspaceId:uid};
-  }
-
-  // Positively confirmed no workspace exists yet — genuinely brand new.
-  // Migrate any pre-existing single-user data from the old
-  // `dashboards/{uid}` doc into a fresh personal workspace at
-  // `workspaces/{uid}`, so nothing is lost.
+  // First time we've seen this account — migrate any pre-existing
+  // single-user data from the old `dashboards/{uid}` doc into a brand new
+  // personal workspace at `workspaces/{uid}`, so nothing is lost.
   let legacyData=null;
   try{
     const legacySnap=await withTimeout(getUserDoc(uid).get(),6000);
@@ -3246,15 +3191,6 @@ async function loadFromFirestore(workspaceId){
     const snap=await withTimeout(ref.get(),6000);
     return snap.exists ? snap.data() : null;
   }catch(e){
-    if(e && e.code==='permission-denied'){
-      // Distinguish "no longer allowed to see this workspace" (e.g. the
-      // owner just removed this person) from a real connectivity issue,
-      // so the caller can fall back to the person's own workspace instead
-      // of showing a scary, permanent-looking connection error.
-      const err=new Error('workspace-access-revoked');
-      err.code='permission-denied';
-      throw err;
-    }
     console.error('Load error:',e);
     toast('⚠','Could not reach the server — showing local defaults',false);
     return null;
@@ -3334,7 +3270,7 @@ function save(){
       }, {merge:true});
       // lastUpdated label is refreshed automatically by the live Firestore
       // listener (listenForLastUpdated) once the server timestamp lands.
-    }catch(e){ console.error('Save error:',e); toast('⚠','Save failed: '+(e&&e.code?e.code:(e&&e.message)||'unknown error'),false);}
+    }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
   },800); // debounce — max one write per 800ms
 }
 
@@ -3418,7 +3354,7 @@ function undo(){
           tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         }, {merge:true});
-      }catch(e){ console.error('Save error:',e); toast('⚠','Save failed: '+(e&&e.code?e.code:(e&&e.message)||'unknown error'),false);}
+      }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
     },800);
   }
   renderAll();
@@ -3454,7 +3390,7 @@ function redo(){
           tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         }, {merge:true});
-      }catch(e){ console.error('Save error:',e); toast('⚠','Save failed: '+(e&&e.code?e.code:(e&&e.message)||'unknown error'),false);}
+      }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
     },800);
   }
   renderAll();
@@ -3582,27 +3518,11 @@ async function handleAuthState(user){
     // (no shared workspace joined) that's the exact same document we end
     // up needing anyway. Turns two sequential reads into one wait.
     const speculativeLoad=loadFromFirestore(user.uid);
-    speculativeLoad.catch(()=>{}); // avoid an unhandled-rejection warning if this ends up unused below
     const resolved=await resolveWorkspace(user);
     currentWorkspaceId=resolved.workspaceId;
-    let saved;
-    try{
-      saved = resolved.freshData
-        ? resolved.freshData // first-time migration — use what we just wrote, not a possibly-stale parallel read
-        : (currentWorkspaceId===user.uid ? await speculativeLoad : await loadFromFirestore(currentWorkspaceId));
-    }catch(e){
-      if(e && e.code==='permission-denied' && currentWorkspaceId!==personalWorkspaceId){
-        // Most likely explanation: the owner removed this person from that
-        // shared workspace. Fall back to their own personal workspace
-        // instead of leaving them stuck on a permanent-looking error.
-        toast('👋',"You no longer have access to that shared workspace — back to your personal one",false);
-        currentWorkspaceId=personalWorkspaceId;
-        try{ await getUserProfileDoc(user.uid).set({workspaceId:personalWorkspaceId},{merge:true}); }catch(_e){}
-        try{ saved=await loadFromFirestore(personalWorkspaceId); }catch(_e){ saved=null; }
-      }else{
-        saved=null;
-      }
-    }
+    const saved = resolved.freshData
+      ? resolved.freshData // first-time migration — use what we just wrote, not a possibly-stale parallel read
+      : (currentWorkspaceId===user.uid ? await speculativeLoad : await loadFromFirestore(currentWorkspaceId));
     workspaceMembers=(saved&&saved.members)||{[user.uid]:{email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]}};
     workspaceOwnerUid=(saved&&saved.ownerUid)||user.uid;
     deletedModelsSet=new Set(saved?.deletedModels||[]);
@@ -4344,7 +4264,7 @@ function renderModelCards(){
     const s=stats(m);
     const[lbl]=statusLabel(s.pct);
     const card=document.createElement('div');
-    card.className='model-card theme-'+(idx%4)+(pinnedModelsSet.has(m)?' pinned-card':'')+(s.pct>=90?' near-complete':'');
+    card.className='model-card theme-'+(idx%4)+(pinnedModelsSet.has(m)?' pinned-card':'');
     card.draggable=true;
     card.dataset.model=m;
     const dl=deadlineLabel(m);
@@ -4394,7 +4314,6 @@ function renderModelCards(){
     const isPinned=pinnedModelsSet.has(m);
     card.innerHTML=`
       <button class="model-pin-btn${isPinned?' pinned':''}" title="${isPinned?'Unpin model':'Pin model to top'}" data-model="${m}">📌</button>
-      ${s.pct>=90?`<div class="model-near-complete-badge" title="${s.pct===100?'Fully completed':'Almost there — 90%+ complete'}">${s.pct===100?'✓ Complete':'🔥 '+s.pct+'%'}</div>`:''}
       <div class="model-header">
         <div class="model-header-main">
           ${thumbHtml}
@@ -7772,7 +7691,6 @@ async function generateInviteCode(){
 // to your own personal one.
 async function switchToWorkspace(workspaceId){
   showLoading();
-  const previousWorkspaceId=currentWorkspaceId; // so we can roll back cleanly if this fails partway
   try{
     currentWorkspaceId=workspaceId;
     const saved=await loadFromFirestore(currentWorkspaceId);
@@ -7802,15 +7720,7 @@ async function switchToWorkspace(workspaceId){
     }
   }catch(e){
     console.error('Switch workspace failed:',e);
-    const msg=(e&&e.code==='permission-denied')
-      ? "You don't have access to that workspace anymore"
-      : 'Could not switch workspace';
-    toast('⚠',msg,false);
-    // Roll back so currentWorkspaceId still matches whatever data is
-    // actually loaded — otherwise every save afterward would keep failing
-    // against a workspace we just failed to switch into.
-    currentWorkspaceId=previousWorkspaceId;
-    listenForLastUpdated(currentWorkspaceId);
+    toast('⚠','Could not switch workspace',false);
   }finally{
     hideLoading();
   }
@@ -7836,15 +7746,8 @@ async function joinWorkspaceByCode(rawCode){
       ['members.'+user.uid]: myInfo
     });
     await switchToWorkspace(targetId);
-    if(currentWorkspaceId===targetId){
-      toast('👥','Joined the shared workspace',false);
-      closeTeamModal();
-    }else{
-      // Membership was granted, but the switch itself failed (e.g. a
-      // network blip right after joining) — switchToWorkspace already
-      // rolled back and shown its own error, so don't also claim success.
-      errEl.textContent="You've joined, but couldn't load it just now — try again in a moment.";
-    }
+    toast('👥','Joined the shared workspace',false);
+    closeTeamModal();
   }catch(e){
     console.error('Join workspace failed:',e);
     errEl.textContent='Could not join — double-check the code and your connection.';
