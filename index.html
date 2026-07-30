@@ -3103,6 +3103,78 @@ function formatLastUpdated(ts){
   return `Last changed ${datePart}, ${timePart}`;
 }
 
+// ── Live-sync "don't interrupt me" guard ────────────────────────────────────
+// Broader than just "typing in a field": ANY recent mouse/touch/keyboard
+// interaction, or an in-progress drag, counts as "busy" — so an incoming
+// live update never yanks a card out from under a click, a drag, or a
+// scroll. If a snapshot gets skipped because the person was busy, it isn't
+// dropped — it's held and retried automatically the moment they go idle,
+// instead of waiting on some other unrelated future change to catch them up.
+const ACTIVITY_IDLE_MS=900; // how long after the last interaction before we consider the person idle
+let lastActivityTime=0;
+let isDragInProgress=false;
+function markActivity(){ lastActivityTime=Date.now(); }
+document.addEventListener('mousedown', markActivity, true);
+document.addEventListener('pointerdown', markActivity, true);
+document.addEventListener('touchstart', markActivity, true);
+document.addEventListener('keydown', markActivity, true);
+document.addEventListener('wheel', markActivity, true);
+document.addEventListener('dragstart', ()=>{ isDragInProgress=true; markActivity(); }, true);
+document.addEventListener('dragover', markActivity, true); // fires continuously through a drag
+document.addEventListener('drop', ()=>{ isDragInProgress=false; markActivity(); }, true);
+document.addEventListener('dragend', ()=>{ isDragInProgress=false; markActivity(); }, true);
+
+function userIsBusy(){
+  const activeEl=document.activeElement;
+  const isTypingInTaskArea = activeEl && (activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')
+    && activeEl.closest && (activeEl.closest('#taskRows')||activeEl.closest('.model-rename-input')||activeEl.closest('#modelsGrid'));
+  const modalIsOpen = document.querySelector('.modal-overlay.open, #teamOverlay.open, #exportLogoutOverlay.open, #bulkMoveModelModal.open');
+  const recentlyActive = (Date.now()-lastActivityTime) < ACTIVITY_IDLE_MS;
+  return !!(isTypingInTaskArea || modalIsOpen || isDragInProgress || recentlyActive || hasUnsavedLocalEdit());
+}
+
+let pendingRemoteSnapshot=null; // latest snapshot we skipped, waiting to be applied once idle
+let pendingRetryTimer=null;
+function scheduleRetryApply(){
+  if(pendingRetryTimer) return; // already polling for idle
+  pendingRetryTimer=setInterval(()=>{
+    if(!pendingRemoteSnapshot){ clearInterval(pendingRetryTimer); pendingRetryTimer=null; return; }
+    if(userIsBusy()) return; // still busy — keep waiting
+    const data=pendingRemoteSnapshot;
+    pendingRemoteSnapshot=null;
+    clearInterval(pendingRetryTimer);
+    pendingRetryTimer=null;
+    applyRemoteSnapshot(data);
+  }, 400);
+}
+
+function applyRemoteSnapshot(data){
+  const incomingTasksJson=JSON.stringify(data.tasks||{});
+  if(incomingTasksJson===lastSyncedTasksJson){
+    console.log('[MLC-SYNC] applyRemoteSnapshot: no-op (identical to last synced state)');
+    return; // nothing actually changed
+  }
+  const localKeys=Object.keys(state||{});
+  const incomingKeys=Object.keys(data.tasks||{});
+  const disappearing=localKeys.filter(k=>!incomingKeys.includes(k));
+  console.log('[MLC-SYNC] applyRemoteSnapshot: APPLYING. local keys:', localKeys, 'incoming keys:', incomingKeys, disappearing.length?('*** MODELS ABOUT TO DISAPPEAR: '+disappearing.join(', ')):'(no models lost)');
+  lastSyncedTasksJson=incomingTasksJson;
+
+  deletedModelsSet=new Set(data.deletedModels||[]);
+  archivedModelsSet=new Set(data.archivedModels||[]);
+  pinnedModelsSet=new Set(data.pinnedModels||[]);
+  modelOrder=data.modelOrder||[];
+  modelImages=data.modelImages||{};
+  recycleBin=data.recycleBin||{};
+  ({tasks: state, deadlines}=loadState(data));
+  // Local state now exactly matches the server — re-baseline so the next
+  // save() correctly diffs against this, not stale pre-sync keys.
+  syncLastSavedKeysFromCurrent();
+  refreshModelsList();
+  if(!activeTab||!models.includes(activeTab)) activeTab=models[0]||'';
+  renderAll();
+}
+
 let unsubscribeLastUpdated=null;
 let lastSyncedTasksJson=null; // detects whether an incoming snapshot actually changed anything for us
 function listenForLastUpdated(workspaceId){
@@ -3119,46 +3191,51 @@ function listenForLastUpdated(workspaceId){
       document.getElementById('lastUpdated').textContent=formatLastUpdated(data.updatedAt);
     }
 
-    // Don't be intrusive: skip the live merge/re-render if the person is
-    // actively typing somewhere in the task list or a modal is open right
-    // now — the NEXT snapshot (once they finish) will catch them up instead.
-    const activeEl=document.activeElement;
-    const isTypingInTaskArea = activeEl && (activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')
-      && activeEl.closest && (activeEl.closest('#taskRows')||activeEl.closest('.model-rename-input')||activeEl.closest('#modelsGrid'));
-    const modalIsOpen = document.querySelector('.modal-overlay.open, #teamOverlay.open, #exportLogoutOverlay.open, #bulkMoveModelModal.open');
-    if(isTypingInTaskArea || modalIsOpen) return;
-
-    const incomingTasksJson=JSON.stringify(data.tasks||{});
-    if(incomingTasksJson===lastSyncedTasksJson) return; // nothing actually changed
-    lastSyncedTasksJson=incomingTasksJson;
-
-    deletedModelsSet=new Set(data.deletedModels||[]);
-    archivedModelsSet=new Set(data.archivedModels||[]);
-    pinnedModelsSet=new Set(data.pinnedModels||[]);
-    modelOrder=data.modelOrder||[];
-    modelImages=data.modelImages||{};
-    recycleBin=data.recycleBin||{};
-    ({tasks: state, deadlines}=loadState(data));
-    // Local state now exactly matches the server — re-baseline so the next
-    // save() correctly diffs against this, not stale pre-sync keys.
-    syncLastSavedKeysFromCurrent();
-    refreshModelsList();
-    if(!activeTab||!models.includes(activeTab)) activeTab=models[0]||'';
-    renderAll();
+    // Don't be intrusive: if the person is busy right now (typing, a modal
+    // is open, mid-drag, or just recently clicked/scrolled/typed anywhere),
+    // hold this snapshot and retry it automatically once they go idle,
+    // rather than applying it mid-interaction or dropping it entirely.
+    if(userIsBusy()){
+      pendingRemoteSnapshot=data;
+      scheduleRetryApply();
+      return;
+    }
+    pendingRemoteSnapshot=null;
+    applyRemoteSnapshot(data);
   }, err=>console.warn('lastUpdated listener error:',err));
 }
+
+// Tracks whether local changes exist that the server doesn't have yet —
+// covers the whole window from "you made an edit" through the 800ms debounce
+// AND the actual network round-trip, not just the last few hundred ms of UI
+// activity. A version counter (rather than a plain boolean) avoids a race
+// where a save that's still in flight could otherwise clear the flag out
+// from under a newer, not-yet-persisted edit.
+let unsavedEditVersion=0;
+let lastPersistedVersion=0;
+function hasUnsavedLocalEdit(){ return unsavedEditVersion!==lastPersistedVersion; }
 
 function save(){
   // Undo history is purely local state, so it should track every change
   // whether or not the person is signed in — only the Firestore write
   // below is conditional on having an account to save to.
   pushUndoSnapshot();
+  unsavedEditVersion++;
   if(!auth||!auth.currentUser) return;
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     // lastUpdated label is refreshed automatically by the live Firestore
     // listener (listenForLastUpdated) once the server timestamp lands.
+    const versionBeingSaved=unsavedEditVersion;
     await persistWorkspaceNow();
+    lastPersistedVersion=Math.max(lastPersistedVersion,versionBeingSaved);
+    // Our local `state` is now exactly what the server has. Any snapshot
+    // that was captured and held earlier (while we were busy) is now stale
+    // by definition — applying it later would silently undo what we just
+    // wrote. The live listener's own echo of this write (which WILL match
+    // what we have) still comes through separately and is a harmless no-op.
+    pendingRemoteSnapshot=null;
+    lastSyncedTasksJson=JSON.stringify(state||{});
   },800); // debounce — max one write per 800ms
 }
 
@@ -3623,7 +3700,12 @@ function loadState(saved) {
   Object.keys(saved.tasks).forEach(model=>{
     if(deletedModelsSet.has(model)) return;
     const savedModel=saved.tasks[model];
-    if(!savedModel||!savedModel.length) return;
+    // Only skip genuinely corrupted/missing entries (null, undefined, not an
+    // array). A model that's legitimately empty — freshly created via "Start
+    // Blank," or one you haven't added a task to yet — is still a real model
+    // and must NOT be dropped here, or it silently vanishes the next time
+    // this runs (e.g. on the very next live sync after creating it).
+    if(!savedModel||!Array.isArray(savedModel)) return;
     const tasks=savedModel.map(t=>({...t}));
     tasks.forEach(t=>{if(!t.priority)t.priority='med';if(!t.notes)t.notes='';if(!t.taskDeadline)t.taskDeadline='';if(!Array.isArray(t.screenshots))t.screenshots=[];});
     renumber(tasks);
