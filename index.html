@@ -3334,7 +3334,7 @@ function save(){
       }, {merge:true});
       // lastUpdated label is refreshed automatically by the live Firestore
       // listener (listenForLastUpdated) once the server timestamp lands.
-    }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
+    }catch(e){ console.error('Save error:',e); toast('⚠','Save failed: '+(e&&e.code?e.code:(e&&e.message)||'unknown error'),false);}
   },800); // debounce — max one write per 800ms
 }
 
@@ -3418,7 +3418,7 @@ function undo(){
           tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         }, {merge:true});
-      }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
+      }catch(e){ console.error('Save error:',e); toast('⚠','Save failed: '+(e&&e.code?e.code:(e&&e.message)||'unknown error'),false);}
     },800);
   }
   renderAll();
@@ -3454,7 +3454,7 @@ function redo(){
           tasks:state,deadlines,modelImages,deletedModels:[...deletedModelsSet],archivedModels:[...archivedModelsSet],pinnedModels:[...pinnedModelsSet],modelOrder:[...modelOrder],recycleBin,
           updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         }, {merge:true});
-      }catch(e){ console.error('Save error:',e); toast('⚠','Failed to save data',false);}
+      }catch(e){ console.error('Save error:',e); toast('⚠','Save failed: '+(e&&e.code?e.code:(e&&e.message)||'unknown error'),false);}
     },800);
   }
   renderAll();
