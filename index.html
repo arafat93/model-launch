@@ -1509,6 +1509,32 @@ footer {
   border-radius: 20px; padding: 4px 10px; white-space: nowrap;
 }
 .overdue-empty { padding: 32px 8px; text-align: center; color: var(--text-dim); font-size: 13px; }
+.menu-item-kbd { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--text-muted); background: var(--surface3); border: 1px solid var(--border); border-radius: 5px; padding: 2px 6px; letter-spacing: .3px; }
+.gsearch-input-wrap { position: relative; margin-bottom: 14px; }
+.gsearch-input-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+#globalSearchInput { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px 12px 40px; color: var(--text); font-family: inherit; font-size: 14.5px; outline: none; box-sizing: border-box; transition: border-color .15s ease; }
+#globalSearchInput:focus { border-color: var(--accent1); }
+.gsearch-body { max-height: 56vh; overflow-y: auto; }
+.gsearch-hint { padding: 28px 8px; text-align: center; color: var(--text-dim); font-size: 13px; }
+.gsearch-section-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; margin: 14px 4px 6px; }
+.gsearch-section-label:first-child { margin-top: 0; }
+.gsearch-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; cursor: pointer;
+  transition: background .12s ease, border-color .12s ease;
+}
+.gsearch-row:hover, .gsearch-row.kbd-active { border-color: var(--accent1); background: var(--accent1-dim); }
+.gsearch-row-main { min-width: 0; display: flex; align-items: center; gap: 10px; }
+.gsearch-row-icon { flex-shrink: 0; color: var(--text-muted); opacity: .8; }
+.gsearch-row-text { min-width: 0; }
+.gsearch-row-name { font-size: 13.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gsearch-row-name mark { background: var(--accent1-dim); color: var(--accent1); border-radius: 3px; padding: 0 1px; }
+.gsearch-row-meta { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gsearch-row-badge { flex-shrink: 0; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .3px; }
+.gsearch-row-badge.model { color: var(--accent1); background: var(--accent1-dim); }
+.gsearch-row-badge.task { color: var(--accent2); background: rgba(96,165,250,0.1); }
+.gsearch-row-badge.subtask { color: var(--accent3); background: rgba(167,139,250,0.1); }
+.gsearch-row-badge.done { color: var(--green); background: rgba(16,185,129,0.1); }
 .modal-box {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 24px; padding: 36px; width: min(500px, 90vw);
@@ -2419,6 +2445,8 @@ document.addEventListener('keydown', e => {
       <span id="userEmail" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <span class="user-badge-caret">▾</span>
       <div class="user-menu" id="userMenu">
+        <button class="menu-item" id="globalSearchBtn" title="Search tasks &amp; models across your entire workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Global Search</span><span class="menu-item-kbd">Ctrl K</span></button>
+        <div class="menu-divider"></div>
         <button class="menu-item" id="teamMenuBtn" title="Invite teammates or manage your shared workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span><span class="archive-count-badge" id="teamCountBadge" style="display:none;">1</span></button>
         <button class="menu-item" id="archiveViewBtn" title="View archived models"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg><span>Archived</span><span class="archive-count-badge" id="archiveCountBadge" style="display:none;">0</span></button>
         <button class="menu-item" id="recycleViewBtn" title="View deleted tasks (kept for 30 days)" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Recycle Bin</span><span class="archive-count-badge" id="recycleCountBadge" style="display:none;">0</span></button>
@@ -2557,7 +2585,7 @@ document.addEventListener('keydown', e => {
   <button class="filter-btn" data-filter="mine" id="mineFilterBtn" style="display:none;">👤 My Tasks<span class="filter-count" id="fc-mine">0</span></button>
   <button class="filter-btn select-completed-btn" id="selectCompletedBtn" title="Select all completed tasks for bulk actions, regardless of the current filter">☑ Select Completed</button>
   <button class="filter-btn select-pending-btn" id="selectPendingBtn" title="Select all pending tasks for bulk actions, regardless of the current filter">☐ Select Pending</button>
-  <div class="kbd-hint">Shortcuts: <kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</div>
+  <div class="kbd-hint">Shortcuts: <kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>Ctrl K</kbd> global search · <kbd>Esc</kbd> clear</div>
 </div>
 
 <!-- BULK ACTION BAR -->
@@ -2840,6 +2868,22 @@ document.addEventListener('keydown', e => {
     <img id="shotLightboxImg" src="" alt="Screenshot preview">
     <div id="shotLightboxTitle" style="display:none;position:absolute;left:0;right:0;bottom:0;padding:10px 16px;background:rgba(0,0,0,0.65);color:#fff;font-size:14px;font-weight:600;border-radius:0 0 12px 12px;text-align:center;"></div>
     <button type="button" class="shot-lightbox-close" id="shotLightboxClose" title="Close">✕</button>
+  </div>
+</div>
+
+<!-- GLOBAL SEARCH MODAL -->
+<div class="modal-overlay" id="globalSearchModal">
+  <div class="modal-box" id="globalSearchModalBox" style="width:min(560px, 92vw);">
+    <div class="modal-title">🔍 Global Search</div>
+    <div class="modal-subtitle">Find any model, task, or sub-task across your entire workspace.</div>
+    <div class="gsearch-input-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="globalSearchInput" placeholder="Search everything…" autocomplete="off">
+    </div>
+    <div class="gsearch-body" id="globalSearchBody"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-btn primary" id="globalSearchCloseBtn">Close</button>
+    </div>
   </div>
 </div>
 
@@ -4438,6 +4482,172 @@ document.getElementById('overdueModalCloseBtn').onclick=closeOverdueModal;
 document.getElementById('overdueModal').onclick=e=>{
   if(e.target.id==='overdueModal') closeOverdueModal();
 };
+
+// ── GLOBAL SEARCH (across every model, task & sub-task) ────────────────────
+// Flattens the whole workspace into one searchable list. Kept cheap on
+// purpose — recomputed fresh each keystroke since even large workspaces are
+// only a few hundred rows, which is instant to filter.
+function getAllSearchableItems(){
+  const out=[];
+  models.forEach(m=>{
+    out.push({type:'model', model:m});
+    (state[m]||[]).forEach((t,idx)=>{
+      out.push({type:'task', model:m, idx, task:t});
+      (Array.isArray(t.subtasks)?t.subtasks:[]).forEach((s,subIdx)=>{
+        out.push({type:'subtask', model:m, idx, subIdx, task:s, parentName:t.name});
+      });
+    });
+  });
+  return out;
+}
+function _gsearchHighlight(text,q){
+  const safe=escHtml(text);
+  if(!q) return safe;
+  const i=safe.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0) return safe;
+  return safe.slice(0,i)+'<mark>'+safe.slice(i,i+q.length)+'</mark>'+safe.slice(i+q.length);
+}
+let _gsearchActiveIdx=-1;
+let _gsearchResults=[];
+function renderGlobalSearchResults(rawQuery){
+  const body=document.getElementById('globalSearchBody');
+  const q=(rawQuery||'').trim();
+  _gsearchActiveIdx=-1;
+  if(!q){
+    _gsearchResults=[];
+    body.innerHTML=`<div class="gsearch-hint">Start typing to search model names, tasks, and sub-tasks across your whole workspace.</div>`;
+    return;
+  }
+  const ql=q.toLowerCase();
+  const all=getAllSearchableItems();
+  const modelMatches=all.filter(it=>it.type==='model'&&it.model.toLowerCase().includes(ql));
+  const taskMatches=all.filter(it=>it.type==='task'&&it.task.name&&it.task.name.toLowerCase().includes(ql));
+  const subMatches=all.filter(it=>it.type==='subtask'&&it.task.name&&it.task.name.toLowerCase().includes(ql));
+  _gsearchResults=[...modelMatches,...taskMatches,...subMatches].slice(0,60);
+  if(!_gsearchResults.length){
+    body.innerHTML=`<div class="gsearch-hint">No matches for "${escHtml(q)}".</div>`;
+    return;
+  }
+  let html='';
+  if(modelMatches.length) html+=`<div class="gsearch-section-label">Models</div>`+modelMatches.map(it=>_gsearchRowHtml(it,q,_gsearchResults.indexOf(it))).join('');
+  if(taskMatches.length) html+=`<div class="gsearch-section-label">Tasks</div>`+taskMatches.map(it=>_gsearchRowHtml(it,q,_gsearchResults.indexOf(it))).join('');
+  if(subMatches.length) html+=`<div class="gsearch-section-label">Sub-tasks</div>`+subMatches.map(it=>_gsearchRowHtml(it,q,_gsearchResults.indexOf(it))).join('');
+  body.innerHTML=html;
+  body.querySelectorAll('.gsearch-row').forEach(row=>{
+    row.onclick=()=>{
+      const it=_gsearchResults[parseInt(row.dataset.i,10)];
+      jumpToSearchResult(it);
+    };
+  });
+}
+function _gsearchRowHtml(it,q,i){
+  if(it.type==='model'){
+    const list=state[it.model]||[];
+    const done=list.filter(t=>t.done).length;
+    return `<div class="gsearch-row" data-i="${i}">
+      <div class="gsearch-row-main">
+        <span class="gsearch-row-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></span>
+        <div class="gsearch-row-text">
+          <div class="gsearch-row-name">${_gsearchHighlight(it.model,q)}</div>
+          <div class="gsearch-row-meta">${list.length} task${list.length!==1?'s':''} · ${done} done</div>
+        </div>
+      </div>
+      <span class="gsearch-row-badge model">Model</span>
+    </div>`;
+  }
+  const isSub=it.type==='subtask';
+  const badgeCls=it.task.done?'done':(isSub?'subtask':'task');
+  const badgeLabel=it.task.done?'Done':(isSub?'Sub-task':'Task');
+  return `<div class="gsearch-row" data-i="${i}">
+    <div class="gsearch-row-main">
+      <span class="gsearch-row-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${isSub?'<path d="M9 6l6 6-6 6"/>':'<polyline points="20 6 9 17 4 12"/>'}</svg></span>
+      <div class="gsearch-row-text">
+        <div class="gsearch-row-name">${_gsearchHighlight(it.task.name||'',q)}</div>
+        <div class="gsearch-row-meta">${escHtml(it.model)}${isSub?` · sub-task of "${escHtml(it.parentName)}"`:''}</div>
+      </div>
+    </div>
+    <span class="gsearch-row-badge ${badgeCls}">${badgeLabel}</span>
+  </div>`;
+}
+function jumpToSearchResult(it){
+  closeGlobalSearchModal();
+  if(!it||!models.includes(it.model)) return;
+  activeTab=it.model; localStorage.setItem('mlc_activeTab',it.model);
+  editingIdx=null; selectedTasks.clear(); selectedSubtasks.clear();
+  activeFilter='all';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  const activeBtn=document.querySelector(`.filter-btn[data-filter="all"]`);
+  if(activeBtn) activeBtn.classList.add('active');
+  const sb=document.getElementById('searchBox');
+  if(it.type==='model'){
+    sb.value=''; searchQuery='';
+  }else{
+    // Pinpoint via the (parent) task's own search box, same trick used by
+    // the overdue-tasks jump — sub-task panels live nested under their
+    // parent task row, so searching the parent's name surfaces both.
+    const parentName=it.type==='subtask'?it.parentName:it.task.name;
+    sb.value=parentName||''; searchQuery=sb.value;
+    if(it.type==='subtask') expandedSubtasksSet.add(subKey(it.model,it.idx));
+  }
+  renderTabs();
+  renderTaskList();
+  scrollToTaskChecklist();
+  if(it.type!=='model'){
+    if(_pinpointClearHandler) document.removeEventListener('click',_pinpointClearHandler);
+    setTimeout(()=>{
+      _pinpointClearHandler=e=>{
+        if(e.target===document.getElementById('searchBox')) return;
+        document.removeEventListener('click',_pinpointClearHandler);
+        _pinpointClearHandler=null;
+        document.getElementById('searchBox').value='';
+        searchQuery='';
+        renderTaskList();
+      };
+      document.addEventListener('click',_pinpointClearHandler);
+    },0);
+  }
+}
+function openGlobalSearchModal(){
+  document.getElementById('userBadge').classList.remove('menu-open');
+  const input=document.getElementById('globalSearchInput');
+  input.value='';
+  renderGlobalSearchResults('');
+  document.getElementById('globalSearchModal').classList.add('open');
+  setTimeout(()=>input.focus(),0);
+}
+function closeGlobalSearchModal(){
+  document.getElementById('globalSearchModal').classList.remove('open');
+}
+document.getElementById('globalSearchBtn').onclick=openGlobalSearchModal;
+document.getElementById('globalSearchCloseBtn').onclick=closeGlobalSearchModal;
+document.getElementById('globalSearchModal').onclick=e=>{
+  if(e.target.id==='globalSearchModal') closeGlobalSearchModal();
+};
+document.getElementById('globalSearchInput').oninput=e=>renderGlobalSearchResults(e.target.value);
+document.getElementById('globalSearchInput').addEventListener('keydown',e=>{
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();
+    if(!_gsearchResults.length) return;
+    const rows=[...document.querySelectorAll('#globalSearchBody .gsearch-row')];
+    _gsearchActiveIdx=(_gsearchActiveIdx+(e.key==='ArrowDown'?1:-1)+rows.length)%rows.length;
+    rows.forEach((r,i)=>r.classList.toggle('kbd-active',i===_gsearchActiveIdx));
+    rows[_gsearchActiveIdx].scrollIntoView({block:'nearest'});
+  }else if(e.key==='Enter'){
+    e.preventDefault();
+    const rows=[...document.querySelectorAll('#globalSearchBody .gsearch-row')];
+    const pick=_gsearchActiveIdx>=0?rows[_gsearchActiveIdx]:rows[0];
+    if(pick) jumpToSearchResult(_gsearchResults[parseInt(pick.dataset.i,10)]);
+  }
+});
+// Ctrl/Cmd+K opens Global Search from anywhere, including while typing in
+// most fields — this mirrors the common "command palette" convention.
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+    e.preventDefault();
+    openGlobalSearchModal();
+  }
+});
+
 document.getElementById('shotLightbox').onclick=e=>{
   if(e.target===document.getElementById('shotLightbox')) document.getElementById('shotLightbox').classList.remove('open');
 };
@@ -8129,6 +8339,7 @@ document.addEventListener('keydown',e=>{
     document.getElementById('notesModal').classList.remove('open');
     _notesObj=null; _notesObjCb=null;
     document.getElementById('overdueModal').classList.remove('open');
+    document.getElementById('globalSearchModal').classList.remove('open');
     document.getElementById('userBadge').classList.remove('menu-open');
     hideAuthGate();
     if (document.activeElement) document.activeElement.blur();
