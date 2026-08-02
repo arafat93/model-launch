@@ -454,6 +454,19 @@ footer {
 .analytics-overdue-row .aor-model { color: var(--text-muted); font-size:11px; font-weight:400; margin-left:8px; }
 .analytics-overdue-row .aor-days { color: var(--red); font-weight:600; font-size:12px; white-space:nowrap; background: rgba(244,63,94,0.1); padding:3px 9px; border-radius:20px; }
 
+/* ── TEAM WORKLOAD ── */
+.workload-list { display:flex; flex-direction:column; gap:14px; max-height:340px; overflow-y:auto; }
+.workload-row { display:flex; align-items:center; gap:10px; }
+.workload-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#0a0a0c; flex-shrink:0; box-shadow: 0 2px 6px -1px rgba(0,0,0,0.3); }
+.workload-info { flex:1; min-width:0; }
+.workload-name-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:8px; }
+.workload-name { font-size:12.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.workload-name-meta { display:flex; align-items:center; flex-shrink:0; }
+.workload-count { font-size:11.5px; color:var(--text-muted); font-weight:500; white-space:nowrap; }
+.workload-badge-overloaded { font-size:9.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--red); background:rgba(244,63,94,0.12); padding:2.5px 7px; border-radius:20px; margin-right:8px; white-space:nowrap; }
+.workload-bar-track { height:7px; border-radius:6px; background:var(--surface3); overflow:hidden; }
+.workload-bar-fill { height:100%; border-radius:6px; transition:width .5s ease; }
+
 /* ── MODEL CARDS ── */
 .models-section-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
 .models-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 44px; }
@@ -1067,15 +1080,80 @@ footer {
 /* notes */
 .notes-cell { display: flex; align-items: center; justify-content: center; }
 .notes-indicator {
-  width: 32px; height: 32px; border-radius: 8px;
+  width: 24px; height: 24px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px; cursor: pointer;
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--text-muted); transition: all 0.2s;
+  font-size: 11px; cursor: pointer;
+  border: 1.5px solid var(--border-hover); background: var(--surface2);
+  color: var(--text-muted); opacity: 0.7;
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), opacity 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
-.notes-indicator.has-note { color: var(--bg); border-color: var(--accent1); background: var(--accent1); }
-.notes-indicator:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--border-hover); }
-.notes-indicator.has-note:hover { filter: brightness(1.1); }
+.notes-indicator.has-note {
+  opacity: 1; color: #fff; border: 1.5px solid transparent;
+  background: linear-gradient(145deg, var(--accent1-hover), var(--accent1));
+  box-shadow: 0 2px 6px -1px var(--accent1-dim), inset 0 1px 0 rgba(255,255,255,0.18);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+}
+.notes-indicator:hover { transform: scale(1.12); opacity: 1; border-color: var(--accent1); }
+.notes-indicator.has-note:hover { box-shadow: 0 4px 10px -2px var(--accent1-dim), inset 0 1px 0 rgba(255,255,255,0.25); }
+
+/* comment timeline icon (sits beside notes icon) */
+.comment-indicator {
+  position: relative;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; cursor: pointer;
+  border: 1.5px solid var(--border-hover); background: var(--surface2);
+  color: var(--text-muted); opacity: 0.7;
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), opacity 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+.comment-indicator.has-comments {
+  opacity: 1; color: #fff; border: 1.5px solid transparent;
+  background: linear-gradient(145deg, var(--accent2), #3b82f6);
+  box-shadow: 0 2px 6px -1px rgba(96,165,250,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+}
+.comment-indicator:hover { transform: scale(1.12); opacity: 1; border-color: var(--accent1); }
+.comment-indicator.has-comments:hover { box-shadow: 0 4px 10px -2px rgba(96,165,250,0.4), inset 0 1px 0 rgba(255,255,255,0.25); }
+.comment-count-badge {
+  position: absolute; top: -5px; right: -5px;
+  background: var(--accent1); color: var(--bg);
+  font-size: 8.5px; font-weight: 800; line-height: 1;
+  min-width: 14px; height: 14px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; padding: 0 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+/* comment timeline modal */
+.comment-timeline { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; padding-right: 4px; margin-top: 4px; }
+.comment-date-group { margin-bottom: 10px; }
+.comment-date-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--accent1); margin-bottom: 8px; padding-left: 2px;
+}
+.comment-entry { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.comment-entry-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.comment-entry-author { font-size: 12px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comment-entry-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.comment-entry-time { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; }
+.comment-entry-delete { opacity: 0; transition: opacity 0.15s ease; cursor: pointer; color: var(--text-muted); font-size: 12px; line-height: 1; }
+.comment-entry:hover .comment-entry-delete { opacity: 1; }
+.comment-entry-delete:hover { color: var(--red); }
+.comment-entry-text { font-size: 13px; color: var(--text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.comment-empty { padding: 28px 8px; text-align: center; color: var(--text-dim); font-size: 13px; }
+.comment-input-row { display: flex; gap: 8px; margin-top: 14px; align-items: flex-end; }
+.comment-textarea {
+  flex: 1; min-height: 42px; max-height: 120px; resize: vertical;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; font-family: inherit; font-size: 13px; color: var(--text);
+}
+.comment-textarea:focus { outline: none; border-color: var(--accent1); }
+.comment-post-btn {
+  flex-shrink: 0; height: 40px; padding: 0 16px; border-radius: 10px; border: none;
+  background: var(--accent1); color: var(--bg); font-weight: 700; font-size: 12.5px;
+  cursor: pointer; transition: filter 0.15s ease;
+}
+.comment-post-btn:hover { filter: brightness(1.08); }
+.comment-post-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* task deadline icon (sits beside notes icon) */
 .task-icons-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -1119,7 +1197,7 @@ footer {
   position: fixed; z-index: 500;
   background: var(--surface); border: 1px solid var(--border-hover);
   border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.35), var(--shadow-md);
-  padding: 6px; min-width: 180px; max-height: 260px; overflow-y: auto;
+  padding: 6px; min-width: 210px; max-height: 260px; overflow-y: auto;
   display: none;
 }
 .assignee-dropdown.open { display: block; }
@@ -1136,6 +1214,12 @@ footer {
   font-size: 10px; font-weight: 700; color: var(--text-muted);
   background: var(--surface2); border: 1px solid var(--border-hover);
 }
+.assignee-dropdown-count {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 10.5px; font-weight: 700; color: var(--text-muted);
+  background: var(--surface2); padding: 2px 8px; border-radius: 20px;
+}
+.assignee-dropdown-item.selected .assignee-dropdown-count { background: rgba(212,175,55,0.18); color: var(--accent1); }
 
 /* Deadline icon button: a purely visual wrapper div (drawn with our own
    ::before calendar glyph) with the *real* <input type="date"> stretched
@@ -1148,17 +1232,18 @@ footer {
 */
 .task-deadline-wrap {
   position: relative;
-  width: 32px; height: 32px; border-radius: 8px;
+  width: 24px; height: 24px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--text-muted);
-  cursor: pointer; transition: all 0.2s;
+  border: 1.5px solid var(--border-hover); background: var(--surface2);
+  color: var(--text-muted); opacity: 0.7;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), opacity 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
 .task-deadline-wrap::before {
   content: '';
   display: block;
   flex: none;
-  width: 16px; height: 16px;
+  width: 12px; height: 12px;
   background-color: currentColor;
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
   mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
@@ -1167,10 +1252,18 @@ footer {
   -webkit-mask-size: contain; mask-size: contain;
   pointer-events: none;
 }
-.task-deadline-wrap.has-date { color: var(--bg); border-color: var(--accent2); background: var(--accent2); }
-.task-deadline-wrap.is-overdue { color: var(--bg); border-color: var(--red); background: var(--red); }
-.task-deadline-wrap:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--border-hover); }
-.task-deadline-wrap.has-date:hover, .task-deadline-wrap.is-overdue:hover { filter: brightness(1.1); }
+.task-deadline-wrap.has-date {
+  opacity: 1; color: #fff; border: 1.5px solid transparent;
+  background: linear-gradient(145deg, var(--accent2), #3b82f6);
+  box-shadow: 0 2px 6px -1px rgba(96,165,250,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.task-deadline-wrap.is-overdue {
+  opacity: 1; color: #fff; border: 1.5px solid transparent;
+  background: linear-gradient(145deg, #f87171, var(--red));
+  box-shadow: 0 2px 6px -1px rgba(244,63,94,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.task-deadline-wrap:hover { transform: scale(1.12); opacity: 1; border-color: var(--accent1); }
+.task-deadline-wrap.has-date:hover, .task-deadline-wrap.is-overdue:hover { box-shadow: 0 4px 10px -2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25); }
 /* The real, fully-functional date input — stretched over the whole wrapper
    and made completely invisible (zero opacity), so whatever the browser
    draws for it (text, fields, its own calendar glyph) is never seen. Only
@@ -1254,10 +1347,30 @@ footer {
 }
 .status-chip.done { background: rgba(16, 185, 129, 0.1); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.2); }
 .status-chip.pending { background: var(--surface3); color: var(--text-muted); border: 1px solid var(--border); }
+.status-chip.inprogress { background: rgba(245, 158, 11, 0.1); color: var(--yellow); border: 1px solid rgba(245, 158, 11, 0.22); }
 .status-chip:hover { transform: scale(1.04); box-shadow: var(--shadow-sm); }
 .chip-dot { width: 6px; height: 6px; border-radius: 50%; }
 .done .chip-dot { background: var(--green); }
 .pending .chip-dot { background: var(--text-muted); }
+.inprogress .chip-dot { background: var(--yellow); }
+
+/* Status chip dropdown — same floating-menu pattern as the assignee
+   dropdown, listing Pending / In Progress / Completed. */
+.status-dropdown {
+  position: fixed; z-index: 500;
+  background: var(--surface); border: 1px solid var(--border-hover);
+  border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.35), var(--shadow-md);
+  padding: 6px; min-width: 168px; display: none;
+}
+.status-dropdown.open { display: block; }
+.status-dropdown-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 9px; cursor: pointer;
+  font-size: 13px; color: var(--text); white-space: nowrap;
+}
+.status-dropdown-item:hover { background: var(--surface2); }
+.status-dropdown-item.selected { background: var(--accent1-dim); color: var(--accent1); font-weight: 600; }
+.status-dropdown-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
 /* row actions */
 .row-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
@@ -2627,6 +2740,7 @@ document.addEventListener('keydown', e => {
   </div>
   <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <button class="hdr-btn" id="ganttToggleBtn" title="Switch between List and Timeline view">📊 <span id="ganttToggleLabel">Timeline</span></button>
+    <button class="hdr-btn" id="analyticsToggleBtn" title="Burndown, trends, and overdue analysis">📈 <span>Analytics</span></button>
     <div class="export-dropdown" id="exportModelDropdown">
       <button class="hdr-btn" id="exportModelToggleBtn" title="Export current model's checklist">📤 <span>Export</span> <span class="hdr-btn-caret">▾</span></button>
       <div class="export-menu" id="exportModelMenu">
@@ -2648,6 +2762,7 @@ document.addEventListener('keydown', e => {
 <div class="filter-bar" id="filterBar">
   <button class="filter-btn active" data-filter="all">All<span class="filter-count" id="fc-all">0</span></button>
   <button class="filter-btn" data-filter="done">Done<span class="filter-count" id="fc-done">0</span></button>
+  <button class="filter-btn" data-filter="inprogress">In Progress<span class="filter-count" id="fc-inprogress">0</span></button>
   <button class="filter-btn" data-filter="pending">Pending<span class="filter-count" id="fc-pending">0</span></button>
   <button class="filter-btn" data-filter="high">High Priority<span class="filter-count" id="fc-high">0</span></button>
   <button class="filter-btn" data-filter="med">Medium<span class="filter-count" id="fc-med">0</span></button>
@@ -2663,6 +2778,7 @@ document.addEventListener('keydown', e => {
 <div class="bulk-bar" id="bulkBar">
   <span class="bulk-count" id="bulkCount">0 selected</span>
   <button class="bulk-btn" id="bulkDoneBtn">Mark Done</button>
+  <button class="bulk-btn" id="bulkInProgressBtn">Mark In Progress</button>
   <button class="bulk-btn" id="bulkPendingBtn">Mark Pending</button>
   <button class="bulk-btn bulk-btn-deadline" id="bulkSetDeadlineBtn">📅 Set Deadline</button>
   <button class="bulk-btn bulk-btn-priority" id="bulkSetPriorityBtn">⚑ Set Priority</button>
@@ -2838,6 +2954,14 @@ document.addEventListener('keydown', e => {
       </div>
       <div class="analytics-overdue-list" id="overdueAnalysisList"></div>
     </div>
+
+    <div class="analytics-panel" id="panelWorkload">
+      <div class="analytics-panel-hdr">
+        <div class="analytics-panel-title">👥 Team Workload</div>
+        <div class="analytics-panel-sub">Open tasks per teammate — shows who's overloaded</div>
+      </div>
+      <div class="workload-list" id="workloadList"></div>
+    </div>
   </div>
 </div>
 <!-- END ANALYTICS VIEW -->
@@ -2907,6 +3031,7 @@ document.addEventListener('keydown', e => {
 
 <!-- ASSIGNEE PICKER DROPDOWN (single shared instance, positioned per-click) -->
 <div class="assignee-dropdown" id="assigneeDropdown"></div>
+<div class="status-dropdown" id="statusDropdown"></div>
 
 <!-- NOTES MODAL -->
 <div class="modal-overlay" id="notesModal">
@@ -2929,6 +3054,22 @@ document.addEventListener('keydown', e => {
     <div class="modal-actions">
       <button class="modal-btn secondary" id="notesCancelBtn">Cancel</button>
       <button class="modal-btn primary" id="notesSaveBtn">Save Notes</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMMENT TIMELINE MODAL -->
+<div class="modal-overlay" id="commentsModal">
+  <div class="modal-box" id="commentsModalBox" style="width:min(520px, 92vw);">
+    <div class="modal-title">💬 Comment Timeline</div>
+    <div class="modal-subtitle" id="commentsTaskName"></div>
+    <div class="comment-timeline" id="commentsTimeline"></div>
+    <div class="comment-input-row">
+      <textarea class="comment-textarea" id="commentInputText" placeholder="Add an update to the discussion…" maxlength="600"></textarea>
+      <button type="button" class="comment-post-btn" id="commentPostBtn">Post</button>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" id="commentsCloseBtn">Close</button>
     </div>
   </div>
 </div>
@@ -4342,10 +4483,16 @@ function addSubtask(model,idx,name){
   save(); renderAll(); toast('＋','Subtask added: '+n.slice(0,28));
   logActivity('＋',`added subtask "${n.toUpperCase()}"`,model);
 }
-function toggleSubtask(model,idx,sIdx){
+function setSubtaskStatus(model,idx,sIdx,newStatus){
   const s=getSubtasks(model,idx)[sIdx]; if(!s) return;
-  s.done=!s.done; save(); renderAll();
-  logActivity(s.done?'✓':'↺',`${s.done?'completed':'reopened'} subtask "${s.name}"`,model);
+  closeStatusDropdown();
+  if((s.done?'done':(s.status==='inprogress'?'inprogress':'pending'))===newStatus) return;
+  s.done=newStatus==='done';
+  s.status=newStatus;
+  save(); renderAll();
+  const verb=newStatus==='done'?'completed':(newStatus==='inprogress'?'marked in progress':'reopened');
+  const icon=newStatus==='done'?'✓':(newStatus==='inprogress'?'⏳':'↺');
+  logActivity(icon,`${verb} subtask "${s.name}"`,model);
 }
 function deleteSubtask(model,idx,sIdx){
   const subs=getSubtasks(model,idx);
@@ -5250,6 +5397,14 @@ function updateArchiveBadge(){
   badge.style.display=n>0?'':'none';
 }
 
+// Keeps the Analytics entry-point in the overflow menu and the toolbar
+// button beside Timeline in sync, since either one can toggle the view.
+function setAnalyticsBtnActive(active){
+  const menuBtn=document.getElementById('analyticsViewBtn');
+  const toolbarBtn=document.getElementById('analyticsToggleBtn');
+  if(menuBtn) menuBtn.classList.toggle('active-view',active);
+  if(toolbarBtn) toolbarBtn.classList.toggle('active-view',active);
+}
 function setArchiveView(active){
   archiveViewActive=active;
   document.getElementById('mainDashboardView').style.display=active?'none':'';
@@ -5263,12 +5418,12 @@ function setArchiveView(active){
     const analyticsViewEl=document.getElementById('analyticsView');
     if(analyticsViewEl) analyticsViewEl.style.display='none';
     analyticsViewActive=false;
-    const analyticsBtn=document.getElementById('analyticsViewBtn');
-    if(analyticsBtn) analyticsBtn.classList.remove('active-view');
+    setAnalyticsBtnActive(false);
   }
   const footerBarEl=document.getElementById('footerBar');
   if(footerBarEl) footerBarEl.style.display=active?'none':'';
   document.getElementById('archiveViewBtn').classList.toggle('active-view',active);
+  window.scrollTo(0,0);
   if(active) renderArchiveView();
 }
 
@@ -5390,8 +5545,7 @@ function setRecycleView(active){
     const analyticsViewEl=document.getElementById('analyticsView');
     if(analyticsViewEl) analyticsViewEl.style.display='none';
     analyticsViewActive=false;
-    const analyticsBtn=document.getElementById('analyticsViewBtn');
-    if(analyticsBtn) analyticsBtn.classList.remove('active-view');
+    setAnalyticsBtnActive(false);
   } else if(mainView && !archiveViewActive && !analyticsViewActive){
     mainView.style.display='';
   }
@@ -5400,6 +5554,7 @@ function setRecycleView(active){
   if(footerBarEl) footerBarEl.style.display=(active||archiveViewActive||analyticsViewActive)?'none':'';
   const btn=document.getElementById('recycleViewBtn');
   if(btn) btn.classList.toggle('active-view',active);
+  window.scrollTo(0,0);
   if(active) renderRecycleView();
 }
 
@@ -5432,8 +5587,12 @@ function setAnalyticsView(active){
   if(analyticsViewEl) analyticsViewEl.style.display=active?'':'none';
   const footerBarEl=document.getElementById('footerBar');
   if(footerBarEl) footerBarEl.style.display=(archiveViewActive||recycleViewActive)?'none':'';
-  const btn=document.getElementById('analyticsViewBtn');
-  if(btn) btn.classList.toggle('active-view',active);
+  setAnalyticsBtnActive(active);
+  // Hiding/showing the large main view changes the page's scrollable
+  // height, but the browser keeps the old scroll offset — which can now
+  // overshoot past the shorter content and land on the footer. Reset to
+  // the top whenever the view switches, in either direction.
+  window.scrollTo(0,0);
   if(active){
     // Default the Analytics filter to whichever model was open on the
     // home page — so clicking a model, then opening Analytics, shows
@@ -5484,7 +5643,70 @@ function renderAnalyticsView(){
   renderTrendChart();
   renderWeeklyChart();
   renderOverdueAnalysis();
+  renderTeamWorkload();
   renderKPIs();
+}
+
+// Team Workload panel — counts open (not-done) tasks per workspace member so
+// it's obvious at a glance who's carrying too much. Respects the same model
+// filter as the rest of the Analytics view. Members with zero tasks still
+// show up (at 0) so the list reflects the full roster, and any tasks whose
+// assignee is no longer a member land in an "Unassigned" bucket alongside
+// truly unassigned tasks.
+function renderTeamWorkload(){
+  const wrap=document.getElementById('workloadList');
+  if(!wrap) return;
+
+  const memberUids=Object.keys(workspaceMembers||{});
+  if(memberUids.length<2){
+    wrap.innerHTML='<div class="analytics-empty">Invite teammates to see workload distribution.</div>';
+    return;
+  }
+
+  const modelFilter=analyticsSelectedModel;
+  const openTasks=analyticsAllTasks(modelFilter).filter(t=>!t.done);
+
+  const counts={};
+  memberUids.forEach(uid=>{ counts[uid]=0; });
+  let unassigned=0;
+  openTasks.forEach(t=>{
+    if(t.assignee && counts.hasOwnProperty(t.assignee)) counts[t.assignee]++;
+    else unassigned++;
+  });
+
+  let rows=memberUids.map(uid=>({
+    uid,
+    name:(workspaceMembers[uid]&&(workspaceMembers[uid].displayName||workspaceMembers[uid].email))||'Member',
+    count:counts[uid]
+  })).sort((a,b)=>b.count-a.count);
+  if(unassigned>0) rows.push({uid:null,name:'Unassigned',count:unassigned});
+
+  if(!rows.some(r=>r.count>0)){
+    wrap.innerHTML='<div class="analytics-empty">No open tasks assigned yet.</div>';
+    return;
+  }
+
+  const max=Math.max(1, ...rows.map(r=>r.count));
+  const withTasks=rows.filter(r=>r.count>0);
+  const avg=withTasks.length ? withTasks.reduce((s,r)=>s+r.count,0)/withTasks.length : 0;
+
+  wrap.innerHTML=rows.map(r=>{
+    const pct=Math.round((r.count/max)*100);
+    const color=r.uid ? (colorForAssignee(r.uid)||'#a1a1aa') : '#71717a';
+    const initial=escHtml((r.name.trim()[0]||'?').toUpperCase());
+    const overloaded=r.uid && r.count>=3 && r.count>=avg*1.5;
+    return `
+    <div class="workload-row">
+      <div class="workload-avatar" style="background:linear-gradient(145deg, ${color}dd, ${color});">${initial}</div>
+      <div class="workload-info">
+        <div class="workload-name-row">
+          <span class="workload-name">${escHtml(r.name)}</span>
+          <span class="workload-name-meta">${overloaded?'<span class="workload-badge-overloaded">Overloaded</span>':''}<span class="workload-count">${r.count} Task${r.count===1?'':'s'}</span></span>
+        </div>
+        <div class="workload-bar-track"><div class="workload-bar-fill" style="width:${pct}%;background:linear-gradient(90deg, ${color}, ${color}aa);"></div></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderAnalyticsKpis(){
@@ -6072,7 +6294,8 @@ function renderTabs(){
 
 function matchesFilter(task){
   if(activeFilter==='done'&&!task.done) return false;
-  if(activeFilter==='pending'&&task.done) return false;
+  if(activeFilter==='inprogress'&&(task.done||task.status!=='inprogress')) return false;
+  if(activeFilter==='pending'&&(task.done||task.status==='inprogress')) return false;
   if(activeFilter==='critical'&&!isOverdueTask(task)) return false;
   if(activeFilter==='high'&&task.priority!=='high') return false;
   if(activeFilter==='med'&&task.priority!=='med') return false;
@@ -6117,6 +6340,12 @@ function openAssigneeDropdown(triggerEl, idx){
   if(!dd||!task) return;
 
   const teamIconSvg='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+  // Current open-task load per member, across every active model — so the
+  // count shown here matches "Team Workload" in Analytics and reflects real
+  // capacity, not just this one model.
+  const openTasksAll=analyticsAllTasks('__all__').filter(t=>!t.done);
+  const assignCounts={};
+  openTasksAll.forEach(t=>{ if(t.assignee) assignCounts[t.assignee]=(assignCounts[t.assignee]||0)+1; });
   const items=[{uid:'',label:'Unassigned'}].concat(
     Object.entries(workspaceMembers).map(([uid,info])=>({uid,label:info.displayName||info.email||uid}))
   );
@@ -6126,7 +6355,8 @@ function openAssigneeDropdown(triggerEl, idx){
     const avatarHtml=it.uid
       ?`<span class="assignee-dropdown-avatar" style="background:linear-gradient(145deg, ${color}dd, ${color});color:#fff;border-color:transparent;">${escHtml((it.label[0]||'?').toUpperCase())}</span>`
       :`<span class="assignee-dropdown-avatar">${teamIconSvg}</span>`;
-    return `<div class="assignee-dropdown-item${isSelected?' selected':''}" data-uid="${escHtml(it.uid)}">${avatarHtml}<span>${escHtml(it.label)}</span></div>`;
+    const countHtml=it.uid?`<span class="assignee-dropdown-count">${assignCounts[it.uid]||0}</span>`:'';
+    return `<div class="assignee-dropdown-item${isSelected?' selected':''}" data-uid="${escHtml(it.uid)}">${avatarHtml}<span>${escHtml(it.label)}</span>${countHtml}</div>`;
   }).join('');
 
   dd.querySelectorAll('.assignee-dropdown-item').forEach(item=>{
@@ -6155,6 +6385,59 @@ document.addEventListener('click',e=>{
 document.addEventListener('scroll',closeAssigneeDropdown,true);
 window.addEventListener('resize',closeAssigneeDropdown);
 
+// Status chip dropdown — same floating-menu pattern as the assignee picker,
+// letting a task or subtask be set to Pending, In Progress, or Completed.
+// subIdx is null for a top-level task, or the subtask's index within its
+// parent's subtasks array.
+const STATUS_OPTIONS=[
+  {key:'pending',   label:'Pending',     color:'var(--text-muted)'},
+  {key:'inprogress',label:'In Progress', color:'var(--yellow)'},
+  {key:'done',      label:'Completed',   color:'var(--green)'}
+];
+function closeStatusDropdown(){
+  const dd=document.getElementById('statusDropdown');
+  if(dd) dd.classList.remove('open');
+}
+function openStatusDropdown(triggerEl, idx, subIdx){
+  const dd=document.getElementById('statusDropdown');
+  const model=activeTab;
+  const task=(state[model]||[])[idx];
+  if(!dd||!task) return;
+  const target=subIdx==null?task:(getSubtasks(model,idx)[subIdx]);
+  if(!target) return;
+  const current=target.done?'done':(target.status==='inprogress'?'inprogress':'pending');
+
+  dd.innerHTML=STATUS_OPTIONS.map(opt=>`
+    <div class="status-dropdown-item${opt.key===current?' selected':''}" data-status="${opt.key}">
+      <span class="status-dropdown-dot" style="background:${opt.color};"></span>
+      <span>${opt.label}</span>
+    </div>`).join('');
+
+  dd.querySelectorAll('.status-dropdown-item').forEach(item=>{
+    item.onclick=()=>{
+      const newStatus=item.dataset.status;
+      if(subIdx==null) setTaskStatus(model,idx,newStatus);
+      else setSubtaskStatus(model,idx,subIdx,newStatus);
+    };
+  });
+
+  const rect=triggerEl.getBoundingClientRect();
+  dd.classList.add('open'); // needs to be visible to measure its width
+  const ddWidth=dd.offsetWidth||168;
+  let left=rect.left;
+  if(left+ddWidth>window.innerWidth-8) left=window.innerWidth-ddWidth-8;
+  dd.style.left=Math.max(8,left)+'px';
+  dd.style.top=(rect.bottom+6)+'px';
+}
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('statusDropdown');
+  if(!dd||!dd.classList.contains('open')) return;
+  if(e.target.closest('#statusDropdown')||e.target.closest('.status-chip')) return;
+  closeStatusDropdown();
+});
+document.addEventListener('scroll',closeStatusDropdown,true);
+window.addEventListener('resize',closeStatusDropdown);
+
 function renderTaskList(){
   const table=document.getElementById('checklistTable');
   const compare=document.getElementById('compareGrid');
@@ -6168,6 +6451,7 @@ function renderTaskList(){
   const filterBarEl=document.getElementById('filterBar');
   const ganttEl=document.getElementById('ganttView');
   const ganttToggleBtn=document.getElementById('ganttToggleBtn');
+  const analyticsToggleBtn=document.getElementById('analyticsToggleBtn');
 
   if(activeTab==='Compare Models'){
     table.style.display='none';addBar.style.display='none';
@@ -6177,9 +6461,11 @@ function renderTaskList(){
     searchBoxEl.style.display='none';filterBarEl.style.display='none';
     if(ganttEl) ganttEl.style.display='none';
     if(ganttToggleBtn) ganttToggleBtn.style.display='none';
+    if(analyticsToggleBtn) analyticsToggleBtn.style.display='none';
     compare.style.display='block';renderCompare();return;
   }
   if(ganttToggleBtn) ganttToggleBtn.style.display='';
+  if(analyticsToggleBtn) analyticsToggleBtn.style.display='';
   compare.style.display='none';
 
   // No models — hide task section entirely
@@ -6190,7 +6476,8 @@ function renderTaskList(){
     searchBoxEl.style.display='none';filterBarEl.style.display='none';
     if(ganttEl) ganttEl.style.display='none';
     if(ganttToggleBtn) ganttToggleBtn.style.display='none';
-    ['all','done','pending','critical','high','med','low','mine'].forEach(k=>{
+    if(analyticsToggleBtn) analyticsToggleBtn.style.display='none';
+    ['all','done','inprogress','pending','critical','high','med','low','mine'].forEach(k=>{
       const el=document.getElementById('fc-'+k); if(el) el.textContent='0';
     });
     return;
@@ -6222,7 +6509,8 @@ function renderTaskList(){
   const fc={
     all: tasks.length,
     done: tasks.filter(t=>t.done).length,
-    pending: tasks.filter(t=>!t.done).length,
+    inprogress: tasks.filter(t=>!t.done&&t.status==='inprogress').length,
+    pending: tasks.filter(t=>!t.done&&t.status!=='inprogress').length,
     critical: tasks.filter(isOverdueTask).length,
     high: tasks.filter(t=>t.priority==='high').length,
     med: tasks.filter(t=>t.priority==='med').length,
@@ -6283,7 +6571,7 @@ function renderTaskList(){
         va=prioritySortSnapshot&&prioritySortSnapshot.has(a.task)?prioritySortSnapshot.get(a.task):prioOrder[a.task.priority||'med'];
         vb=prioritySortSnapshot&&prioritySortSnapshot.has(b.task)?prioritySortSnapshot.get(b.task):prioOrder[b.task.priority||'med'];
       }
-      else if(sortCol==='status'){ va=a.task.done?1:0; vb=b.task.done?1:0; }
+      else if(sortCol==='status'){ const rank=t=>t.done?2:(t.status==='inprogress'?1:0); va=rank(a.task); vb=rank(b.task); }
       if(va<vb) return sortDir==='asc'?-1:1;
       if(va>vb) return sortDir==='asc'?1:-1;
       return 0;
@@ -6376,10 +6664,11 @@ function renderTaskList(){
       <div><input type="checkbox" class="task-checkbox row-chk" ${checked?'checked':''}></div>
       ${nameCell}
       <div><button class="priority-badge ${prioClass[task.priority||'med']}" data-idx="${idx}">${prioMap[task.priority||'med']}</button></div>
-      <div style="display:flex;align-items:center;justify-content:center;"><button class="status-chip ${showAsDone?'done':'pending'}" data-idx="${idx}"><span class="chip-dot"></span>${showAsDone?'Done':'Pending'}</button></div>
+      <div style="display:flex;align-items:center;justify-content:center;"><button class="status-chip ${showAsDone?'done':(task.status==='inprogress'?'inprogress':'pending')}" data-idx="${idx}"><span class="chip-dot"></span>${showAsDone?'Done':(task.status==='inprogress'?'In Progress':'Pending')}</button></div>
       ${dueCellHtml}
       <div class="task-icons-cell">
         <div class="notes-indicator ${(task.notes||(task.screenshots&&task.screenshots.length))?'has-note':''}" data-idx="${idx}" title="${(task.notes||(task.screenshots&&task.screenshots.length))?'View/edit note':'Add note'}">📝</div>
+        <div class="comment-indicator ${(task.comments&&task.comments.length)?'has-comments':''}" data-idx="${idx}" title="${(task.comments&&task.comments.length)?task.comments.length+' comment'+(task.comments.length===1?'':'s'):'Add a comment'}">💬${(task.comments&&task.comments.length)?`<span class="comment-count-badge">${task.comments.length>99?'99+':task.comments.length}</span>`:''}</div>
         <div class="task-deadline-wrap ${dlIconCls}" data-idx="${idx}" title="${dlTitle}">
           <input type="date" class="task-deadline-native" tabindex="-1" value="${task.taskDeadline||''}">
         </div>
@@ -6444,12 +6733,13 @@ function renderTaskList(){
       input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commit();}if(e.key==='Escape'){e.preventDefault();cancel();}});
       input.onclick=e=>e.stopPropagation();
     } else {
-      row.querySelector('.status-chip').onclick=e=>{e.stopPropagation();toggleTask(activeTab,idx);};
+      row.querySelector('.status-chip').onclick=e=>{e.stopPropagation();openStatusDropdown(e.currentTarget,idx,null);};
       row.querySelector('.edit').onclick=e=>{e.stopPropagation();editingIdx=idx;renderTaskList();};
       row.querySelector('.move-up').onclick=e=>{e.stopPropagation();moveTask(activeTab,idx,-1);};
       row.querySelector('.move-down').onclick=e=>{e.stopPropagation();moveTask(activeTab,idx,1);};
       row.querySelector('.delete').onclick=e=>{e.stopPropagation();deleteTask(activeTab,idx);};
       row.querySelector('.notes-indicator').onclick=e=>{e.stopPropagation();openNotesModal(activeTab,idx);};
+      row.querySelector('.comment-indicator').onclick=e=>{e.stopPropagation();openCommentsModal(activeTab,idx,null);};
       const dlInput=row.querySelector('.task-deadline-native');
       dlInput.onclick=e=>e.stopPropagation();
       dlInput.onchange=e=>{
@@ -6521,6 +6811,7 @@ function renderTaskList(){
       sBar.innerHTML=`
         <span class="bulk-count">${selectedHere.length} selected</span>
         <button class="bulk-btn" data-act="done">Mark Done</button>
+        <button class="bulk-btn" data-act="inprogress">Mark In Progress</button>
         <button class="bulk-btn" data-act="pending">Mark Pending</button>
         <button class="bulk-btn bulk-btn-deadline" data-act="deadline">📅 Set Deadline</button>
         <button class="bulk-btn bulk-btn-priority" data-act="priority">⚑ Set Priority</button>
@@ -6528,14 +6819,21 @@ function renderTaskList(){
         <button class="bulk-btn" data-act="clear" style="margin-left:auto;">Clear Selection</button>`;
       sBar.querySelector('[data-act="done"]').onclick=e=>{
         e.stopPropagation();
-        selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI])subs[sI].done=true;});
+        selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI]){subs[sI].done=true;subs[sI].status='done';}});
         subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
         save();renderAll();toast('✓',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} done`);
         logActivity('✓',`marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} done in "${state[activeTab][idx].name}"`,activeTab);
       };
+      sBar.querySelector('[data-act="inprogress"]').onclick=e=>{
+        e.stopPropagation();
+        selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI]){subs[sI].done=false;subs[sI].status='inprogress';}});
+        subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
+        save();renderAll();toast('⏳',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} in progress`);
+        logActivity('⏳',`marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} in progress in "${state[activeTab][idx].name}"`,activeTab);
+      };
       sBar.querySelector('[data-act="pending"]').onclick=e=>{
         e.stopPropagation();
-        selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI])subs[sI].done=false;});
+        selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI]){subs[sI].done=false;subs[sI].status='pending';}});
         subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
         save();renderAll();toast('↺',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} pending`);
         logActivity('↺',`marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} pending in "${state[activeTab][idx].name}"`,activeTab);
@@ -6615,10 +6913,11 @@ function renderTaskList(){
           <span class="subtask-name${sub.done?' done':''}">${escHtml(sub.name)}</span>
         </div>
         <div><button class="priority-badge ${prioClass2[sub.priority||'med']}" title="Click to cycle priority">${prioMap2[sub.priority||'med']}</button></div>
-        <div style="display:flex;align-items:center;justify-content:center;"><button class="status-chip ${sub.done?'done':'pending'}"><span class="chip-dot"></span>${sub.done?'Done':'Pending'}</button></div>
+        <div style="display:flex;align-items:center;justify-content:center;"><button class="status-chip ${sub.done?'done':(sub.status==='inprogress'?'inprogress':'pending')}"><span class="chip-dot"></span>${sub.done?'Done':(sub.status==='inprogress'?'In Progress':'Pending')}</button></div>
         ${subDueHtml}
         <div class="task-icons-cell">
           <div class="notes-indicator ${(sub.notes||(sub.screenshots&&sub.screenshots.length))?'has-note':''}" title="${(sub.notes||(sub.screenshots&&sub.screenshots.length))?'View/edit note':'Add note'}">📝</div>
+          <div class="comment-indicator ${(sub.comments&&sub.comments.length)?'has-comments':''}" title="${(sub.comments&&sub.comments.length)?sub.comments.length+' comment'+(sub.comments.length===1?'':'s'):'Add a comment'}">💬${(sub.comments&&sub.comments.length)?`<span class="comment-count-badge">${sub.comments.length>99?'99+':sub.comments.length}</span>`:''}</div>
           <div class="task-deadline-wrap ${dlIconCls2}" title="${dlTitle2}">
             <input type="date" class="task-deadline-native" tabindex="-1" value="${sub.taskDeadline||''}">
           </div>
@@ -6670,7 +6969,7 @@ function renderTaskList(){
         clearSubSelectionsForTask(activeTab,idx);
         save();renderAll();
       });
-      sRow.querySelector('.status-chip').onclick=e=>{e.stopPropagation();toggleSubtask(activeTab,idx,sIdx);};
+      sRow.querySelector('.status-chip').onclick=e=>{e.stopPropagation();openStatusDropdown(e.currentTarget,idx,sIdx);};
       sRow.querySelector('.priority-badge').onclick=e=>{
         e.stopPropagation();
         const cyc={high:'low',med:'high',low:'med'};
@@ -6679,6 +6978,10 @@ function renderTaskList(){
       sRow.querySelector('.notes-indicator').onclick=e=>{
         e.stopPropagation();
         openNotesForObj(sub,()=>{save();renderAll();});
+      };
+      sRow.querySelector('.comment-indicator').onclick=e=>{
+        e.stopPropagation();
+        openCommentsModal(activeTab,idx,sIdx);
       };
       // Deadline
       const sdlNative=sRow.querySelector('.task-deadline-native');
@@ -7187,6 +7490,7 @@ document.getElementById('depModalSave').addEventListener('click',()=>{
   save();renderGantt();
 });
 document.getElementById('ganttToggleBtn').addEventListener('click',()=>setGanttView(!ganttViewActive));
+document.getElementById('analyticsToggleBtn').addEventListener('click',()=>setAnalyticsView(!analyticsViewActive));
 document.getElementById('ganttTodayBtn').addEventListener('click',()=>{
   const scrollWrap=document.getElementById('ganttTimelineScroll');
   if(scrollWrap) scrollWrap.dataset.scrolledOnce='';
@@ -7323,20 +7627,20 @@ let sortDir='asc'; // 'asc'|'desc'
 // stable until the user explicitly re-clicks the Priority header.
 let prioritySortSnapshot=null; // Map<task, rank> | null
 
-function toggleTask(model,idx){
+function setTaskStatus(model,idx,newStatus){
   const task=state[model][idx];
+  if(!task) return;
+  closeStatusDropdown();
 
-  if(pendingDoneTimers.has(task)){
-    // Clicked again while still in the "about to move" preview window —
-    // treat as cancel: revert to pending immediately, no delay needed
-    // since nothing has actually moved yet.
-    clearTimeout(pendingDoneTimers.get(task));
-    pendingDoneTimers.delete(task);
-    renderTaskList();
-    return;
-  }
+  // Cancel any in-flight settle animation first — a fresh choice from the
+  // dropdown always wins over whatever transition was mid-flight.
+  if(pendingDoneTimers.has(task)){ clearTimeout(pendingDoneTimers.get(task)); pendingDoneTimers.delete(task); }
+  if(pendingRevertTimers.has(task)){ clearTimeout(pendingRevertTimers.get(task)); pendingRevertTimers.delete(task); }
 
-  if(!task.done){
+  const current=task.done?'done':(task.status==='inprogress'?'inprogress':'pending');
+  if(current===newStatus){ renderTaskList(); return; }
+
+  if(newStatus==='done'){
     // Marking done: render the completed look immediately in place, then
     // actually move it into the Completed section after a short delay so
     // the change is visible before the row relocates — instead of the row
@@ -7344,6 +7648,7 @@ function toggleTask(model,idx){
     const timer=setTimeout(()=>{
       pendingDoneTimers.delete(task);
       task.done=true;
+      task.status='done';
       task.completedAt=Date.now();
       save();renderAll();
       toast('✓',`Marked done: ${task.name.slice(0,28)}`);
@@ -7353,25 +7658,28 @@ function toggleTask(model,idx){
     },1000);
     pendingDoneTimers.set(task,timer);
     renderTaskList(); // re-render now so buildRow shows the done preview immediately
-  } else {
-    // Reverting done→pending: keep row visible in completed section briefly,
-    // same delay feel as marking done, so it doesn’t vanish instantly.
-    if(pendingRevertTimers.has(task)){
-      clearTimeout(pendingRevertTimers.get(task));
-      pendingRevertTimers.delete(task);
-      renderTaskList();
-      return;
-    }
+  } else if(task.done){
+    // Reverting done→(pending/in-progress): keep row visible in completed
+    // section briefly, same delay feel as marking done, so it doesn’t
+    // vanish instantly.
     const revertTimer=setTimeout(()=>{
       pendingRevertTimers.delete(task);
       task.done=false;
+      task.status=newStatus;
       task.completedAt=null;
       save();renderAll();
-      toast('↺',`Reopened: ${task.name.slice(0,28)}`);
-      logActivity('↺',`reopened "${task.name}"`,model);
+      toast('↺', newStatus==='inprogress'?`In progress: ${task.name.slice(0,28)}`:`Reopened: ${task.name.slice(0,28)}`);
+      logActivity('↺',`${newStatus==='inprogress'?'marked in progress':'reopened'} "${task.name}"`,model);
     },1000);
     pendingRevertTimers.set(task,revertTimer);
     renderTaskList();
+  } else {
+    // Switching directly between Pending and In Progress — no section
+    // change involved, so no delay/animation is needed.
+    task.status=newStatus;
+    save(); renderAll();
+    toast(newStatus==='inprogress'?'⏳':'○', `${newStatus==='inprogress'?'In progress':'Pending'}: ${task.name.slice(0,28)}`);
+    logActivity(newStatus==='inprogress'?'⏳':'○',`marked "${task.name}" as ${newStatus==='inprogress'?'In Progress':'Pending'}`,model);
   }
 }
 async function maybePromptArchive(model){
@@ -7600,6 +7908,128 @@ document.getElementById('notesSaveBtn').onclick=()=>{
 document.getElementById('notesCancelBtn').onclick=()=>closeNotesModal();
 document.getElementById('notesModal').onclick=e=>{if(e.target===document.getElementById('notesModal'))closeNotesModal();};
 
+// ── COMMENT TIMELINE ───────────────────────────────────────────────────────────
+// Each task/subtask can carry its own dated discussion thread — a running log
+// of updates (e.g. "Supplier confirmed mold completion.") separate from the
+// free-form Notes field. Entries are addressed the same way the status
+// dropdown resolves its target: model + task idx, with subIdx null for a
+// top-level task or the subtask's index within its parent.
+let commentsCtx={model:null,idx:null,subIdx:null};
+
+function getComments(model,idx,subIdx){
+  const task=state[model]&&state[model][idx];
+  if(!task) return [];
+  const target=subIdx==null?task:(getSubtasks(model,idx)[subIdx]);
+  if(!target) return [];
+  if(!Array.isArray(target.comments)) target.comments=[];
+  return target.comments;
+}
+function fmtCommentDateLabel(ts){
+  const d=new Date(ts);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const dOnly=new Date(d); dOnly.setHours(0,0,0,0);
+  const diffDays=Math.round((today-dOnly)/86400000);
+  if(diffDays===0) return 'Today';
+  if(diffDays===1) return 'Yesterday';
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+function fmtCommentTime(ts){
+  return new Date(ts).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+function openCommentsModal(model,idx,subIdx){
+  commentsCtx={model,idx,subIdx};
+  const task=state[model][idx];
+  const target=subIdx==null?task:(getSubtasks(model,idx)[subIdx]);
+  if(!task||!target) return;
+  document.getElementById('commentsTaskName').textContent=subIdx==null?task.name:`${task.name} — ${target.name}`;
+  document.getElementById('commentInputText').value='';
+  renderCommentsTimeline();
+  document.getElementById('commentsModal').classList.add('open');
+  setTimeout(()=>document.getElementById('commentInputText').focus(),100);
+}
+function closeCommentsModal(){
+  document.getElementById('commentsModal').classList.remove('open');
+}
+function renderCommentsTimeline(){
+  const wrap=document.getElementById('commentsTimeline');
+  if(!wrap) return;
+  const{model,idx,subIdx}=commentsCtx;
+  const comments=getComments(model,idx,subIdx).slice().sort((a,b)=>a.ts-b.ts);
+  if(!comments.length){
+    wrap.innerHTML='<div class="comment-empty">No comments yet — start the discussion below.</div>';
+    return;
+  }
+  // Group consecutive entries under the same date label, mirroring a chat
+  // timeline: one date header, then every comment posted that day beneath it.
+  let html='';
+  let lastLabel=null;
+  comments.forEach(c=>{
+    const label=fmtCommentDateLabel(c.ts);
+    if(label!==lastLabel){
+      if(lastLabel!==null) html+='</div>';
+      html+=`<div class="comment-date-group"><div class="comment-date-label">${escHtml(label)}</div>`;
+      lastLabel=label;
+    }
+    html+=`
+      <div class="comment-entry" data-id="${escHtml(c.id)}">
+        <div class="comment-entry-header">
+          <span class="comment-entry-author">${escHtml(c.authorName||'Someone')}</span>
+          <span class="comment-entry-meta">
+            <span class="comment-entry-time">${fmtCommentTime(c.ts)}</span>
+            <span class="comment-entry-delete" data-id="${escHtml(c.id)}" title="Delete comment">✕</span>
+          </span>
+        </div>
+        <div class="comment-entry-text">${escHtml(c.text)}</div>
+      </div>`;
+  });
+  if(lastLabel!==null) html+='</div>';
+  wrap.innerHTML=html;
+
+  wrap.querySelectorAll('.comment-entry-delete').forEach(btn=>{
+    btn.onclick=()=>deleteComment(btn.dataset.id);
+  });
+  wrap.scrollTop=wrap.scrollHeight;
+}
+function postComment(){
+  const input=document.getElementById('commentInputText');
+  const text=input.value.trim();
+  if(!text) return;
+  const{model,idx,subIdx}=commentsCtx;
+  const comments=getComments(model,idx,subIdx);
+  const authorName=(auth&&auth.currentUser&&(auth.currentUser.displayName||(auth.currentUser.email||'').split('@')[0]))||'Someone';
+  const authorUid=auth&&auth.currentUser?auth.currentUser.uid:null;
+  comments.push({
+    id:'c'+Date.now()+Math.random().toString(36).slice(2,7),
+    text:text.slice(0,600),
+    authorName,
+    authorUid,
+    ts:Date.now()
+  });
+  input.value='';
+  save();
+  renderCommentsTimeline();
+  const task=state[model][idx];
+  const target=subIdx==null?task:(getSubtasks(model,idx)[subIdx]);
+  logActivity('💬',`commented on "${(target&&target.name)||task.name}"`,model);
+  renderTaskList();
+}
+function deleteComment(id){
+  const{model,idx,subIdx}=commentsCtx;
+  const comments=getComments(model,idx,subIdx);
+  const pos=comments.findIndex(c=>c.id===id);
+  if(pos===-1) return;
+  comments.splice(pos,1);
+  save();
+  renderCommentsTimeline();
+  renderTaskList();
+}
+document.getElementById('commentPostBtn').onclick=()=>postComment();
+document.getElementById('commentInputText').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); postComment(); }
+});
+document.getElementById('commentsCloseBtn').onclick=()=>closeCommentsModal();
+document.getElementById('commentsModal').onclick=e=>{if(e.target===document.getElementById('commentsModal'))closeCommentsModal();};
+
 // ── MODEL DEADLINE (header "Set Deadline" button) ─────────────────────────────
 // Real, fully-functional <input type="date"> stretched invisibly over the
 // header button — clicking the button opens the native picker directly on
@@ -7672,13 +8102,19 @@ document.getElementById('taskDeadlineModal').onclick=e=>{if(e.target===document.
 // ── BULK ACTIONS ──────────────────────────────────────────────────────────────
 document.getElementById('bulkDoneBtn').onclick=()=>{
   const n=selectedTasks.size;
-  selectedTasks.forEach(i=>{state[activeTab][i].done=true;});
+  selectedTasks.forEach(i=>{state[activeTab][i].done=true;state[activeTab][i].status='done';state[activeTab][i].completedAt=Date.now();});
   selectedTasks.clear();save();renderAll();toast('✓',`Marked ${n} tasks done`);
   logActivity('✓',`marked ${n} task${n===1?'':'s'} done`,activeTab);
 };
+document.getElementById('bulkInProgressBtn').onclick=()=>{
+  const n=selectedTasks.size;
+  selectedTasks.forEach(i=>{state[activeTab][i].done=false;state[activeTab][i].status='inprogress';state[activeTab][i].completedAt=null;});
+  selectedTasks.clear();save();renderAll();toast('⏳',`Marked ${n} task${n===1?'':'s'} in progress`);
+  logActivity('⏳',`marked ${n} task${n===1?'':'s'} in progress`,activeTab);
+};
 document.getElementById('bulkPendingBtn').onclick=()=>{
   const n=selectedTasks.size;
-  selectedTasks.forEach(i=>{state[activeTab][i].done=false;});
+  selectedTasks.forEach(i=>{state[activeTab][i].done=false;state[activeTab][i].status='pending';state[activeTab][i].completedAt=null;});
   selectedTasks.clear();save();renderAll();toast('↺','Marked selected pending');
   logActivity('↺',`marked ${n} task${n===1?'':'s'} pending`,activeTab);
 };
