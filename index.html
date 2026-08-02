@@ -833,6 +833,20 @@ footer {
 .gantt-bar.is-overdue { background: linear-gradient(145deg, var(--red), #d92e4e); color: #2e0510; }
 .gantt-bar.is-due-soon { background: linear-gradient(145deg, var(--yellow), #d98d0a); color: #2e1e00; }
 .gantt-bar.is-unscheduled { background: var(--surface3); color: var(--text-muted); border: 1px dashed var(--border-hover); box-shadow: none; }
+.gantt-toggle-btn {
+  width: 16px; height: 16px; flex-shrink: 0; border: none; background: none; cursor: pointer;
+  color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+  padding: 0; font-size: 10px; transition: transform .15s ease, color .15s ease;
+}
+.gantt-toggle-btn:hover { color: var(--accent1); }
+.gantt-toggle-btn.expanded { transform: rotate(90deg); }
+.gantt-label-row.sub-row { padding-left: 26px; }
+.gantt-label-row.sub-row .gantt-label-name { font-size: 11.5px; color: var(--text-muted); }
+.gantt-label-row.sub-row .gantt-label-name::before { content: '↳ '; opacity: .6; }
+.gantt-bar.is-subtask { background: linear-gradient(145deg, var(--accent3), #8b6fe0); height: 22px; top: 11px; cursor: grab; }
+.gantt-bar.is-subtask.is-done { background: linear-gradient(145deg, var(--green), #0d9c6f); }
+.gantt-bar.is-subtask.is-overdue { background: linear-gradient(145deg, var(--red), #d92e4e); }
+.gantt-bar.is-subtask.is-due-soon { background: linear-gradient(145deg, var(--yellow), #d98d0a); }
 .gantt-bar-handle { position: absolute; top: 0; bottom: 0; width: 8px; cursor: ew-resize; z-index: 2; }
 .gantt-bar-handle.left { left: 0; border-radius: 8px 0 0 8px; }
 .gantt-bar-handle.right { right: 0; border-radius: 0 8px 8px 0; }
@@ -1580,6 +1594,7 @@ footer {
 .activity-row-icon {
   flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--surface2);
   display: flex; align-items: center; justify-content: center; font-size: 13px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 .activity-row-main { min-width: 0; flex: 1; }
 .activity-row-text { font-size: 13px; color: var(--text); line-height: 1.4; }
@@ -4092,6 +4107,7 @@ let searchQuery = '';
 let editingIdx = null;
 let ganttViewActive = false;
 let ganttZoom = 'week'; // 'day' | 'week' | 'month'(compact)
+let ganttExpandedSet = new Set(); // keys "model::idx" of tasks with subtasks shown in Gantt
 let ganttDepModalTaskIdx = null;
 let selectedTasks = new Set();
 // Subtask bulk-select — keyed by "model::taskIdx::subIdx" strings so selections
@@ -4322,7 +4338,7 @@ function subPanelId(key){ return 'sp-'+key.replace(/[^a-zA-Z0-9]/g,'_'); }
 
 function addSubtask(model,idx,name){
   const n=name.trim(); if(!n) return;
-  getSubtasks(model,idx).push({name:n.toUpperCase(),done:false,priority:'med',notes:'',taskDeadline:'',screenshots:[]});
+  getSubtasks(model,idx).push({name:n.toUpperCase(),done:false,priority:'med',notes:'',taskDeadline:'',startDate:'',screenshots:[]});
   save(); renderAll(); toast('＋','Subtask added: '+n.slice(0,28));
   logActivity('＋',`added subtask "${n.toUpperCase()}"`,model);
 }
@@ -4802,6 +4818,16 @@ function updateNotifBadge(){
   }
 }
 
+// A handful of early Activity Log entries were accidentally written with a
+// raw SVG string as the "icon" (a copy-paste of the calendar icon constant
+// used elsewhere in the UI) instead of a plain emoji/glyph. escHtml() alone
+// just renders that markup as visible garbled text rather than an icon, so
+// anything that isn't short/plain falls back to a generic bullet here.
+function _sanitizeActivityIcon(icon){
+  const s=String(icon||'').trim();
+  if(!s || s.length>4 || s.includes('<') || s.includes('>')) return '•';
+  return s;
+}
 function renderActivityFeed(){
   const body=document.getElementById('activityBody');
   if(!activityFeed.length){
@@ -4814,7 +4840,7 @@ function renderActivityFeed(){
     const ms=_activityTsMillis(e);
     const unread=e.uid!==myUid&&ms>seen;
     return `<div class="activity-row${unread?' unread':''}">
-      <div class="activity-row-icon">${escHtml(e.icon||'•')}</div>
+      <div class="activity-row-icon">${escHtml(_sanitizeActivityIcon(e.icon))}</div>
       <div class="activity-row-main">
         <div class="activity-row-text"><b>${escHtml(e.userLabel||'Someone')}</b> ${escHtml(e.text||'')}</div>
         <div class="activity-row-meta">
@@ -5078,7 +5104,7 @@ function renderModelCards(){
         else delete deadlines[m];
         save();renderAll();
         toast(CAL_ICON,`Model deadline ${val?'set':'cleared'}`);
-        logActivity(CAL_ICON,`${val?`set deadline to ${val} for`:'cleared the deadline for'} model "${m}"`,m);
+        logActivity('📅',`${val?`set deadline to ${val} for`:'cleared the deadline for'} model "${m}"`,m);
       });
     }
 
@@ -6432,7 +6458,7 @@ function renderTaskList(){
         state[activeTab][idx].taskDeadline=val;
         save();renderAll();
         toast(CAL_ICON,`Task deadline ${val?'set':'cleared'}`);
-        logActivity(CAL_ICON,`${val?`set deadline to ${val} for`:'cleared the deadline for'} task "${state[activeTab][idx].name}"`,activeTab);
+        logActivity('📅',`${val?`set deadline to ${val} for`:'cleared the deadline for'} task "${state[activeTab][idx].name}"`,activeTab);
       };
 
       // Subtask toggle — flips CSS class only, no re-render, so transition plays
@@ -6660,7 +6686,7 @@ function renderTaskList(){
       sdlNative.onchange=e=>{
         e.stopPropagation(); sub.taskDeadline=e.target.value;
         save();renderAll(); toast(CAL_ICON,`Subtask deadline ${e.target.value?'set':'cleared'}`);
-        logActivity(CAL_ICON,`${e.target.value?`set deadline to ${e.target.value} for`:'cleared the deadline for'} subtask "${sub.name}"`,activeTab);
+        logActivity('📅',`${e.target.value?`set deadline to ${e.target.value} for`:'cleared the deadline for'} subtask "${sub.name}"`,activeTab);
       };
       // Edit inline
       sRow.querySelector('.row-action-btn.edit').onclick=e=>{
@@ -6788,6 +6814,11 @@ function renderGantt(){
     const {start,end}=ganttEffectiveDates(t);
     if(start && (!minD||start<minD)) minD=start;
     if(end && (!maxD||end>maxD)) maxD=end;
+    (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>{
+      const sd=ganttEffectiveDates(s);
+      if(sd.start && (!minD||sd.start<minD)) minD=sd.start;
+      if(sd.end && (!maxD||sd.end>maxD)) maxD=sd.end;
+    });
   });
   if(!minD) minD=new Date(today);
   if(!maxD) maxD=ganttAddDays(today,14);
@@ -6823,13 +6854,30 @@ function renderGantt(){
   const labelFrag=document.createDocumentFragment();
   const rowsFrag=document.createDocumentFragment();
   const barEls=[];
+  let rowCount=0;
 
   tasks.forEach((task,idx)=>{
+    const subs=Array.isArray(task.subtasks)?task.subtasks:[];
+    const gKey=subKey(activeTab,idx);
+    const expanded=ganttExpandedSet.has(gKey);
+
     const lrow=document.createElement('div');
     lrow.className='gantt-label-row'+(task.done?' is-done':'');
+    if(subs.length){
+      const toggleBtn=document.createElement('button');
+      toggleBtn.className='gantt-toggle-btn'+(expanded?' expanded':'');
+      toggleBtn.title=expanded?'Hide sub-tasks':'Show sub-tasks';
+      toggleBtn.textContent='▸';
+      toggleBtn.onclick=()=>{
+        if(ganttExpandedSet.has(gKey)) ganttExpandedSet.delete(gKey);
+        else ganttExpandedSet.add(gKey);
+        renderGantt();
+      };
+      lrow.appendChild(toggleBtn);
+    }
     const nameSpan=document.createElement('span');
     nameSpan.className='gantt-label-name';
-    nameSpan.textContent=`${task.sn}. ${task.name}`;
+    nameSpan.textContent=`${task.sn}. ${task.name}`+(subs.length?` (${subs.filter(s=>s.done).length}/${subs.length})`:'');
     nameSpan.title='Open in task list';
     nameSpan.onclick=()=>{ setGanttView(false); };
     const depBtn=document.createElement('button');
@@ -6840,6 +6888,7 @@ function renderGantt(){
     lrow.appendChild(nameSpan);
     lrow.appendChild(depBtn);
     labelFrag.appendChild(lrow);
+    rowCount++;
 
     const rowBg=document.createElement('div');
     rowBg.className='gantt-row-bg';
@@ -6891,12 +6940,80 @@ function renderGantt(){
       attachGanttBarInteractions(bar,task);
     }
     rowsFrag.appendChild(rowBg);
+
+    if(subs.length&&expanded){
+      subs.forEach((sub,sIdx)=>{
+        const slrow=document.createElement('div');
+        slrow.className='gantt-label-row sub-row'+(sub.done?' is-done':'');
+        const snameSpan=document.createElement('span');
+        snameSpan.className='gantt-label-name';
+        snameSpan.textContent=sub.name;
+        snameSpan.title='Open in task list';
+        snameSpan.onclick=()=>{
+          expandedSubtasksSet.add(gKey);
+          setGanttView(false);
+        };
+        slrow.appendChild(snameSpan);
+        labelFrag.appendChild(slrow);
+        rowCount++;
+
+        const srowBg=document.createElement('div');
+        srowBg.className='gantt-row-bg';
+        srowBg.style.width=totalWidth+'px';
+
+        const sd=ganttEffectiveDates(sub);
+        if(!sd.start||!sd.end){
+          const hint=document.createElement('div');
+          hint.className='gantt-empty-row-hint';
+          hint.style.left='12px';
+          hint.textContent='Click to schedule this sub-task →';
+          srowBg.style.cursor='pointer';
+          srowBg.title='Click to give this sub-task a start/due date';
+          srowBg.onclick=()=>{
+            sub.startDate=sub.startDate||ganttFmt(today);
+            sub.taskDeadline=sub.taskDeadline||ganttFmt(ganttAddDays(today,2));
+            save();renderGantt();
+          };
+          srowBg.appendChild(hint);
+        } else {
+          const sOffsetDays=ganttDayDiff(minD,sd.start);
+          const sSpanDays=ganttDayDiff(sd.start,sd.end)+1;
+          const sbar=document.createElement('div');
+          const sOverdue=!sub.done && sd.end<today;
+          const sDueSoon=!sub.done && !sOverdue && ganttDayDiff(today,sd.end)<=3;
+          let scls='gantt-bar is-subtask';
+          if(sub.done) scls+=' is-done';
+          else if(sOverdue) scls+=' is-overdue';
+          else if(sDueSoon) scls+=' is-due-soon';
+          sbar.className=scls;
+          const sBarLeft=sOffsetDays*dayWidth;
+          const sBarWidth=Math.max(dayWidth-2,sSpanDays*dayWidth-4);
+          sbar.style.left=sBarLeft+'px';
+          sbar.style.width=sBarWidth+'px';
+          sbar.title=`${sub.name}\n${sub.startDate||ganttFmt(sd.start)} → ${sub.taskDeadline||ganttFmt(sd.end)}${sOverdue?`\n⚠ ${ganttDayDiff(sd.end,today)}d overdue`:''}`;
+          if(dayWidth>=18){ sbar.textContent=sub.name; }
+          const slh=document.createElement('div'); slh.className='gantt-bar-handle left';
+          const srh=document.createElement('div'); srh.className='gantt-bar-handle right';
+          sbar.appendChild(slh); sbar.appendChild(srh);
+          srowBg.appendChild(sbar);
+          if(sOverdue){
+            const stag=document.createElement('div');
+            stag.className='gantt-bar-delay-tag';
+            stag.style.left=(sBarLeft+sBarWidth+6)+'px';
+            stag.textContent=`⚠ ${ganttDayDiff(sd.end,today)}d overdue`;
+            srowBg.appendChild(stag);
+          }
+          attachGanttBarInteractions(sbar,sub);
+        }
+        rowsFrag.appendChild(srowBg);
+      });
+    }
   });
 
   labelsWrap.appendChild(labelFrag);
   rowsWrap.appendChild(rowsFrag);
 
-  const totalHeight=52+tasks.length*44;
+  const totalHeight=52+rowCount*44;
   const inner=document.getElementById('ganttInner');
   const todayOffset=ganttDayDiff(minD,today);
   if(todayOffset>=0 && todayOffset<totalDays){
@@ -7498,7 +7615,7 @@ document.getElementById('modelDeadlineSaveBtn').onclick=()=>{
   save(); renderModelCards();
   document.getElementById('modelDeadlineModal').classList.remove('open');
   toast(CAL_ICON,`Deadline ${val?'set':'cleared'} for ${model}`);
-  logActivity(CAL_ICON,`${val?`set deadline to ${val} for`:'cleared the deadline for'} model "${model}"`,model);
+  logActivity('📅',`${val?`set deadline to ${val} for`:'cleared the deadline for'} model "${model}"`,model);
 };
 document.getElementById('modelDeadlineClearBtn').onclick=()=>{
   const model=_modelDeadlineTarget;
@@ -7508,7 +7625,7 @@ document.getElementById('modelDeadlineClearBtn').onclick=()=>{
   save(); renderModelCards();
   document.getElementById('modelDeadlineModal').classList.remove('open');
   toast(CAL_ICON,`Deadline cleared for ${model}`);
-  logActivity(CAL_ICON,`cleared the deadline for model "${model}"`,model);
+  logActivity('📅',`cleared the deadline for model "${model}"`,model);
 };
 document.getElementById('modelDeadlineCancelBtn').onclick=()=>{
   document.getElementById('modelDeadlineModal').classList.remove('open');
@@ -7539,7 +7656,7 @@ document.getElementById('taskDeadlineSaveBtn').onclick=()=>{
   save();renderAll();
   document.getElementById('taskDeadlineModal').classList.remove('open');
   toast(CAL_ICON,`Task deadline ${val?'set':'cleared'}`);
-  logActivity(CAL_ICON,`${val?`set deadline to ${val} for`:'cleared the deadline for'} task "${state[model][idx].name}"`,model);
+  logActivity('📅',`${val?`set deadline to ${val} for`:'cleared the deadline for'} task "${state[model][idx].name}"`,model);
 };
 document.getElementById('taskDeadlineClearBtn').onclick=()=>{
   const{model,idx}=taskDeadlineCtx;
@@ -7547,7 +7664,7 @@ document.getElementById('taskDeadlineClearBtn').onclick=()=>{
   save();renderAll();
   document.getElementById('taskDeadlineModal').classList.remove('open');
   toast(CAL_ICON,'Task deadline cleared');
-  logActivity(CAL_ICON,`cleared the deadline for task "${state[model][idx].name}"`,model);
+  logActivity('📅',`cleared the deadline for task "${state[model][idx].name}"`,model);
 };
 document.getElementById('taskDeadlineCancelBtn').onclick=()=>document.getElementById('taskDeadlineModal').classList.remove('open');
 document.getElementById('taskDeadlineModal').onclick=e=>{if(e.target===document.getElementById('taskDeadlineModal'))document.getElementById('taskDeadlineModal').classList.remove('open');};
@@ -7744,7 +7861,7 @@ document.getElementById('bulkDeadlineSaveBtn').onclick=()=>{
     save(); renderAll();
     document.getElementById('bulkDeadlineModal').classList.remove('open');
     toast(CAL_ICON, val ? `Deadline set for ${n} subtask${n===1?'':'s'}` : `Deadline cleared for ${n} subtask${n===1?'':'s'}`);
-    logActivity(CAL_ICON,`${val?`set deadline to ${val} for`:'cleared the deadline for'} ${n} subtask${n===1?'':'s'}`,model);
+    logActivity('📅',`${val?`set deadline to ${val} for`:'cleared the deadline for'} ${n} subtask${n===1?'':'s'}`,model);
     bulkModalSubCtx=null;
     return;
   }
@@ -7753,7 +7870,7 @@ document.getElementById('bulkDeadlineSaveBtn').onclick=()=>{
   save(); renderAll();
   document.getElementById('bulkDeadlineModal').classList.remove('open');
   toast(CAL_ICON, val ? `Deadline set for ${n} task${n===1?'':'s'}` : `Deadline cleared for ${n} task${n===1?'':'s'}`);
-  logActivity(CAL_ICON,`${val?`set deadline to ${val} for`:'cleared the deadline for'} ${n} task${n===1?'':'s'}`,activeTab);
+  logActivity('📅',`${val?`set deadline to ${val} for`:'cleared the deadline for'} ${n} task${n===1?'':'s'}`,activeTab);
 };
 document.getElementById('bulkDeadlineClearBtn').onclick=()=>{
   if(bulkModalSubCtx){
@@ -7765,7 +7882,7 @@ document.getElementById('bulkDeadlineClearBtn').onclick=()=>{
     save(); renderAll();
     document.getElementById('bulkDeadlineModal').classList.remove('open');
     toast(CAL_ICON,`Deadline cleared for ${n} subtask${n===1?'':'s'}`);
-    logActivity(CAL_ICON,`cleared the deadline for ${n} subtask${n===1?'':'s'}`,model);
+    logActivity('📅',`cleared the deadline for ${n} subtask${n===1?'':'s'}`,model);
     bulkModalSubCtx=null;
     return;
   }
@@ -7774,7 +7891,7 @@ document.getElementById('bulkDeadlineClearBtn').onclick=()=>{
   save(); renderAll();
   document.getElementById('bulkDeadlineModal').classList.remove('open');
   toast(CAL_ICON,`Deadline cleared for ${n} task${n===1?'':'s'}`);
-  logActivity(CAL_ICON,`cleared the deadline for ${n} task${n===1?'':'s'}`,activeTab);
+  logActivity('📅',`cleared the deadline for ${n} task${n===1?'':'s'}`,activeTab);
 };
 document.getElementById('bulkDeadlineCancelBtn').onclick=()=>{bulkModalSubCtx=null;document.getElementById('bulkDeadlineModal').classList.remove('open');};
 document.getElementById('bulkDeadlineModal').onclick=e=>{
