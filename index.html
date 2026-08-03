@@ -4378,6 +4378,9 @@ function checkDeadlinesAndNotify(){
       // BUGFIX: subtask deadlines were never checked here, so an overdue or
       // due-soon subtask never triggered a notification even though it's
       // surfaced everywhere else (KPI card, PDF export, row due-badges).
+      // BUGFIX: skip subtasks once the parent task is done, so a completed
+      // task doesn't keep firing overdue/due-soon notifications.
+      if(t.done) return;
       (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>{
         if(s.done||!s.taskDeadline) return;
         const d=new Date(s.taskDeadline+'T00:00:00');
@@ -4477,6 +4480,11 @@ function getAllOverdueTasks(){
       // checked here, so an overdue subtask under an on-time parent task
       // was invisible to the global Overdue KPI card and modal even though
       // it's tracked everywhere else (PDF export, per-row due badges, etc).
+      // BUGFIX: once the parent task itself is marked done, its subtasks
+      // should no longer count toward the Overdue KPI even if an individual
+      // subtask's own `done` flag was never flipped — a completed task
+      // shouldn't keep inflating the overdue count.
+      if(t.done) return;
       (Array.isArray(t.subtasks)?t.subtasks:[]).forEach((s,subIdx)=>{
         if(s.done||!s.taskDeadline) return;
         const d=new Date(s.taskDeadline+'T00:00:00');
@@ -6631,16 +6639,23 @@ function renderTaskList(){
   const tasks=state[activeTab]||[];
 
   // ── UPDATE FILTER COUNTS ──
+  // Counts include subtasks alongside their parent tasks, so a task with
+  // 3 subtasks contributes 4 total items to these badges rather than just 1.
+  const allItems=tasks.reduce((acc,t)=>{
+    acc.push(t);
+    (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>acc.push(s));
+    return acc;
+  },[]);
   const fc={
-    all: tasks.length,
-    done: tasks.filter(t=>t.done).length,
-    inprogress: tasks.filter(t=>!t.done&&t.status==='inprogress').length,
-    pending: tasks.filter(t=>!t.done&&t.status!=='inprogress').length,
-    critical: tasks.filter(isOverdueTask).length,
-    high: tasks.filter(t=>t.priority==='high').length,
-    med: tasks.filter(t=>t.priority==='med').length,
-    low: tasks.filter(t=>t.priority==='low').length,
-    mine: (auth&&auth.currentUser)?tasks.filter(t=>t.assignee===auth.currentUser.uid).length:0,
+    all: allItems.length,
+    done: allItems.filter(t=>t.done).length,
+    inprogress: allItems.filter(t=>!t.done&&t.status==='inprogress').length,
+    pending: allItems.filter(t=>!t.done&&t.status!=='inprogress').length,
+    critical: allItems.filter(isOverdueTask).length,
+    high: allItems.filter(t=>t.priority==='high').length,
+    med: allItems.filter(t=>t.priority==='med').length,
+    low: allItems.filter(t=>t.priority==='low').length,
+    mine: (auth&&auth.currentUser)?allItems.filter(t=>t.assignee===auth.currentUser.uid).length:0,
   };
   Object.entries(fc).forEach(([key,val])=>{
     const el=document.getElementById('fc-'+key);
