@@ -753,10 +753,7 @@ footer {
   margin-left: 6px; letter-spacing: 0; transition: all 0.3s ease;
 }
 .filter-btn.active .filter-count { background: var(--accent1); color: var(--bg); }
-.select-completed-btn { margin-left: 4px; border-style: dashed; }
-.select-completed-btn.has-selection { border-style: solid; border-color: var(--green); color: var(--green); background: rgba(16,185,129,0.12); }
-.select-pending-btn { border-style: dashed; }
-.select-pending-btn.has-selection { border-style: solid; border-color: var(--accent1); color: var(--accent1); background: var(--accent1-dim); }
+
 
 .search-box {
   margin-left: auto; background: var(--surface); border: 1px solid var(--border);
@@ -1186,6 +1183,31 @@ footer {
 }
 .assignee-dropdown-item.selected .assignee-dropdown-count { background: rgba(212,175,55,0.18); color: var(--accent1); }
 
+/* Header "select all" cluster — checkbox plus a caret that opens a small
+   menu for selecting subtasks only, or tasks + subtasks together. */
+.select-all-cell { display: flex; align-items: center; gap: 3px; }
+.select-all-caret {
+  display: flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 5px; cursor: pointer;
+  color: var(--text-muted); background: transparent; border: none; padding: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.select-all-caret:hover { background: var(--surface2); color: var(--text); }
+.select-all-menu {
+  position: fixed; z-index: 500;
+  background: var(--surface); border: 1px solid var(--border-hover);
+  border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.35), var(--shadow-md);
+  padding: 6px; min-width: 190px;
+  display: none;
+}
+.select-all-menu.open { display: block; }
+.select-all-menu-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 9px; cursor: pointer;
+  font-size: 12.5px; color: var(--text); white-space: nowrap;
+}
+.select-all-menu-item:hover { background: var(--surface2); }
+
 /* Real, fully-functional date input used by the model-level deadline button
    below — stretched over its wrapper and made completely invisible (zero
    opacity), so whatever the browser draws for it (text, fields, its own
@@ -1516,6 +1538,8 @@ footer {
 .bulk-btn.bulk-btn-move-model:hover { background: rgba(212,175,55,0.14); border-color: var(--accent1); color: var(--accent1); }
 .bulk-btn.bulk-btn-copy-model { color: var(--accent2); border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.07); }
 .bulk-btn.bulk-btn-copy-model:hover { background: rgba(96,165,250,0.14); border-color: var(--accent2); color: var(--accent2); }
+.bulk-btn.bulk-btn-duplicate { color: var(--accent1); border-color: rgba(212,175,55,0.3); background: rgba(212,175,55,0.07); }
+.bulk-btn.bulk-btn-duplicate:hover { background: rgba(212,175,55,0.14); border-color: var(--accent1); color: var(--accent1); }
 
 .bulk-bar.subtask-bulk-bar {
   margin: 0 24px 10px; padding: 10px 14px; border-radius: 10px;
@@ -2793,8 +2817,6 @@ document.addEventListener('keydown', e => {
   <button class="filter-btn" data-filter="low">Low<span class="filter-count" id="fc-low">0</span></button>
   <button class="filter-btn filter-btn-critical" data-filter="critical">⚠ Critical<span class="filter-count" id="fc-critical">0</span></button>
   <button class="filter-btn" data-filter="mine" id="mineFilterBtn" style="display:none;">👤 My Tasks<span class="filter-count" id="fc-mine">0</span></button>
-  <button class="filter-btn select-completed-btn" id="selectCompletedBtn" title="Select all completed tasks for bulk actions, regardless of the current filter">☑ Select Completed</button>
-  <button class="filter-btn select-pending-btn" id="selectPendingBtn" title="Select all pending tasks for bulk actions, regardless of the current filter">☐ Select Pending</button>
   <div class="kbd-hint">Shortcuts: <kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>Ctrl K</kbd> global search · <kbd>Esc</kbd> clear</div>
 </div>
 
@@ -2815,6 +2837,7 @@ document.addEventListener('keydown', e => {
     </div>
   </div>
   <button class="bulk-btn bulk-btn-copy-model" id="bulkCopyModelBtn" title="Copy selected tasks to a different model">⧉ Copy to Model</button>
+  <button class="bulk-btn bulk-btn-duplicate" id="bulkDuplicateBtn" title="Duplicate selected tasks within this model">⧉ Duplicate</button>
   <button class="bulk-btn danger" id="bulkDeleteBtn">Delete Selected</button>
   <button class="bulk-btn" id="bulkClearBtn" style="margin-left:auto;">Clear Selection</button>
 </div>
@@ -2833,7 +2856,10 @@ document.addEventListener('keydown', e => {
 <div class="checklist-table" id="checklistTable">
   <div class="table-header">
     <div class="th-sort" data-sort="sn" title="Sort by serial number"># <span class="sort-icon"><svg class="up" width="8" height="6" viewBox="0 0 8 6"><path d="M4 0L8 6H0Z" fill="currentColor"/></svg><svg class="dn" width="8" height="6" viewBox="0 0 8 6"><path d="M4 6L0 0H8Z" fill="currentColor"/></svg></span></div>
-    <div><input type="checkbox" id="selectAllChk" class="task-checkbox" title="Select all"></div>
+    <div class="select-all-cell">
+      <input type="checkbox" id="selectAllChk" class="task-checkbox" title="Select all tasks">
+      <button type="button" class="select-all-caret" id="selectAllCaretBtn" title="More select-all options"><svg width="8" height="6" viewBox="0 0 8 6"><path d="M4 6L0 0H8Z" fill="currentColor"/></svg></button>
+    </div>
     <div class="th-sort" data-sort="name" title="Sort by task name">Task Description <span class="sort-icon"><svg class="up" width="8" height="6" viewBox="0 0 8 6"><path d="M4 0L8 6H0Z" fill="currentColor"/></svg><svg class="dn" width="8" height="6" viewBox="0 0 8 6"><path d="M4 6L0 0H8Z" fill="currentColor"/></svg></span></div>
     <div class="th-sort" data-sort="priority" title="Sort by priority">Priority <span class="sort-icon"><svg class="up" width="8" height="6" viewBox="0 0 8 6"><path d="M4 0L8 6H0Z" fill="currentColor"/></svg><svg class="dn" width="8" height="6" viewBox="0 0 8 6"><path d="M4 6L0 0H8Z" fill="currentColor"/></svg></span></div>
     <div style="justify-content:center;">Status</div>
@@ -3057,6 +3083,7 @@ document.addEventListener('keydown', e => {
 <div class="assignee-dropdown" id="assigneeDropdown"></div>
 <div class="status-dropdown" id="statusDropdown"></div>
 <div class="row-menu-dropdown" id="rowMenuDropdown"></div>
+<div class="select-all-menu" id="selectAllMenu"></div>
 
 <!-- NOTES MODAL -->
 <div class="modal-overlay" id="notesModal">
@@ -6919,6 +6946,7 @@ function renderTaskList(){
         <button class="bulk-btn" data-act="pending">Mark Pending</button>
         <button class="bulk-btn bulk-btn-deadline" data-act="deadline">📅 Set Deadline</button>
         <button class="bulk-btn bulk-btn-priority" data-act="priority">⚑ Set Priority</button>
+        <button class="bulk-btn bulk-btn-duplicate" data-act="duplicate" title="Duplicate selected subtasks within this task">⧉ Duplicate</button>
         <button class="bulk-btn danger" data-act="delete">Delete Selected</button>
         <button class="bulk-btn" data-act="clear" style="margin-left:auto;">Clear Selection</button>`;
       sBar.querySelector('[data-act="done"]').onclick=e=>{
@@ -6962,6 +6990,19 @@ function renderTaskList(){
       sBar.querySelector('[data-act="priority"]').onclick=e=>{
         e.stopPropagation();
         openSubBulkPriorityModal(activeTab,idx,selectedHere.map(k=>Number(k.split('::')[2])));
+      };
+      sBar.querySelector('[data-act="duplicate"]').onclick=e=>{
+        e.stopPropagation();
+        const n=selectedHere.length;
+        const sIdxs=selectedHere.map(k=>Number(k.split('::')[2])).sort((a,b)=>b-a); // descending so each insert index stays valid
+        sIdxs.forEach(sI=>{
+          const clone=JSON.parse(JSON.stringify(subs[sI]));
+          subs.splice(sI+1,0,clone);
+        });
+        clearSubSelectionsForTask(activeTab,idx);
+        save();renderAll();
+        toast('⧉',`Duplicated ${n} subtask${n===1?'':'s'}`);
+        logActivity('⧉',`duplicated ${n} subtask${n===1?'':'s'} in "${state[activeTab][idx].name}"`,activeTab);
       };
       panel.appendChild(sBar);
     }
@@ -7629,20 +7670,6 @@ function updateBulkBar(){
   const bar=document.getElementById('bulkBar');
   document.getElementById('bulkCount').textContent=`${selectedTasks.size} selected`;
   bar.classList.toggle('visible',selectedTasks.size>0);
-
-  const selCompletedBtn=document.getElementById('selectCompletedBtn');
-  const selPendingBtn=document.getElementById('selectPendingBtn');
-  const tasks=(activeTab && activeTab!=='Compare Models' && state[activeTab])?state[activeTab]:[];
-  if(selCompletedBtn){
-    const doneIdxs=tasks.reduce((arr,t,i)=>{if(t.done)arr.push(i);return arr;},[]);
-    const allDoneSelected=doneIdxs.length>0&&doneIdxs.every(i=>selectedTasks.has(i));
-    selCompletedBtn.classList.toggle('has-selection',allDoneSelected);
-  }
-  if(selPendingBtn){
-    const pendingIdxs=tasks.reduce((arr,t,i)=>{if(!t.done)arr.push(i);return arr;},[]);
-    const allPendingSelected=pendingIdxs.length>0&&pendingIdxs.every(i=>selectedTasks.has(i));
-    selPendingBtn.classList.toggle('has-selection',allPendingSelected);
-  }
 }
 
 // ── COMPARE VIEW ──────────────────────────────────────────────────────────────
@@ -8352,6 +8379,26 @@ document.getElementById('bulkMoveModelModal').onclick=e=>{
   if(e.target===document.getElementById('bulkMoveModelModal'))
     document.getElementById('bulkMoveModelModal').classList.remove('open');
 };
+// Duplicates each selected task in place — right after its original —
+// within the current model. Sits beside Copy to Model in the bulk bar, but
+// unlike Copy to Model this never leaves the model you're on.
+function duplicateSelectedTasks(){
+  const tasks=state[activeTab];
+  const n=selectedTasks.size;
+  if(!n||!tasks) return;
+  const idxs=[...selectedTasks].sort((a,b)=>b-a); // descending so each insert index stays valid
+  idxs.forEach(i=>{
+    const clone=JSON.parse(JSON.stringify(tasks[i]));
+    tasks.splice(i+1,0,clone);
+  });
+  renumber(tasks);
+  selectedTasks.clear();
+  clearSubSelectionsForModel(activeTab);
+  save();renderAll();
+  toast('⧉',`Duplicated ${n} task${n===1?'':'s'}`);
+  logActivity('⧉',`duplicated ${n} task${n===1?'':'s'}`,activeTab);
+}
+document.getElementById('bulkDuplicateBtn').onclick=()=>duplicateSelectedTasks();
 document.getElementById('bulkDeleteBtn').onclick=async()=>{
   const n=selectedTasks.size;
   const ok=await showConfirm({title:'Delete selected tasks?',message:`${n} task${n===1?'':'s'} will be moved to the Recycle Bin (kept for 30 days).`,confirmText:`Delete ${n}`,danger:true,icon:'🗑'});
@@ -8511,6 +8558,102 @@ document.getElementById('selectAllChk').onchange=e=>{
   updateBulkBar();renderTaskList();
 };
 
+// "Select all" caret menu — lets the user select every subtask only, or
+// every task plus every subtask, in one click (instead of the checkbox's
+// default which only selects top-level tasks).
+function closeSelectAllMenu(){
+  const menu=document.getElementById('selectAllMenu');
+  if(menu) menu.classList.remove('open');
+}
+function openSelectAllMenu(triggerEl){
+  const menu=document.getElementById('selectAllMenu');
+  if(!menu) return;
+  menu.innerHTML=`
+    <div class="select-all-menu-item" data-mode="subtasks-only">Select all subtasks only</div>
+    <div class="select-all-menu-item" data-mode="all">Select all tasks &amp; subtasks</div>
+    <div class="select-all-menu-item" data-mode="completed">Select Completed</div>
+    <div class="select-all-menu-item" data-mode="pending">Select Pending</div>
+    <div class="select-all-menu-item" data-mode="none">Unselect all</div>`;
+  menu.querySelector('[data-mode="subtasks-only"]').onclick=()=>{
+    selectAllSubtasksOnly();
+    closeSelectAllMenu();
+  };
+  menu.querySelector('[data-mode="all"]').onclick=()=>{
+    selectAllTasksAndSubtasks();
+    closeSelectAllMenu();
+  };
+  menu.querySelector('[data-mode="completed"]').onclick=()=>{
+    toggleSelectCompleted();
+    closeSelectAllMenu();
+  };
+  menu.querySelector('[data-mode="pending"]').onclick=()=>{
+    toggleSelectPending();
+    closeSelectAllMenu();
+  };
+  menu.querySelector('[data-mode="none"]').onclick=()=>{
+    unselectAll();
+    closeSelectAllMenu();
+  };
+  const rect=triggerEl.getBoundingClientRect();
+  menu.classList.add('open');
+  const menuWidth=menu.offsetWidth||190;
+  let left=rect.left;
+  if(left+menuWidth>window.innerWidth-8) left=window.innerWidth-menuWidth-8;
+  menu.style.left=Math.max(8,left)+'px';
+  menu.style.top=(rect.bottom+6)+'px';
+}
+function unselectAll(){
+  const hadSelection=selectedTasks.size>0||selectedSubtasks.size>0;
+  selectedTasks.clear();
+  selectedSubtasks.clear();
+  expandedSubtasksSet.clear();
+  updateBulkBar();renderTaskList();
+  if(hadSelection) toast('✓','Selection cleared');
+}
+function selectAllSubtasksOnly(){
+  const tasks=state[activeTab]; if(!tasks) return;
+  selectedTasks.clear();
+  selectedSubtasks.clear();
+  tasks.forEach((t,i)=>{
+    if(!matchesFilter(t)) return;
+    const subs=Array.isArray(t.subtasks)?t.subtasks:[];
+    if(!subs.length) return;
+    subs.forEach((s,si)=>{ selectedSubtasks.add(subSelKey(activeTab,i,si)); });
+    expandedSubtasksSet.add(subKey(activeTab,i));
+  });
+  updateBulkBar();renderTaskList();
+  toast('✓',`${selectedSubtasks.size} subtask${selectedSubtasks.size===1?'':'s'} selected`);
+}
+function selectAllTasksAndSubtasks(){
+  const tasks=state[activeTab]; if(!tasks) return;
+  selectedTasks.clear();
+  selectedSubtasks.clear();
+  tasks.forEach((t,i)=>{
+    if(!matchesFilter(t)) return;
+    selectedTasks.add(i);
+    const subs=Array.isArray(t.subtasks)?t.subtasks:[];
+    if(!subs.length) return;
+    subs.forEach((s,si)=>{ selectedSubtasks.add(subSelKey(activeTab,i,si)); });
+    expandedSubtasksSet.add(subKey(activeTab,i));
+  });
+  updateBulkBar();renderTaskList();
+  toast('✓',`${selectedTasks.size} task${selectedTasks.size===1?'':'s'} & ${selectedSubtasks.size} subtask${selectedSubtasks.size===1?'':'s'} selected`);
+}
+document.getElementById('selectAllCaretBtn').onclick=e=>{
+  e.stopPropagation();
+  const menu=document.getElementById('selectAllMenu');
+  if(menu.classList.contains('open')) closeSelectAllMenu();
+  else openSelectAllMenu(e.currentTarget);
+};
+document.addEventListener('click',e=>{
+  const menu=document.getElementById('selectAllMenu');
+  if(!menu||!menu.classList.contains('open')) return;
+  if(e.target.closest('#selectAllMenu')||e.target.closest('#selectAllCaretBtn')) return;
+  closeSelectAllMenu();
+});
+document.addEventListener('scroll',closeSelectAllMenu,true);
+window.addEventListener('resize',closeSelectAllMenu);
+
 // ── EXPORT / IMPORT ───────────────────────────────────────────────────────────
 // ── EXCEL EXPORT (all models — header button) ────────────────────────────────
 // One sheet per model, same column layout as the Excel import expects:
@@ -8668,7 +8811,15 @@ document.getElementById('importFile').onchange=async e=>{
   const reader=new FileReader();
   reader.onload=async ev=>{
     try{
-      const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+      // cellDates intentionally omitted: with it on, SheetJS hands back a
+      // JS Date object for date cells, and reading that back out (whether
+      // via toISOString or local getters) round-trips through a timezone
+      // and can land on the wrong calendar day depending on the browser's
+      // offset. Leaving it off keeps date cells as the raw Excel serial
+      // number, which normDate() below converts with pure date arithmetic
+      // (XLSX.SSF.parse_date_code) — no Date object, no timezone, no
+      // off-by-one.
+      const wb=XLSX.read(ev.target.result,{type:'array'});
       if(!wb.SheetNames.length){await showAlert({title:'Empty workbook',message:'The workbook appears to be empty.',tone:'warn'});e.target.value='';return;}
 
       // Merge into the existing dashboard rather than replacing it:
@@ -9003,7 +9154,17 @@ function normDone(val){
 }
 function normDate(val){
   if(!val) return '';
-  if(val instanceof Date) return val.toISOString().slice(0,10);
+  if(val instanceof Date){
+    // SheetJS hands back date cells as a Date object set to local midnight
+    // of the intended day (not UTC midnight). Reading it back with
+    // .toISOString() converts to UTC first, which pushes the date back by
+    // one day for any timezone ahead of UTC (e.g. UTC+6) — exactly the
+    // "deadline is one day earlier after import" bug. Reading the local
+    // getters instead matches how the Date was built, so the calendar day
+    // the user sees in Excel is the day that gets stored.
+    const y=val.getFullYear(), m=val.getMonth()+1, d=val.getDate();
+    return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
   if(typeof val==='number'){
     const d=XLSX.SSF.parse_date_code(val);
     if(d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
@@ -9022,7 +9183,11 @@ document.getElementById('importExcelFile').onchange=async e=>{
   const reader=new FileReader();
   reader.onload=async ev=>{
     try{
-      const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+      // cellDates intentionally omitted — see the merge-import handler above
+      // for why: it keeps date cells as raw Excel serial numbers so
+      // normDate() can convert them with pure date arithmetic instead of a
+      // timezone-dependent Date object round-trip.
+      const wb=XLSX.read(ev.target.result,{type:'array'});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
       if(!rows.length){await showAlert({title:'Empty file',message:'The file appears to be empty.',tone:'warn'});e.target.value='';return;}
@@ -9145,9 +9310,9 @@ document.getElementById('searchBox').oninput=e=>{searchQuery=e.target.value;rend
 
 // Selects (or deselects) every completed task in the current model for bulk
 // actions, independent of whatever filter/search is currently applied. This
-// is a separate control from the header "select all" checkbox, which only
-// selects tasks matching the active filter/search view.
-document.getElementById('selectCompletedBtn').onclick=()=>{
+// lives in the header "select all" dropdown menu, alongside its Pending
+// counterpart.
+function toggleSelectCompleted(){
   if(!activeTab || activeTab==='Compare Models' || !state[activeTab]) return;
   const tasks=state[activeTab];
   const doneIdxs=tasks.reduce((arr,t,i)=>{if(t.done)arr.push(i);return arr;},[]);
@@ -9159,11 +9324,11 @@ document.getElementById('selectCompletedBtn').onclick=()=>{
     doneIdxs.forEach(i=>selectedTasks.add(i));
   }
   updateBulkBar();renderTaskList();
-};
+}
 
 // Selects (or deselects) every pending task in the current model for bulk
 // actions, independent of whatever filter/search is currently applied.
-document.getElementById('selectPendingBtn').onclick=()=>{
+function toggleSelectPending(){
   if(!activeTab || activeTab==='Compare Models' || !state[activeTab]) return;
   const tasks=state[activeTab];
   const pendingIdxs=tasks.reduce((arr,t,i)=>{if(!t.done)arr.push(i);return arr;},[]);
@@ -9175,7 +9340,7 @@ document.getElementById('selectPendingBtn').onclick=()=>{
     pendingIdxs.forEach(i=>selectedTasks.add(i));
   }
   updateBulkBar();renderTaskList();
-};
+}
 
 // ── ADD BUTTONS ───────────────────────────────────────────────────────────────
 document.getElementById('addTaskBtn').onclick=()=>{
