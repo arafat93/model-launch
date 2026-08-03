@@ -4420,7 +4420,13 @@ function startDeadlineWatch(){
 // ── STATS ─────────────────────────────────────────────────────────────────────
 function stats(model){
   const tasks=state[model];
-  const total=tasks.length, done=tasks.filter(t=>t.done).length;
+  let total=0,done=0;
+  tasks.forEach(t=>{
+    total++; if(t.done) done++;
+    (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>{
+      total++; if(s.done) done++;
+    });
+  });
   return{total,done,pending:total-done,pct:total?Math.round(done/total*100):0};
 }
 function globalStats(){
@@ -6359,9 +6365,10 @@ function closeAssigneeDropdown(){
   const dd=document.getElementById('assigneeDropdown');
   if(dd) dd.classList.remove('open');
 }
-function openAssigneeDropdown(triggerEl, idx){
+function openAssigneeDropdown(triggerEl, idx, subIdx){
   const dd=document.getElementById('assigneeDropdown');
-  const task=(state[activeTab]||[])[idx];
+  const parentTask=(state[activeTab]||[])[idx];
+  const task=subIdx==null?parentTask:(parentTask&&Array.isArray(parentTask.subtasks)?parentTask.subtasks[subIdx]:null);
   if(!dd||!task) return;
 
   const teamIconSvg='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
@@ -6386,7 +6393,8 @@ function openAssigneeDropdown(triggerEl, idx){
 
   dd.querySelectorAll('.assignee-dropdown-item').forEach(item=>{
     item.onclick=()=>{
-      const t=(state[activeTab]||[])[idx];
+      const parentT=(state[activeTab]||[])[idx];
+      const t=subIdx==null?parentT:(parentT&&Array.isArray(parentT.subtasks)?parentT.subtasks[subIdx]:null);
       if(t){ t.assignee=item.dataset.uid||''; save(); renderAll(); }
       closeAssigneeDropdown();
     };
@@ -6480,8 +6488,6 @@ function openRowMenuDropdown(triggerEl, model, idx, subIdx){
 
   const hasNote=!!(target.notes||(target.screenshots&&target.screenshots.length));
   const commentsCount=(target.comments&&target.comments.length)||0;
-  const tdl=taskDeadlineLabel(target.taskDeadline);
-  const dlCls=tdl?tdl.cls:'';
 
   dd.innerHTML=`
     <div class="row-menu-item${hasNote?' active':''}" data-kind="notes">
@@ -6492,12 +6498,7 @@ function openRowMenuDropdown(triggerEl, model, idx, subIdx){
       <span class="row-menu-item-icon">💬</span>
       <span>${commentsCount?'Comments':'Add a comment'}</span>
       ${commentsCount?`<span class="row-menu-item-count">${commentsCount>99?'99+':commentsCount}</span>`:''}
-    </div>
-    ${subIdx!=null?`<div class="row-menu-item${tdl?' active':''}${dlCls==='is-overdue'?' overdue':''}" data-kind="deadline">
-      <span class="row-menu-item-icon">${CAL_ICON}</span>
-      <span>${tdl?`Deadline: ${tdl.text}`:'Set deadline'}</span>
-      <input type="date" class="row-menu-item-deadline-input" tabindex="-1" value="${target.taskDeadline||''}">
-    </div>`:''}`;
+    </div>`;
 
   dd.querySelector('[data-kind="notes"]').addEventListener('click',()=>{
     closeRowMenuDropdown();
@@ -6508,19 +6509,6 @@ function openRowMenuDropdown(triggerEl, model, idx, subIdx){
     closeRowMenuDropdown();
     openCommentsModal(model,idx,subIdx);
   });
-  const dlInput=dd.querySelector('.row-menu-item-deadline-input');
-  if(dlInput){
-  dlInput.onclick=e=>e.stopPropagation();
-  dlInput.onchange=e=>{
-    e.stopPropagation();
-    const val=e.target.value;
-    target.taskDeadline=val;
-    save();renderAll();
-    toast(CAL_ICON,`${subIdx==null?'Task':'Subtask'} deadline ${val?'set':'cleared'}`);
-    logActivity('📅',`${val?`set deadline to ${val} for`:'cleared the deadline for'} ${subIdx==null?'task':'subtask'} "${target.name}"`,model);
-    closeRowMenuDropdown();
-  };
-  }
 
   const rect=triggerEl.getBoundingClientRect();
   dd.classList.add('open'); // needs to be visible to measure its width
@@ -7020,6 +7008,7 @@ function renderTaskList(){
         }
       }
 
+      const subAssigneeColor=sub.assignee?colorForAssignee(sub.assignee):null;
       const selKey=subSelKey(activeTab,idx,sIdx);
       const isSelected=selectedSubtasks.has(selKey);
       sRow.innerHTML=`
@@ -7032,9 +7021,16 @@ function renderTaskList(){
         <div style="display:flex;align-items:center;justify-content:center;"><button class="status-chip ${sub.done?'done':(sub.status==='inprogress'?'inprogress':'pending')}"><span class="chip-dot"></span>${sub.done?'Done':(sub.status==='inprogress'?'In Progress':'Pending')}</button></div>
         ${subDueHtml}
         <div class="task-icons-cell">
-          <div class="row-menu-trigger${(sub.notes||(sub.screenshots&&sub.screenshots.length)||(sub.comments&&sub.comments.length)||sub.taskDeadline)?' has-activity':''}${dlIconCls2==='is-overdue'?' is-overdue':''}" title="Notes, comments &amp; deadline">
+          <div class="row-menu-trigger${(sub.notes||(sub.screenshots&&sub.screenshots.length)||(sub.comments&&sub.comments.length))?' has-activity':''}" title="Notes &amp; comments">
             📋${(sub.comments&&sub.comments.length)?`<span class="row-menu-badge">${sub.comments.length>99?'99+':sub.comments.length}</span>`:''}
           </div>
+          <div class="deadline-picker ${dlIconCls2}" title="${dlTitle2}">
+            ${CAL_ICON}
+            <input type="date" class="task-deadline-native" tabindex="-1" value="${sub.taskDeadline||''}">
+          </div>
+          ${Object.keys(workspaceMembers).length>1?`<div class="assignee-picker" title="${sub.assignee&&workspaceMembers[sub.assignee]?'Assigned to '+escHtml(workspaceMembers[sub.assignee].displayName||workspaceMembers[sub.assignee].email):'Assign to a teammate'}">
+            <span class="assignee-avatar-icon${sub.assignee?' is-assigned':''}"${subAssigneeColor?` style="background:linear-gradient(145deg, ${subAssigneeColor}dd, ${subAssigneeColor});box-shadow:0 2px 6px -1px ${subAssigneeColor}55, inset 0 1px 0 rgba(255,255,255,0.18);"`:''}>${sub.assignee&&workspaceMembers[sub.assignee]?escHtml(((workspaceMembers[sub.assignee].displayName||workspaceMembers[sub.assignee].email||'?')[0]||'?').toUpperCase()):'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'}</span>
+          </div>`:''}
         </div>
         <div class="row-actions">
           <button class="row-action-btn edit" title="Rename">✎</button>
@@ -7093,6 +7089,27 @@ function renderTaskList(){
         e.stopPropagation();
         openRowMenuDropdown(e.currentTarget,activeTab,idx,sIdx);
       };
+      const subDeadlinePickerEl=sRow.querySelector('.deadline-picker');
+      if(subDeadlinePickerEl){
+        const subDeadlineNativeInput=subDeadlinePickerEl.querySelector('.task-deadline-native');
+        subDeadlinePickerEl.onclick=e=>e.stopPropagation();
+        subDeadlineNativeInput.onclick=e=>e.stopPropagation();
+        subDeadlineNativeInput.onchange=e=>{
+          e.stopPropagation();
+          const val=e.target.value;
+          sub.taskDeadline=val;
+          save();renderAll();
+          toast(CAL_ICON,`Subtask deadline ${val?'set':'cleared'}`);
+          logActivity('📅',`${val?`set deadline to ${val} for`:'cleared the deadline for'} subtask "${sub.name}"`,activeTab);
+        };
+      }
+      const subAssigneePickerEl=sRow.querySelector('.assignee-picker');
+      if(subAssigneePickerEl){
+        subAssigneePickerEl.onclick=e=>{
+          e.stopPropagation();
+          openAssigneeDropdown(subAssigneePickerEl, idx, sIdx);
+        };
+      }
       // Edit inline
       sRow.querySelector('.row-action-btn.edit').onclick=e=>{
         e.stopPropagation();
