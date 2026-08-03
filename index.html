@@ -1862,6 +1862,12 @@ footer {
 .confirm-icon.warn { background: rgba(245, 158, 11, 0.1); color: var(--yellow); }
 .confirm-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px; letter-spacing: -0.2px; }
 .confirm-message { font-size: 14px; color: var(--text-muted); line-height: 1.55; margin-bottom: 28px; }
+.confirm-prompt-input {
+  width: 100%; box-sizing: border-box; font-size: 14px; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 11px 14px; margin: -14px 0 24px; text-align: center;
+}
+.confirm-prompt-input:focus { outline: none; border-color: var(--accent1); }
 .confirm-actions { display: flex; gap: 12px; justify-content: center; }
 .confirm-actions .modal-btn { flex: 1; }
 
@@ -2450,6 +2456,53 @@ img { -webkit-user-drag: none; }
 .elmodal-cancel-btn:hover { background: var(--surface3); color: var(--text); border-color: var(--border-hover); }
 
 /* ── Team / Workspace modal ── */
+#templateChooserOverlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 20px;
+}
+#templateChooserOverlay.open { opacity: 1; pointer-events: all; }
+#templateChooserModal {
+  background: var(--surface);
+  border: 1px solid var(--border-hover);
+  border-radius: 24px;
+  padding: 32px 30px 26px;
+  max-width: 460px; width: 100%; max-height: 85vh; overflow-y: auto;
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--border);
+  transform: translateY(14px) scale(0.97);
+  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
+}
+#templateChooserOverlay.open #templateChooserModal { transform: translateY(0) scale(1); }
+.template-chooser-list { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.template-chooser-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  cursor: pointer; text-align: left; width: 100%;
+  font-family: inherit; transition: background 0.15s ease, border-color 0.15s ease;
+}
+.template-chooser-item:hover { background: var(--surface3); border-color: var(--border-hover); }
+.template-chooser-item-icon {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: var(--accent1-dim); color: var(--accent1);
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+}
+.template-chooser-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.template-chooser-item-name { font-size: 13.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.template-chooser-item-meta { font-size: 11.5px; color: var(--text-muted); }
+.template-chooser-item-delete {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent;
+  color: var(--text-muted); cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.template-chooser-item-delete:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: var(--red); }
 #teamOverlay {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(0,0,0,0.65);
@@ -3256,6 +3309,7 @@ document.addEventListener('keydown', e => {
     <div class="confirm-icon" id="confirmIcon">!</div>
     <div class="confirm-title" id="confirmTitle">Are you sure?</div>
     <div class="confirm-message" id="confirmMessage"></div>
+    <input type="text" id="confirmPromptInput" class="confirm-prompt-input" style="display:none;" maxlength="60">
     <div class="confirm-actions" id="confirmActions">
       <button class="modal-btn secondary" id="confirmCancelBtn">Cancel</button>
       <button class="modal-btn primary" id="confirmOkBtn">Confirm</button>
@@ -3582,6 +3636,7 @@ async function resolveWorkspace(user){
     tasks:(legacyData&&legacyData.tasks)||{},
     deadlines:(legacyData&&legacyData.deadlines)||{},
     modelImages:(legacyData&&legacyData.modelImages)||{},
+    templates:(legacyData&&legacyData.templates)||{},
     deletedModels:(legacyData&&legacyData.deletedModels)||[],
     archivedModels:(legacyData&&legacyData.archivedModels)||[],
     pinnedModels:(legacyData&&legacyData.pinnedModels)||[],
@@ -3728,6 +3783,7 @@ function applyRemoteSnapshot(data){
   modelOrder=data.modelOrder||[];
   modelImages=data.modelImages||{};
   recycleBin=data.recycleBin||{};
+  templates=data.templates||{};
   ({tasks: state, deadlines}=loadState(data));
   // Local state now exactly matches the server — re-baseline so the next
   // save() correctly diffs against this, not stale pre-sync keys.
@@ -3938,13 +3994,14 @@ const RECYCLE_RETENTION_DAYS=30;
 // back, making a "deleted" model card reappear. lastSavedKeys tracks which
 // keys were last known to exist on the server so save() can explicitly
 // FieldValue.delete() any that vanished locally, instead of leaving them.
-let lastSavedKeys={tasks:new Set(),deadlines:new Set(),modelImages:new Set(),recycleBin:new Set()};
+let lastSavedKeys={tasks:new Set(),deadlines:new Set(),modelImages:new Set(),recycleBin:new Set(),templates:new Set()};
 function syncLastSavedKeysFromCurrent(){
   lastSavedKeys={
     tasks:new Set(Object.keys(state||{})),
     deadlines:new Set(Object.keys(deadlines||{})),
     modelImages:new Set(Object.keys(modelImages||{})),
-    recycleBin:new Set(Object.keys(recycleBin||{}))
+    recycleBin:new Set(Object.keys(recycleBin||{})),
+    templates:new Set(Object.keys(templates||{}))
   };
 }
 function withDeletionSentinels(currentObj,previousKeys){
@@ -3960,6 +4017,7 @@ function buildWorkspaceSavePayload(){
     deadlines:withDeletionSentinels(deadlines,lastSavedKeys.deadlines),
     modelImages:withDeletionSentinels(modelImages,lastSavedKeys.modelImages),
     recycleBin:withDeletionSentinels(recycleBin,lastSavedKeys.recycleBin),
+    templates:withDeletionSentinels(templates,lastSavedKeys.templates),
     deletedModels:[...deletedModelsSet],
     archivedModels:[...archivedModelsSet],
     pinnedModels:[...pinnedModelsSet],
@@ -4039,6 +4097,7 @@ function enterPreviewMode(){
   pinnedModelsSet = new Set();
   recycleBin = {};
   modelImages = {};
+  templates = {};
   setArchiveView(false);
   setRecycleView(false);
   setAnalyticsView(false);
@@ -4097,6 +4156,7 @@ async function handleAuthState(user){
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
     recycleBin=saved?.recycleBin||{};
+    templates=saved?.templates||{};
     // Baseline the merge-safe key tracker against what the server *actually*
     // has, before purgeExpiredRecycleItems() (below) removes anything
     // locally — otherwise that purge's removals would never get detected
@@ -4105,7 +4165,8 @@ async function handleAuthState(user){
       tasks:new Set(Object.keys(saved&&saved.tasks||{})),
       deadlines:new Set(Object.keys(saved&&saved.deadlines||{})),
       modelImages:new Set(Object.keys(modelImages)),
-      recycleBin:new Set(Object.keys(recycleBin))
+      recycleBin:new Set(Object.keys(recycleBin)),
+      templates:new Set(Object.keys(templates))
     };
     const expiredPurged=purgeExpiredRecycleItems();
     setArchiveView(false);
@@ -4281,6 +4342,12 @@ function loadState(saved) {
     if(!savedModel||!Array.isArray(savedModel)) return;
     const tasks=savedModel.map(t=>({...t}));
     tasks.forEach(t=>{if(!t.priority)t.priority='med';if(!t.notes)t.notes='';if(!t.taskDeadline)t.taskDeadline='';if(!Array.isArray(t.screenshots))t.screenshots=[];if(!t.startDate)t.startDate='';if(!Array.isArray(t.dependsOn))t.dependsOn=[];if(!t.createdAt)t.createdAt=null;if(!t.completedAt)t.completedAt=null;});
+    // BACKFILL: a task marked done should always have its subtasks marked
+    // done too. This runs on every load so tasks that were already
+    // completed before this rule existed (or completed some other way that
+    // slipped past it) get their subtasks caught up automatically, not just
+    // tasks completed going forward.
+    tasks.forEach(t=>{ if(t.done) completeAllSubtasks(t); });
     renumber(tasks);
     result[model]=tasks;
   });
@@ -4293,6 +4360,10 @@ function renumber(tasks){tasks.forEach((t,i)=>{t.sn=i+1;});}
 let state = {};
 let deadlines = {};
 let modelImages = {};
+// Reusable checklist templates a person can save from any model and apply
+// when creating a new one. Structural only — no dates, assignees, done
+// status, or screenshots — see stripTaskForTemplate().
+let templates = {};
 let models = [];
 let activeTab = '';
 let activeFilter = 'all';
@@ -4445,6 +4516,15 @@ function startDeadlineWatch(){
   checkDeadlinesAndNotify();
   if(_deadlineCheckInterval) clearInterval(_deadlineCheckInterval);
   _deadlineCheckInterval=setInterval(checkDeadlinesAndNotify, 60*60*1000);
+}
+
+// Marking a task done should also complete its subtasks — a "completed"
+// task shouldn't leave dangling incomplete subtasks behind (affects DONE
+// counts on the model card, filter chip counts, and the Overdue KPI).
+function completeAllSubtasks(task){
+  (Array.isArray(task.subtasks)?task.subtasks:[]).forEach(s=>{
+    if(!s.done){ s.done=true; s.status='done'; }
+  });
 }
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
@@ -5187,6 +5267,7 @@ function renderModelCards(){
         <div class="model-card-actions-row">
           <button class="row-action-btn edit model-card-action-btn model-rename-btn" title="Rename model" style="width:26px;height:26px;font-size:13px;" data-model="${m}">✎</button>
           <button class="row-action-btn edit model-card-action-btn model-duplicate-btn" title="Duplicate model" style="width:26px;height:26px;font-size:13px;margin-left:-2px;" data-model="${m}">⧉</button>
+          <button class="row-action-btn edit model-card-action-btn model-save-template-btn" title="Save checklist as template" style="width:26px;height:26px;font-size:13px;margin-left:4px;" data-model="${m}">📑</button>
           <button class="row-action-btn archive model-card-action-btn model-archive-btn" title="Archive model" style="width:26px;height:26px;font-size:13px;margin-left:4px;" data-model="${m}">🗄</button>
           <button class="row-action-btn delete model-card-action-btn model-delete-btn" title="Delete model" style="width:26px;height:26px;font-size:13px;margin-left:2px;" data-model="${m}">🗑</button>
         </div>`;
@@ -5337,6 +5418,15 @@ function renderModelCards(){
       dupBtn.addEventListener('click',e=>{
         e.stopPropagation();
         duplicateModel(m);
+      });
+    }
+
+    // Save as Template button click
+    const saveTplBtn=card.querySelector('.model-save-template-btn');
+    if(saveTplBtn){
+      saveTplBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        saveModelAsTemplate(m);
       });
     }
 
@@ -7208,7 +7298,14 @@ function renderTaskList(){
   // under the active filter/search, so it doesn't float alone when a filter
   // hides every completed row. Clicking it toggles whether the done rows
   // below are rendered; state is kept per model in expandedCompletedSet.
-  const visibleDoneCount=doneEntries.filter(e=>matchesFilter(e.task)).length;
+  // Counts each visible completed task plus its (done) subtasks, so the
+  // label reflects total completed items rather than just top-level tasks —
+  // consistent with how DONE is counted everywhere else (model card, filter
+  // chip counts).
+  const visibleDoneCount=doneEntries.filter(e=>matchesFilter(e.task)).reduce((sum,e)=>{
+    const doneSubCount=(Array.isArray(e.task.subtasks)?e.task.subtasks:[]).filter(s=>s.done).length;
+    return sum+1+doneSubCount;
+  },0);
   const isExpanded=expandedCompletedSet.has(activeTab);
   if(visibleDoneCount>0){
     const divider=document.createElement('div');
@@ -7748,7 +7845,7 @@ function renderCompare(){
       btn.onclick=()=>{
         const m=btn.dataset.model, n=btn.dataset.name;
         const t=state[m].find(x=>x.name===n);
-        if(t){t.done=!t.done;save();renderAll();}
+        if(t){t.done=!t.done;if(t.done)completeAllSubtasks(t);save();renderAll();}
       };
     });
     tbody.appendChild(row);
@@ -7811,6 +7908,7 @@ function setTaskStatus(model,idx,newStatus){
       task.done=true;
       task.status='done';
       task.completedAt=Date.now();
+      completeAllSubtasks(task);
       save();renderAll();
       toast('✓',`Marked done: ${task.name.slice(0,28)}`);
       logActivity('✓',`completed "${task.name}"`,model);
@@ -7932,6 +8030,126 @@ function moveTask(model,idx,dir){
   if(editingIdx!==null) editingIdx=null;
   save();renderAll();
 }
+// ── CHECKLIST TEMPLATES ───────────────────────────────────────────────────────
+// Strips a task down to just its reusable structure — name, priority, notes,
+// and subtask names/priorities — dropping anything tied to a specific launch
+// run (done status, dates, assignee, screenshots, dependencies).
+function stripTaskForTemplate(t){
+  return {
+    name:t.name,
+    priority:t.priority||'med',
+    notes:t.notes||'',
+    subtasks:(Array.isArray(t.subtasks)?t.subtasks:[]).map(s=>({name:s.name,priority:s.priority||'med'}))
+  };
+}
+// Turns a saved template back into a fresh, ready-to-use task list — every
+// task and subtask starts pending/undone, with its own blank dates/screenshots.
+function instantiateTemplateTasks(templateName){
+  const tpl=templates[templateName];
+  if(!tpl||!Array.isArray(tpl.tasks)) return [];
+  return tpl.tasks.map((t,i)=>({
+    sn:i+1,name:t.name,done:false,priority:t.priority||'med',notes:t.notes||'',taskDeadline:'',screenshots:[],
+    subtasks:(Array.isArray(t.subtasks)?t.subtasks:[]).map(s=>({name:s.name,done:false,priority:s.priority||'med',notes:'',taskDeadline:'',startDate:'',screenshots:[],status:'pending'}))
+  }));
+}
+async function saveModelAsTemplate(modelName){
+  const tasks=state[modelName]||[];
+  if(!tasks.length){await showAlert({title:'Nothing to save',message:`"${modelName}" doesn't have any tasks yet.`,tone:'warn'});return;}
+  const name=await showTextPrompt({
+    icon:'📑',
+    title:'Save as template',
+    message:`Give this checklist template a name. Any new model can reuse it later.`,
+    placeholder:'e.g. Standard Kettle Launch',
+    defaultValue:modelName,
+    confirmText:'Save Template'
+  });
+  const key=(name||'').trim();
+  if(!key) return;
+  if(templates[key]){
+    const overwrite=await showConfirm({icon:'📑',title:'Template already exists',message:`A template named "${key}" already exists. Overwrite it with this model's current checklist?`,confirmText:'Overwrite',danger:true});
+    if(!overwrite) return;
+  }
+  templates[key]={createdAt:Date.now(),tasks:tasks.map(stripTaskForTemplate)};
+  save();
+  toast('📑',`Template saved: ${key}`);
+  logActivity('📑',`saved model "${modelName}" as template "${key}"`,modelName);
+}
+async function deleteTemplate(name){
+  if(!templates[name]) return;
+  const ok=await showConfirm({icon:'🗑',title:'Delete template?',message:`"${name}" will be permanently deleted. Models already created from it are not affected.`,confirmText:'Delete',danger:true});
+  if(!ok) return false;
+  delete templates[name];
+  save();
+  toast('🗑',`Template deleted: ${name}`);
+  return true;
+}
+
+// showTemplateChooser(modelName) -> Promise<'blank'|'standard'|templateName|null>
+// Presented when a new model is created. Lists the standard checklist, a
+// blank start, and every saved custom template — each with an inline delete
+// button so templates can be cleaned up right from this picker.
+function showTemplateChooser(modelName){
+  return new Promise(resolveOuter=>{
+    const overlay=document.getElementById('templateChooserOverlay');
+    const descEl=document.getElementById('templateChooserDesc');
+    const listEl=document.getElementById('templateChooserList');
+    const cancelBtn=document.getElementById('templateChooserCancelBtn');
+    descEl.textContent=`"${modelName}" is ready. Choose how to start it.`;
+
+    function renderList(){
+      const customNames=Object.keys(templates).sort((a,b)=>a.localeCompare(b));
+      const rows=[
+        {choice:'standard',icon:'📋',name:'Standard Checklist',meta:`${STANDARD_TASK_TEMPLATE.length} steps`,deletable:false},
+        {choice:'blank',icon:'◻',name:'Blank',meta:'Start with no tasks',deletable:false},
+        ...customNames.map(n=>{
+          const tpl=templates[n];
+          const taskCount=(tpl.tasks||[]).length;
+          const subCount=(tpl.tasks||[]).reduce((s,t)=>s+((t.subtasks||[]).length),0);
+          return {choice:n,icon:'📑',name:n,meta:`${taskCount} task${taskCount===1?'':'s'}${subCount?` · ${subCount} subtask${subCount===1?'':'s'}`:''}`,deletable:true};
+        })
+      ];
+      listEl.innerHTML=rows.map(r=>`
+        <button class="template-chooser-item" data-choice="${escHtml(r.choice)}">
+          <span class="template-chooser-item-icon">${r.icon}</span>
+          <span class="template-chooser-item-info">
+            <span class="template-chooser-item-name">${escHtml(r.name)}</span>
+            <span class="template-chooser-item-meta">${escHtml(r.meta)}</span>
+          </span>
+          ${r.deletable?'<span class="template-chooser-item-delete" data-delete="'+escHtml(r.choice)+'" title="Delete template">🗑</span>':''}
+        </button>
+      `).join('');
+      listEl.querySelectorAll('.template-chooser-item').forEach(btn=>{
+        btn.onclick=e=>{
+          if(e.target.closest('.template-chooser-item-delete')) return;
+          cleanup(btn.dataset.choice);
+        };
+      });
+      listEl.querySelectorAll('.template-chooser-item-delete').forEach(delBtn=>{
+        delBtn.onclick=async e=>{
+          e.stopPropagation();
+          const name=delBtn.dataset.delete;
+          const deleted=await deleteTemplate(name);
+          if(deleted) renderList(); // stay open, just refresh the list
+        };
+      });
+    }
+
+    function cleanup(result){
+      overlay.classList.remove('open');
+      cancelBtn.onclick=null;overlay.onclick=null;
+      document.removeEventListener('keydown',escHandler);
+      resolveOuter(result);
+    }
+    function escHandler(e){ if(e.key==='Escape') cleanup(null); }
+
+    cancelBtn.onclick=()=>cleanup(null);
+    overlay.onclick=e=>{ if(e.target===overlay) cleanup(null); };
+    document.addEventListener('keydown',escHandler);
+    renderList();
+    overlay.classList.add('open');
+  });
+}
+
 // Model names are stored directly as Firestore field names (tasks.<name>,
 // deadlines.<name>, modelImages.<name>, recycleBin.<name>) — Firestore
 // rejects any field name that both starts AND ends with "__", so block
@@ -7946,18 +8164,14 @@ async function addModel(name,deadline){
   const key=trimmed.toUpperCase();
   if(Object.keys(state).some(m=>m.toUpperCase()===key)){await showAlert({title:'Model already exists',message:`A model named "${trimmed}" is already on your list.`,tone:'warn'});return;}
 
-  const useDefault=await showConfirm({
-    icon:'📋',
-    title:'Set up tasks for this model?',
-    message:`"${trimmed}" is ready. Load the standard task checklist, or start with a blank slate and add tasks manually?`,
-    confirmText:'Use Default Tasks',
-    cancelText:'Start Blank',
-    danger:false
-  });
+  const choice=await showTemplateChooser(trimmed);
+  if(choice===null) return; // cancelled — nothing has been written to state[trimmed] yet, so this is a full no-op
 
-  state[trimmed]=useDefault
-    ? STANDARD_TASK_TEMPLATE.map((n,i)=>({sn:i+1,name:n,done:false,priority:'med',notes:'',taskDeadline:'',screenshots:[]}))
-    : [];
+  state[trimmed]=choice==='blank'
+    ? []
+    : choice==='standard'
+      ? STANDARD_TASK_TEMPLATE.map((n,i)=>({sn:i+1,name:n,done:false,priority:'med',notes:'',taskDeadline:'',screenshots:[]}))
+      : instantiateTemplateTasks(choice);
   if(deadline)deadlines[trimmed]=deadline;
   deletedModelsSet.delete(trimmed);
   refreshModelsList();activeTab=trimmed;localStorage.setItem('mlc_activeTab',trimmed);editingIdx=null;save();renderAll();
@@ -8263,7 +8477,11 @@ document.getElementById('taskDeadlineModal').onclick=e=>{if(e.target===document.
 // ── BULK ACTIONS ──────────────────────────────────────────────────────────────
 document.getElementById('bulkDoneBtn').onclick=()=>{
   const n=selectedTasks.size;
-  selectedTasks.forEach(i=>{state[activeTab][i].done=true;state[activeTab][i].status='done';state[activeTab][i].completedAt=Date.now();});
+  selectedTasks.forEach(i=>{
+    const t=state[activeTab][i];
+    t.done=true;t.status='done';t.completedAt=Date.now();
+    completeAllSubtasks(t);
+  });
   selectedTasks.clear();save();renderAll();toast('✓',`Marked ${n} tasks done`);
   logActivity('✓',`marked ${n} task${n===1?'':'s'} done`,activeTab);
 };
@@ -8878,7 +9096,8 @@ function buildFullBackupPayload(){
     archivedModels:[...archivedModelsSet],
     pinnedModels:[...pinnedModelsSet],
     modelOrder:[...modelOrder],
-    recycleBin:JSON.parse(JSON.stringify(recycleBin))
+    recycleBin:JSON.parse(JSON.stringify(recycleBin)),
+    templates:JSON.parse(JSON.stringify(templates))
   };
 }
 
@@ -8965,6 +9184,14 @@ async function updateRestoreBackupBtn(){
 function mergeFullBackupIntoState(payload){
   let modelsAdded=0, modelsUpdated=0, tasksAdded=0, tasksSkipped=0, subtasksAdded=0, subtasksSkipped=0, extrasRestored=0;
   const backupModels=Object.keys(payload.tasks||{});
+
+  // Templates aren't tied to any model, so just fill in any missing ones —
+  // never overwrites a template that already exists under that name.
+  if(payload.templates){
+    Object.keys(payload.templates).forEach(name=>{
+      if(!templates[name]){ templates[name]=payload.templates[name]; extrasRestored++; }
+    });
+  }
 
   backupModels.forEach(m=>{
     const backupTasks=Array.isArray(payload.tasks[m])?payload.tasks[m]:[];
@@ -9473,6 +9700,7 @@ function showConfirm(opts){
       okBtn.className='modal-btn '+(opts.danger?'danger':'primary');
       actionsEl.style.display='flex';
       cancelBtn.style.display='';
+      document.getElementById('confirmPromptInput').style.display='none';
 
       function cleanup(result){
         overlay.classList.remove('open');
@@ -9512,6 +9740,7 @@ function showAlert(opts){
       okBtn.textContent='OK';
       okBtn.className='modal-btn primary';
       cancelBtn.style.display='none';
+      document.getElementById('confirmPromptInput').style.display='none';
 
       function cleanup(){
         overlay.classList.remove('open');
@@ -9528,6 +9757,61 @@ function showAlert(opts){
       document.addEventListener('keydown',escHandler);
       overlay.classList.add('open');
       okBtn.focus();
+    });
+    _runConfirmModalQueue();
+  });
+}
+
+// showTextPrompt({title,message,placeholder,defaultValue,confirmText,icon}) -> Promise<string|null>
+// Shares the same confirm modal, just reveals the text input and resolves
+// with its trimmed value (or null if cancelled/closed with nothing useful).
+function showTextPrompt(opts){
+  return new Promise(resolveOuter=>{
+    _confirmModalQueue.push(done=>{
+      const overlay=document.getElementById('confirmModal');
+      const iconEl=document.getElementById('confirmIcon');
+      const titleEl=document.getElementById('confirmTitle');
+      const msgEl=document.getElementById('confirmMessage');
+      const inputEl=document.getElementById('confirmPromptInput');
+      const okBtn=document.getElementById('confirmOkBtn');
+      const cancelBtn=document.getElementById('confirmCancelBtn');
+      const actionsEl=document.getElementById('confirmActions');
+
+      titleEl.textContent=opts.title||'Enter a name';
+      msgEl.textContent=opts.message||'';
+      iconEl.textContent=opts.icon||'✎';
+      iconEl.className='confirm-icon warn';
+      okBtn.textContent=opts.confirmText||'Save';
+      cancelBtn.textContent=opts.cancelText||'Cancel';
+      okBtn.className='modal-btn primary';
+      actionsEl.style.display='flex';
+      cancelBtn.style.display='';
+      inputEl.style.display='';
+      inputEl.placeholder=opts.placeholder||'';
+      inputEl.value=opts.defaultValue||'';
+
+      function cleanup(result){
+        overlay.classList.remove('open');
+        okBtn.onclick=null;cancelBtn.onclick=null;
+        overlay.onclick=null;inputEl.onkeydown=null;
+        inputEl.style.display='none';
+        document.removeEventListener('keydown',escHandler);
+        resolveOuter(result);
+        done();
+      }
+      function commit(){
+        const v=inputEl.value.trim();
+        cleanup(v||null);
+      }
+      function escHandler(e){ if(e.key==='Escape') cleanup(null); }
+
+      okBtn.onclick=commit;
+      cancelBtn.onclick=()=>cleanup(null);
+      overlay.onclick=e=>{ if(e.target===overlay) cleanup(null); };
+      inputEl.onkeydown=e=>{ if(e.key==='Enter'){e.preventDefault();commit();} };
+      document.addEventListener('keydown',escHandler);
+      overlay.classList.add('open');
+      setTimeout(()=>{ inputEl.focus(); inputEl.select(); },50);
     });
     _runConfirmModalQueue();
   });
@@ -9771,6 +10055,18 @@ updateStickyBarPin();
   </div>
 </div>
 
+<div id="templateChooserOverlay" role="dialog" aria-modal="true" aria-labelledby="templateChooserTitle">
+  <div id="templateChooserModal">
+    <div class="elmodal-icon" style="background:var(--accent1-dim);border-color:var(--border-hover);">📋</div>
+    <div class="elmodal-title" id="templateChooserTitle">Set up tasks</div>
+    <div class="elmodal-desc" id="templateChooserDesc">Choose how to start this model.</div>
+    <div class="template-chooser-list" id="templateChooserList"></div>
+    <div class="elmodal-actions" style="margin-top:20px;">
+      <button class="elmodal-cancel-btn" id="templateChooserCancelBtn" style="width:100%;">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div id="teamOverlay" role="dialog" aria-modal="true" aria-labelledby="teamModalTitle">
   <div id="teamModal">
     <div class="elmodal-icon" style="background:var(--accent1-dim);border-color:var(--border-hover);">👥</div>
@@ -9960,6 +10256,7 @@ async function switchToWorkspace(workspaceId){
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
     recycleBin=saved?.recycleBin||{};
+    templates=saved?.templates||{};
     // Re-baseline against the NEWLY loaded workspace's actual server data —
     // otherwise a later save() in this workspace would still be diffing
     // against the previous workspace's keys, which could wrongly delete
@@ -9968,7 +10265,8 @@ async function switchToWorkspace(workspaceId){
       tasks:new Set(Object.keys(saved&&saved.tasks||{})),
       deadlines:new Set(Object.keys(saved&&saved.deadlines||{})),
       modelImages:new Set(Object.keys(modelImages)),
-      recycleBin:new Set(Object.keys(recycleBin))
+      recycleBin:new Set(Object.keys(recycleBin)),
+      templates:new Set(Object.keys(templates))
     };
     purgeExpiredRecycleItems();
     setArchiveView(false);
