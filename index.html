@@ -2356,24 +2356,29 @@ kbd {
   .hdr-btn { min-height: 40px; }
   .notif-bell-btn { width: 40px; height: 40px; }
 
-  /* Tab bar: allow horizontal scroll instead of wrapping into a dense
-     multi-row block when there are many view tabs. */
+  /* Tab bar: wrap onto multiple lines on mobile instead of scrolling
+     horizontally — a horizontal-scroll strip was slicing the last tab's
+     text off at the screen edge with no visible cue to swipe. Wrapping
+     keeps every model name fully readable without any hidden content. */
   .tab-bar {
-    flex-wrap: nowrap; overflow-x: auto; max-width: 100%;
-    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    flex-wrap: wrap; overflow-x: visible; max-width: 100%;
   }
-  .tab-bar::-webkit-scrollbar { display: none; }
-  .tab-btn { white-space: nowrap; min-height: 38px; }
+  .tab-btn { white-space: normal; min-height: 38px; word-break: break-word; }
 
   /* The bar and its flex-item wrappers need explicit width/min-width
      rules, otherwise flex items refuse to shrink below their content
      size and the tab strip pushes the whole page wider instead of
-     scrolling within its own lane. This is what actually makes the
+     staying within the screen. This is what actually makes the
      model bar "shrink" to fit the phone screen. */
   #taskSectionWrap > div:first-of-type { width: 100%; }
   .sticky-model-bar { flex: 1 1 100%; width: 100%; min-width: 0; }
   .sticky-model-bar.is-pinned { width: 100% !important; left: 0 !important; padding-left: 0 !important; }
   #stickyModelBarSpacer { width: 100%; }
+
+  /* Pinned/frozen state is disabled on mobile via JS (updateStickyBarPin),
+     but as a CSS-level safety net also stop it visually locking in place
+     if that JS path is ever bypassed. */
+  .sticky-model-bar.is-pinned { position: static !important; top: auto !important; }
 
   /* Filter bar: search box drops to full width below the filter chips
      rather than squeezing into whatever space is left. */
@@ -5687,8 +5692,7 @@ function renderModelCards(){
     card.addEventListener('click',()=>{
       if(_didDrag||isRenaming){ _didDrag=false; return; }
       activeTab=m;localStorage.setItem('mlc_activeTab',m);editingIdx=null;selectedTasks.clear();selectedSubtasks.clear();renderAll();
-      const target=document.getElementById('taskChecklistLabel');
-      if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
+      scrollToTaskChecklist();
     });
 
     // ── Drag & Drop ──
@@ -6468,7 +6472,14 @@ if(document.getElementById('emptyRecycleBinBtn')){
 
 // ── TABS & FILTERS ────────────────────────────────────────────────────────────
 function scrollToTaskChecklist(){
-  const target=document.getElementById('taskChecklistLabel');
+  // On mobile the tab bar now wraps onto multiple lines and the toolbar
+  // buttons (Timeline/Analytics/Export/etc.) wrap too, so scrolling only to
+  // the "Task Checklist" label still leaves the actual tasks hidden below
+  // several extra rows. Scroll straight to the task list itself instead.
+  const isMobile=window.innerWidth<=768;
+  const target=isMobile
+    ? document.getElementById('checklistTable')
+    : document.getElementById('taskChecklistLabel');
   if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
