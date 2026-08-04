@@ -2362,6 +2362,16 @@ kbd {
   .tab-bar::-webkit-scrollbar { display: none; }
   .tab-btn { white-space: nowrap; min-height: 38px; }
 
+  /* The bar and its flex-item wrappers need explicit width/min-width
+     rules, otherwise flex items refuse to shrink below their content
+     size and the tab strip pushes the whole page wider instead of
+     scrolling within its own lane. This is what actually makes the
+     model bar "shrink" to fit the phone screen. */
+  #taskSectionWrap > div:first-of-type { width: 100%; }
+  .sticky-model-bar { flex: 1 1 100%; width: 100%; min-width: 0; }
+  .sticky-model-bar.is-pinned { width: 100% !important; left: 0 !important; padding-left: 0 !important; }
+  #stickyModelBarSpacer { width: 100%; }
+
   /* Filter bar: search box drops to full width below the filter chips
      rather than squeezing into whatever space is left. */
   .filter-bar { gap: 8px 10px; }
@@ -10318,6 +10328,19 @@ function captureStickyBarOrigin(){
 }
 
 function updateStickyBarPin(){
+  // On mobile, freezing the model bar eats the vertical space needed to see
+  // tasks/subtasks, so never pin it below the 768px breakpoint used
+  // elsewhere in the app — just let it scroll away normally.
+  if(window.innerWidth<=768){
+    if(stickyBarEl.classList.contains('is-pinned')){
+      stickyBarEl.classList.remove('is-pinned');
+      stickyBarEl.style.left='';
+      stickyBarEl.style.width='';
+      stickyBarEl.style.paddingLeft='';
+      stickyBarSpacer.classList.remove('show');
+    }
+    return;
+  }
   if(stickyBarOriginalTop===null) captureStickyBarOrigin();
   const shouldPin=window.scrollY>=stickyBarOriginalTop;
   if(shouldPin&&!stickyBarEl.classList.contains('is-pinned')){
