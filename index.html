@@ -249,6 +249,7 @@ body {
   color: var(--text);
   font-family: 'Sora', sans-serif;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   transition: background 0.4s ease, color 0.4s ease;
   -webkit-font-smoothing: antialiased;
@@ -1512,6 +1513,14 @@ footer {
   box-shadow: 0 4px 14px var(--accent1-dim);
 }
 .add-task-btn:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent1-dim); }
+.template-select-btn {
+  padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: 14px; font-weight: 400; cursor: pointer;
+  white-space: nowrap; transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+.template-select-btn:hover { border-color: var(--accent1); box-shadow: 0 0 0 3px var(--accent1-dim); }
 .add-model-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
 /* ── BULK ACTION BAR ── */
@@ -1954,6 +1963,12 @@ footer {
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+.btn-spinner {
+  width: 13px; height: 13px; border: 2px solid var(--border);
+  border-top-color: var(--accent1); border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0; display: inline-block;
+}
 #authLoading p { font-size: 14px; color: var(--text-muted); }
 /* User info in header */
 .user-badge {
@@ -2312,6 +2327,88 @@ kbd {
   }
 }
 
+/* ── MOBILE UX POLISH (touch targets, zoom-prevention, modal ergonomics) ──
+   Applies on top of the breakpoints above: fixes iOS input auto-zoom,
+   enlarges tap targets to the ~40-44px comfort zone, makes modals behave
+   like proper mobile sheets (capped height, scrollable, stacked actions,
+   safe-area aware), and tames a few remaining desktop-only layouts. ── */
+@media (max-width: 768px) {
+  /* Prevent iOS Safari from auto-zooming the page when a <16px input
+     is focused — every text input/textarea/select gets bumped to 16px. */
+  input, textarea, select { font-size: 16px !important; }
+  .search-box, .modal-textarea, #globalSearchInput { font-size: 16px !important; }
+
+  /* Kill the sticky grey tap-flash on buttons/links; we already have
+     our own hover/active states so the native highlight just looks buggy. */
+  a, button, .hdr-btn, .tab-btn, .filter-btn, .row-action-btn,
+  .kpi-card, .model-card, .task-row, .subtask-row {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Bigger, easier-to-hit row action icons (edit/delete/archive/etc). */
+  .row-action-btn { width: 38px; height: 38px; font-size: 15px; }
+  .subtask-toggle-btn { width: 26px; height: 26px; }
+
+  /* Header buttons get a touch-friendly minimum height. */
+  .hdr-btn { min-height: 40px; }
+  .notif-bell-btn { width: 40px; height: 40px; }
+
+  /* Tab bar: allow horizontal scroll instead of wrapping into a dense
+     multi-row block when there are many view tabs. */
+  .tab-bar {
+    flex-wrap: nowrap; overflow-x: auto; max-width: 100%;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; min-height: 38px; }
+
+  /* Filter bar: search box drops to full width below the filter chips
+     rather than squeezing into whatever space is left. */
+  .filter-bar { gap: 8px 10px; }
+  .search-box { margin-left: 0; flex: 1 1 100%; order: 99; }
+  .filter-btn { min-height: 36px; padding: 8px 14px; }
+
+  /* Modals: behave like a mobile sheet — capped to the viewport, own
+     scroll for long content, comfortably padded but not wasteful,
+     and safe-area aware for notched phones. */
+  .modal-overlay { padding: 12px; align-items: flex-end; }
+  .modal-box {
+    width: 100%; max-width: 100%;
+    max-height: 88vh; overflow-y: auto;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    animation: modalInMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes modalInMobile { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  .modal-title { font-size: 18px; }
+  .modal-actions { flex-direction: column-reverse; gap: 10px; }
+  .modal-actions .modal-btn { width: 100%; min-height: 46px; }
+  .confirm-actions.modal-actions { flex-direction: column-reverse; }
+
+  /* KPI cards: tighter padding + smaller figure so 2-up rows stay
+     comfortable, instead of desktop sizing squeezed into half-width. */
+  .kpi-card { padding: 18px 16px; border-radius: 14px; }
+  .kpi-value { font-size: 30px; }
+  .kpi-label { font-size: 10px; margin-bottom: 8px; }
+
+  /* Model cards: stack stats/actions with enough breathing room and
+     make sure any inline action rows keep full-width tap targets. */
+  .model-stats { gap: 16px; flex-wrap: wrap; }
+  .archive-card-actions button { min-height: 42px; }
+
+  /* Gantt view is inherently a wide-canvas tool; make sure it scrolls
+     rather than crushing bars unreadably, and hint that it's scrollable. */
+  .gantt-toolbar { padding: 12px 14px; }
+  .gantt-labels { width: 120px; }
+  .gantt-label-name { font-size: 11.5px; }
+}
+
+@media (max-width: 480px) {
+  .modal-box { padding: 20px 16px calc(18px + env(safe-area-inset-bottom)); }
+  .kpi-value { font-size: 26px; }
+  .filter-btn { font-size: 11.5px; padding: 7px 12px; }
+}
+
 /* ── COPY PROTECTION: disable text selection/drag ── */
 html, body, * {
   -webkit-user-select: none;
@@ -2503,6 +2600,85 @@ img { -webkit-user-drag: none; }
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .template-chooser-item-delete:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: var(--red); }
+.template-chooser-item-edit {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent;
+  color: var(--text-muted); cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.template-chooser-item-edit:hover { background: var(--accent1-dim); border-color: var(--border-hover); color: var(--accent1); }
+#templateEditorOverlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 20px;
+}
+#templateEditorOverlay.open { opacity: 1; pointer-events: all; }
+#templateEditorModal {
+  background: var(--surface);
+  border: 1px solid var(--border-hover);
+  border-radius: 24px;
+  padding: 32px 30px 26px;
+  max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto;
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--border);
+  transform: translateY(14px) scale(0.97);
+  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
+}
+#templateEditorOverlay.open #templateEditorModal { transform: translateY(0) scale(1); }
+.te-name-input {
+  width: 100%; box-sizing: border-box; font-size: 16px; font-weight: 700; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px 14px; margin-top: 16px; text-align: center;
+}
+.te-name-input:focus { outline: none; border-color: var(--accent1); }
+.te-task-list { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; max-height: 46vh; overflow-y: auto; }
+.te-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 18px 0; }
+.te-task-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 8px 10px; }
+.te-task-main { display: flex; align-items: center; gap: 6px; }
+.te-move-col { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+.te-move-btn {
+  width: 18px; height: 15px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 9px;
+  border-radius: 4px;
+}
+.te-move-btn:hover:not(:disabled) { background: var(--surface3); color: var(--text); }
+.te-move-btn:disabled { opacity: 0.25; cursor: default; }
+.te-task-name-input {
+  flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text);
+  background: transparent; border: none; border-bottom: 1px solid transparent; padding: 6px 4px;
+}
+.te-task-name-input:focus { outline: none; border-bottom-color: var(--accent1); }
+.te-priority-select {
+  flex-shrink: 0; font-size: 11.5px; color: var(--text-muted); background: var(--surface3);
+  border: 1px solid var(--border); border-radius: 8px; padding: 5px 6px; cursor: pointer;
+}
+.te-icon-btn {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent; color: var(--text-muted);
+  cursor: pointer; font-size: 12px; white-space: nowrap; padding: 0 4px;
+}
+.te-expand-btn { width: auto; min-width: 26px; }
+.te-icon-btn:hover { background: var(--surface3); color: var(--text); border-color: var(--border-hover); }
+.te-delete-btn:hover, .te-sub-delete-btn:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: var(--red); }
+.te-subtask-list { margin: 8px 0 2px 30px; padding-left: 12px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.te-subtask-row { display: flex; align-items: center; gap: 6px; }
+.te-subtask-name-input {
+  flex: 1; min-width: 0; font-size: 12.5px; color: var(--text);
+  background: transparent; border: none; border-bottom: 1px solid transparent; padding: 5px 4px;
+}
+.te-subtask-name-input:focus { outline: none; border-bottom-color: var(--accent1); }
+.te-add-sub-btn, .te-add-task-btn {
+  font-size: 12px; font-weight: 600; color: var(--accent1); background: transparent;
+  border: 1px dashed var(--border-hover); border-radius: 10px; padding: 7px 10px; cursor: pointer; text-align: center;
+}
+.te-add-sub-btn:hover, .te-add-task-btn:hover { background: var(--accent1-dim); }
+.te-add-task-btn { width: 100%; margin-top: 12px; padding: 10px; }
 #teamOverlay {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(0,0,0,0.65);
@@ -2764,7 +2940,7 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="exportAllExcelBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#21a366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="11" x2="10" y2="19"/></svg><span>Export as Excel</span></button>
         <button class="menu-item" id="exportAllPdfBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#e5484d" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="#e5484d" stroke-width="2"/><line x1="7.5" y1="13" x2="16.5" y2="13" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="16" x2="16.5" y2="16" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="19" x2="13" y2="19" stroke="#e5484d" stroke-width="1.6"/></svg><span>Export as PDF</span></button>
         <div class="menu-divider"></div>
-        <button class="menu-item" id="backupNowBtn" title="Save a local backup right now (replaces the previous one — only the latest is ever kept)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="backupNowLabel">Backup Now</span></button>
+        <button class="menu-item" id="backupNowBtn" title="Save a local backup right now (replaces the previous one — only the latest is ever kept)"><svg id="backupNowIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="btn-spinner" id="backupNowSpinner" style="display:none;"></span><span id="backupNowLabel">Backup Now</span></button>
         <button class="menu-item" id="restoreBackupBtn" title="No backup yet — use &quot;Backup Now&quot; once to create one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span id="restoreBackupLabel">Restore Last Backup</span></button>
       </div>
     </div>
@@ -2816,6 +2992,7 @@ document.addEventListener('keydown', e => {
       <input type="date" id="newModelDeadline" class="add-task-input" title="Set target launch date">
       <span class="date-field-placeholder" id="newModelDeadlinePlaceholder">Set Deadline</span>
     </div>
+    <button class="template-select-btn" id="manageTemplatesBtn" title="Manage saved checklist templates"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:-2px;margin-right:6px;"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>Templates</button>
     <button class="add-task-btn" id="addModelBtn">Add Model</button>
   </div>
 </div>
@@ -3636,7 +3813,8 @@ async function resolveWorkspace(user){
     tasks:(legacyData&&legacyData.tasks)||{},
     deadlines:(legacyData&&legacyData.deadlines)||{},
     modelImages:(legacyData&&legacyData.modelImages)||{},
-    templates:(legacyData&&legacyData.templates)||{},
+    templates:(legacyData&&legacyData.templates)||{'Standard Checklist':buildDefaultStandardTemplate()},
+    standardTemplateSeeded:true,
     deletedModels:(legacyData&&legacyData.deletedModels)||[],
     archivedModels:(legacyData&&legacyData.archivedModels)||[],
     pinnedModels:(legacyData&&legacyData.pinnedModels)||[],
@@ -3784,6 +3962,7 @@ function applyRemoteSnapshot(data){
   modelImages=data.modelImages||{};
   recycleBin=data.recycleBin||{};
   templates=data.templates||{};
+  standardTemplateSeeded=!!data.standardTemplateSeeded;
   ({tasks: state, deadlines}=loadState(data));
   // Local state now exactly matches the server — re-baseline so the next
   // save() correctly diffs against this, not stale pre-sync keys.
@@ -4022,6 +4201,7 @@ function buildWorkspaceSavePayload(){
     archivedModels:[...archivedModelsSet],
     pinnedModels:[...pinnedModelsSet],
     modelOrder:[...modelOrder],
+    standardTemplateSeeded:!!standardTemplateSeeded,
     updatedAt:firebase.firestore.FieldValue.serverTimestamp()
   };
 }
@@ -4098,6 +4278,8 @@ function enterPreviewMode(){
   recycleBin = {};
   modelImages = {};
   templates = {};
+  standardTemplateSeeded = false;
+  seedStandardTemplateIfNeeded();
   setArchiveView(false);
   setRecycleView(false);
   setAnalyticsView(false);
@@ -4157,6 +4339,7 @@ async function handleAuthState(user){
     modelImages=saved?.modelImages||{};
     recycleBin=saved?.recycleBin||{};
     templates=saved?.templates||{};
+    standardTemplateSeeded=!!(saved&&saved.standardTemplateSeeded);
     // Baseline the merge-safe key tracker against what the server *actually*
     // has, before purgeExpiredRecycleItems() (below) removes anything
     // locally — otherwise that purge's removals would never get detected
@@ -4168,6 +4351,10 @@ async function handleAuthState(user){
       recycleBin:new Set(Object.keys(recycleBin)),
       templates:new Set(Object.keys(templates))
     };
+    // One-time seed of the built-in Standard Checklist as a real, editable
+    // template — done after baselining lastSavedKeys so the next save()
+    // correctly recognizes it as a genuinely new key to write, not a stale one.
+    seedStandardTemplateIfNeeded();
     const expiredPurged=purgeExpiredRecycleItems();
     setArchiveView(false);
     setRecycleView(false);
@@ -4364,6 +4551,19 @@ let modelImages = {};
 // when creating a new one. Structural only — no dates, assignees, done
 // status, or screenshots — see stripTaskForTemplate().
 let templates = {};
+// Tracks whether the built-in "Standard Checklist" has ever been seeded into
+// `templates` for this workspace. Seeded exactly once (see seedStandardTemplateIfNeeded)
+// so that deleting or renaming it afterward sticks instead of reappearing on
+// the next reload/sync.
+let standardTemplateSeeded = false;
+function buildDefaultStandardTemplate(){
+  return {createdAt:Date.now(),tasks:STANDARD_TASK_TEMPLATE.map(n=>({name:n,priority:'med',notes:'',subtasks:[]}))};
+}
+function seedStandardTemplateIfNeeded(){
+  if(standardTemplateSeeded) return;
+  if(!templates['Standard Checklist']) templates['Standard Checklist']=buildDefaultStandardTemplate();
+  standardTemplateSeeded=true;
+}
 let models = [];
 let activeTab = '';
 let activeFilter = 'all';
@@ -5267,7 +5467,7 @@ function renderModelCards(){
         <div class="model-card-actions-row">
           <button class="row-action-btn edit model-card-action-btn model-rename-btn" title="Rename model" style="width:26px;height:26px;font-size:13px;" data-model="${m}">✎</button>
           <button class="row-action-btn edit model-card-action-btn model-duplicate-btn" title="Duplicate model" style="width:26px;height:26px;font-size:13px;margin-left:-2px;" data-model="${m}">⧉</button>
-          <button class="row-action-btn edit model-card-action-btn model-save-template-btn" title="Save checklist as template" style="width:26px;height:26px;font-size:13px;margin-left:4px;" data-model="${m}">📑</button>
+          <button class="row-action-btn edit model-card-action-btn model-save-template-btn" title="Save checklist as template" style="width:26px;height:26px;margin-left:4px;" data-model="${m}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></button>
           <button class="row-action-btn archive model-card-action-btn model-archive-btn" title="Archive model" style="width:26px;height:26px;font-size:13px;margin-left:4px;" data-model="${m}">🗄</button>
           <button class="row-action-btn delete model-card-action-btn model-delete-btn" title="Delete model" style="width:26px;height:26px;font-size:13px;margin-left:2px;" data-model="${m}">🗑</button>
         </div>`;
@@ -8084,30 +8284,184 @@ async function deleteTemplate(name){
   return true;
 }
 
-// showTemplateChooser(modelName) -> Promise<'blank'|'standard'|templateName|null>
-// Presented when a new model is created. Lists the standard checklist, a
-// blank start, and every saved custom template — each with an inline delete
-// button so templates can be cleaned up right from this picker.
-function showTemplateChooser(modelName){
+// ── TEMPLATE EDITOR ───────────────────────────────────────────────────────────
+// A working draft of the template's tasks, edited in memory and only written
+// back to `templates[name]` when Save Template is clicked — Cancel discards
+// everything. `teExpandedSet` tracks which task rows have their subtasks open.
+let teDraftTasks=[];
+let teDraftOriginalName='';
+let teExpandedSet=new Set();
+let teOnCloseRefresh=null;
+
+function openTemplateEditor(name,onCloseRefresh){
+  const tpl=templates[name];
+  if(!tpl) return;
+  teDraftOriginalName=name;
+  teDraftTasks=JSON.parse(JSON.stringify(tpl.tasks||[]));
+  teExpandedSet=new Set();
+  teOnCloseRefresh=typeof onCloseRefresh==='function'?onCloseRefresh:null;
+  document.getElementById('templateEditorNameInput').value=name;
+  renderTemplateEditor();
+  document.getElementById('templateEditorOverlay').classList.add('open');
+}
+function closeTemplateEditor(){
+  document.getElementById('templateEditorOverlay').classList.remove('open');
+}
+function renderTemplateEditor(){
+  const listEl=document.getElementById('templateEditorTaskList');
+  if(!teDraftTasks.length){
+    listEl.innerHTML='<div class="te-empty">No tasks yet — add one below.</div>';
+  } else {
+    listEl.innerHTML=teDraftTasks.map((t,i)=>{
+      const expanded=teExpandedSet.has(i);
+      const subs=Array.isArray(t.subtasks)?t.subtasks:[];
+      return `
+      <div class="te-task-row" data-idx="${i}">
+        <div class="te-task-main">
+          <div class="te-move-col">
+            <button class="te-move-btn" data-act="up" ${i===0?'disabled':''} title="Move up">▲</button>
+            <button class="te-move-btn" data-act="down" ${i===teDraftTasks.length-1?'disabled':''} title="Move down">▼</button>
+          </div>
+          <input type="text" class="te-task-name-input" value="${escHtml(t.name)}" placeholder="Task name">
+          <select class="te-priority-select">
+            <option value="high" ${t.priority==='high'?'selected':''}>High</option>
+            <option value="med" ${(!t.priority||t.priority==='med')?'selected':''}>Med</option>
+            <option value="low" ${t.priority==='low'?'selected':''}>Low</option>
+          </select>
+          <button class="te-icon-btn te-expand-btn" data-act="expand" title="Subtasks">${expanded?'▾':'▸'}${subs.length?' '+subs.length:''}</button>
+          <button class="te-icon-btn te-delete-btn" data-act="delete" title="Delete task">🗑</button>
+        </div>
+        ${expanded?`
+        <div class="te-subtask-list">
+          ${subs.map((s,si)=>`
+            <div class="te-subtask-row" data-sidx="${si}">
+              <input type="text" class="te-subtask-name-input" value="${escHtml(s.name)}" placeholder="Subtask name">
+              <select class="te-priority-select">
+                <option value="high" ${s.priority==='high'?'selected':''}>High</option>
+                <option value="med" ${(!s.priority||s.priority==='med')?'selected':''}>Med</option>
+                <option value="low" ${s.priority==='low'?'selected':''}>Low</option>
+              </select>
+              <button class="te-icon-btn te-sub-delete-btn" data-act="delete-sub" title="Delete subtask">🗑</button>
+            </div>
+          `).join('')}
+          <button class="te-add-sub-btn" data-act="add-sub">＋ Add Subtask</button>
+        </div>`:''}
+      </div>`;
+    }).join('');
+  }
+  wireTemplateEditorEvents();
+}
+function wireTemplateEditorEvents(){
+  const listEl=document.getElementById('templateEditorTaskList');
+  listEl.querySelectorAll('.te-task-row').forEach(row=>{
+    const idx=Number(row.dataset.idx);
+    const mainEl=row.querySelector('.te-task-main');
+    const nameInput=mainEl.querySelector('.te-task-name-input');
+    if(nameInput) nameInput.oninput=()=>{ teDraftTasks[idx].name=nameInput.value; };
+    const prioSelect=mainEl.querySelector('.te-priority-select');
+    if(prioSelect) prioSelect.onchange=()=>{ teDraftTasks[idx].priority=prioSelect.value; };
+    mainEl.querySelector('[data-act="up"]').onclick=()=>{
+      if(idx>0){ [teDraftTasks[idx-1],teDraftTasks[idx]]=[teDraftTasks[idx],teDraftTasks[idx-1]]; renderTemplateEditor(); }
+    };
+    mainEl.querySelector('[data-act="down"]').onclick=()=>{
+      if(idx<teDraftTasks.length-1){ [teDraftTasks[idx+1],teDraftTasks[idx]]=[teDraftTasks[idx],teDraftTasks[idx+1]]; renderTemplateEditor(); }
+    };
+    mainEl.querySelector('[data-act="delete"]').onclick=()=>{
+      teDraftTasks.splice(idx,1); teExpandedSet.delete(idx); renderTemplateEditor();
+    };
+    mainEl.querySelector('[data-act="expand"]').onclick=()=>{
+      if(teExpandedSet.has(idx)) teExpandedSet.delete(idx); else teExpandedSet.add(idx);
+      renderTemplateEditor();
+    };
+
+    row.querySelectorAll('.te-subtask-row').forEach(subRow=>{
+      const sidx=Number(subRow.dataset.sidx);
+      const subNameInput=subRow.querySelector('.te-subtask-name-input');
+      if(subNameInput) subNameInput.oninput=()=>{ teDraftTasks[idx].subtasks[sidx].name=subNameInput.value; };
+      const subPrioSelect=subRow.querySelector('.te-priority-select');
+      if(subPrioSelect) subPrioSelect.onchange=()=>{ teDraftTasks[idx].subtasks[sidx].priority=subPrioSelect.value; };
+      const subDelBtn=subRow.querySelector('[data-act="delete-sub"]');
+      if(subDelBtn) subDelBtn.onclick=()=>{ teDraftTasks[idx].subtasks.splice(sidx,1); renderTemplateEditor(); };
+    });
+    const addSubBtn=row.querySelector('[data-act="add-sub"]');
+    if(addSubBtn) addSubBtn.onclick=()=>{
+      if(!Array.isArray(teDraftTasks[idx].subtasks)) teDraftTasks[idx].subtasks=[];
+      teDraftTasks[idx].subtasks.push({name:'NEW SUBTASK',priority:'med'});
+      teExpandedSet.add(idx);
+      renderTemplateEditor();
+    };
+  });
+}
+// NOTE: these buttons live in HTML that's parsed AFTER this script block
+// closes, so getElementById(...) would be null here — the actual
+// addEventListener wiring for #templateEditorAddTaskBtn/CancelBtn/SaveBtn/
+// Overlay happens later, right after that HTML exists (search
+// "TEMPLATE EDITOR BUTTON WIRING").
+async function commitTemplateEditorSave(){
+  const newName=(document.getElementById('templateEditorNameInput').value||'').trim();
+  if(!newName){ await showAlert({title:'Name required',message:'Give the template a name before saving.',tone:'warn'}); return; }
+  const cleanedTasks=teDraftTasks.map(t=>({
+    name:(t.name||'').trim()||'UNTITLED TASK',
+    priority:t.priority||'med',
+    notes:t.notes||'',
+    subtasks:(Array.isArray(t.subtasks)?t.subtasks:[]).map(s=>({name:(s.name||'').trim()||'UNTITLED SUBTASK',priority:s.priority||'med'}))
+  }));
+  if(newName!==teDraftOriginalName && templates[newName]){
+    const overwrite=await showConfirm({icon:'📑',title:'Template already exists',message:`A template named "${newName}" already exists. Overwrite it?`,confirmText:'Overwrite',danger:true});
+    if(!overwrite) return;
+  }
+  const createdAt=(templates[teDraftOriginalName]&&templates[teDraftOriginalName].createdAt)||Date.now();
+  if(newName!==teDraftOriginalName) delete templates[teDraftOriginalName];
+  templates[newName]={createdAt,tasks:cleanedTasks};
+  save();
+  toast('📑',`Template saved: ${newName}`);
+  closeTemplateEditor();
+  if(teOnCloseRefresh) teOnCloseRefresh();
+}
+
+// showTemplateChooser(modelName, manageOnly) -> Promise<'blank'|templateName|null>
+// Presented when a new model is created (manageOnly=false), or from the
+// "Manage Templates" button (manageOnly=true, no model involved — clicking
+// a template opens the editor instead of picking it, and there's no
+// "Blank" option since there's nothing to manage there).
+// Every template — including the built-in "Standard Checklist" — is stored
+// in `templates` and gets the same Edit/Delete controls; nothing is special-
+// cased anymore, which is what makes Standard Checklist itself editable.
+function showTemplateChooser(modelName,manageOnly){
   return new Promise(resolveOuter=>{
     const overlay=document.getElementById('templateChooserOverlay');
+    const titleEl=document.getElementById('templateChooserTitle');
     const descEl=document.getElementById('templateChooserDesc');
     const listEl=document.getElementById('templateChooserList');
     const cancelBtn=document.getElementById('templateChooserCancelBtn');
-    descEl.textContent=`"${modelName}" is ready. Choose how to start it.`;
+    titleEl.textContent=manageOnly?'Manage Templates':'Set up tasks';
+    descEl.textContent=manageOnly
+      ? 'Click a template to edit it, or delete ones you no longer need.'
+      : `"${modelName}" is ready. Choose how to start it.`;
+    cancelBtn.textContent=manageOnly?'Close':'Cancel';
 
     function renderList(){
-      const customNames=Object.keys(templates).sort((a,b)=>a.localeCompare(b));
+      const customNames=Object.keys(templates).sort((a,b)=>{
+        // Standard Checklist always floats to the top; the rest alphabetical.
+        if(a==='Standard Checklist') return -1;
+        if(b==='Standard Checklist') return 1;
+        return a.localeCompare(b);
+      });
+      const ICON_LAYERS='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>';
+      const ICON_CLIPBOARD_CHECK='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><path d="m9 14 2 2 4-4"/></svg>';
       const rows=[
-        {choice:'standard',icon:'📋',name:'Standard Checklist',meta:`${STANDARD_TASK_TEMPLATE.length} steps`,deletable:false},
-        {choice:'blank',icon:'◻',name:'Blank',meta:'Start with no tasks',deletable:false},
+        ...(manageOnly?[]:[{choice:'blank',icon:'◻',name:'Blank',meta:'Start with no tasks',editable:false,deletable:false}]),
         ...customNames.map(n=>{
           const tpl=templates[n];
           const taskCount=(tpl.tasks||[]).length;
           const subCount=(tpl.tasks||[]).reduce((s,t)=>s+((t.subtasks||[]).length),0);
-          return {choice:n,icon:'📑',name:n,meta:`${taskCount} task${taskCount===1?'':'s'}${subCount?` · ${subCount} subtask${subCount===1?'':'s'}`:''}`,deletable:true};
+          return {choice:n,icon:n==='Standard Checklist'?ICON_CLIPBOARD_CHECK:ICON_LAYERS,name:n,meta:`${taskCount} task${taskCount===1?'':'s'}${subCount?` · ${subCount} subtask${subCount===1?'':'s'}`:''}`,editable:true,deletable:true};
         })
       ];
+      if(!rows.length){
+        listEl.innerHTML='<div class="te-empty">No templates saved yet — use "Save as Template" on any model.</div>';
+        return;
+      }
       listEl.innerHTML=rows.map(r=>`
         <button class="template-chooser-item" data-choice="${escHtml(r.choice)}">
           <span class="template-chooser-item-icon">${r.icon}</span>
@@ -8115,16 +8469,25 @@ function showTemplateChooser(modelName){
             <span class="template-chooser-item-name">${escHtml(r.name)}</span>
             <span class="template-chooser-item-meta">${escHtml(r.meta)}</span>
           </span>
+          ${r.editable?'<span class="template-chooser-item-edit" data-edit="'+escHtml(r.choice)+'" title="Edit template">✎</span>':''}
           ${r.deletable?'<span class="template-chooser-item-delete" data-delete="'+escHtml(r.choice)+'" title="Delete template">🗑</span>':''}
         </button>
       `).join('');
       listEl.querySelectorAll('.template-chooser-item').forEach(btn=>{
         btn.onclick=e=>{
-          if(e.target.closest('.template-chooser-item-delete')) return;
-          cleanup(btn.dataset.choice);
+          if(e.target.closest('[data-delete],[data-edit]')) return;
+          const choice=btn.dataset.choice;
+          if(manageOnly) openTemplateEditor(choice,renderList);
+          else cleanup(choice);
         };
       });
-      listEl.querySelectorAll('.template-chooser-item-delete').forEach(delBtn=>{
+      listEl.querySelectorAll('[data-edit]').forEach(editBtn=>{
+        editBtn.onclick=e=>{
+          e.stopPropagation();
+          openTemplateEditor(editBtn.dataset.edit,renderList);
+        };
+      });
+      listEl.querySelectorAll('[data-delete]').forEach(delBtn=>{
         delBtn.onclick=async e=>{
           e.stopPropagation();
           const name=delBtn.dataset.delete;
@@ -8164,14 +8527,10 @@ async function addModel(name,deadline){
   const key=trimmed.toUpperCase();
   if(Object.keys(state).some(m=>m.toUpperCase()===key)){await showAlert({title:'Model already exists',message:`A model named "${trimmed}" is already on your list.`,tone:'warn'});return;}
 
-  const choice=await showTemplateChooser(trimmed);
+  const choice=await showTemplateChooser(trimmed,false);
   if(choice===null) return; // cancelled — nothing has been written to state[trimmed] yet, so this is a full no-op
 
-  state[trimmed]=choice==='blank'
-    ? []
-    : choice==='standard'
-      ? STANDARD_TASK_TEMPLATE.map((n,i)=>({sn:i+1,name:n,done:false,priority:'med',notes:'',taskDeadline:'',screenshots:[]}))
-      : instantiateTemplateTasks(choice);
+  state[trimmed]=choice==='blank' ? [] : instantiateTemplateTasks(choice);
   if(deadline)deadlines[trimmed]=deadline;
   deletedModelsSet.delete(trimmed);
   refreshModelsList();activeTab=trimmed;localStorage.setItem('mlc_activeTab',trimmed);editingIdx=null;save();renderAll();
@@ -9170,8 +9529,20 @@ async function updateRestoreBackupBtn(){
   const d=new Date(backup.ts);
   const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
   const whereStr=backup.cloud?'saved to your account':'saved on this device only — sign in to back up online';
-  btn.title=`Full backup taken ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'} (incl. photos, notes, deadlines) — ${whereStr}`;
-  if(label) label.textContent=`Restore Last Backup (${dateStr})`;
+  const sizeStr=formatBackupSize(backup.payload);
+  btn.title=`Full backup taken ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'} (incl. photos, notes, deadlines) — ${sizeStr} — ${whereStr}`;
+  if(label) label.textContent=`Restore Last Backup (${dateStr} · ${sizeStr})`;
+}
+// Human-readable size of a backup payload (photos/screenshots are the bulk
+// of it, so this is the number people actually care about — e.g. whether
+// they're getting close to localStorage's ~5MB local-only ceiling).
+function formatBackupSize(payload){
+  let bytes;
+  try{ bytes=new Blob([JSON.stringify(payload||{})]).size; }
+  catch(e){ bytes=JSON.stringify(payload||{}).length; } // Blob unavailable — length is a close-enough fallback for mostly-ASCII JSON
+  if(bytes<1024) return bytes+' B';
+  if(bytes<1024*1024) return (bytes/1024).toFixed(1)+' KB';
+  return (bytes/(1024*1024)).toFixed(2)+' MB';
 }
 
 // Merges a full backup payload back into the current dashboard. Same safe,
@@ -9263,6 +9634,14 @@ function fullBackupStatsToMessage(stats){
 document.getElementById('backupNowBtn').onclick=async()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
   if(!models.length){await showAlert({title:'Nothing to back up',message:'Add at least one model before backing up.',tone:'warn'});return;}
+  const btn=document.getElementById('backupNowBtn');
+  const icon=document.getElementById('backupNowIcon');
+  const spinner=document.getElementById('backupNowSpinner');
+  const label=document.getElementById('backupNowLabel');
+  btn.disabled=true;
+  icon.style.display='none';
+  spinner.style.display='inline-block';
+  label.textContent='Backing up…';
   try{
     const wentToCloud=await saveLastBackup();
     // Restart the hourly timer from now, so this manual backup counts as
@@ -9270,9 +9649,15 @@ document.getElementById('backupNowBtn').onclick=async()=>{
     startAutoBackup();
     const totalTasks=models.reduce((n,m)=>n+state[m].length,0);
     const whereMsg=wentToCloud?'saved to your account':'saved on this device only — sign in to back up online';
-    toast('💾',`Backed up everything — ${models.length} model${models.length===1?'':'s'}, ${totalTasks} tasks, photos & notes — ${whereMsg}`);
+    const sizeStr=formatBackupSize(buildFullBackupPayload());
+    toast('💾',`Backed up everything — ${models.length} model${models.length===1?'':'s'}, ${totalTasks} tasks, photos & notes (${sizeStr}) — ${whereMsg}`);
   }catch(err){
     await showAlert({title:'Backup failed',message:'Something went wrong while creating the backup. Please try again.',tone:'error'});
+  }finally{
+    btn.disabled=false;
+    icon.style.display='';
+    spinner.style.display='none';
+    label.textContent='Backup Now';
   }
 };
 
@@ -9603,6 +9988,7 @@ document.getElementById('addModelBtn').onclick=()=>{
   const dl=dlInput.value;
   addModel(inp.value,dl);inp.value='';dlInput.value='';dlInput.classList.remove('has-value');
 };
+document.getElementById('manageTemplatesBtn').onclick=()=>{ showTemplateChooser(null,true); };
 document.getElementById('newModelInput').addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();document.getElementById('addModelBtn').click();}
 });
@@ -10067,6 +10453,21 @@ updateStickyBarPin();
   </div>
 </div>
 
+<div id="templateEditorOverlay" role="dialog" aria-modal="true" aria-labelledby="templateEditorTitle">
+  <div id="templateEditorModal">
+    <div class="elmodal-icon" style="background:var(--accent1-dim);border-color:var(--border-hover);">📑</div>
+    <div class="elmodal-title" id="templateEditorTitle">Edit Template</div>
+    <input type="text" id="templateEditorNameInput" class="te-name-input" maxlength="60" placeholder="Template name">
+    <div class="elmodal-desc">Edit tasks, priorities, and subtasks. Nothing is saved until you click Save Template.</div>
+    <div class="te-task-list" id="templateEditorTaskList"></div>
+    <button class="te-add-task-btn" id="templateEditorAddTaskBtn">＋ Add Task</button>
+    <div class="elmodal-actions" style="margin-top:20px;">
+      <button class="elmodal-cancel-btn" id="templateEditorCancelBtn" style="flex:1;">Cancel</button>
+      <button class="modal-btn primary" id="templateEditorSaveBtn" style="flex:1;">Save Template</button>
+    </div>
+  </div>
+</div>
+
 <div id="teamOverlay" role="dialog" aria-modal="true" aria-labelledby="teamModalTitle">
   <div id="teamModal">
     <div class="elmodal-icon" style="background:var(--accent1-dim);border-color:var(--border-hover);">👥</div>
@@ -10257,6 +10658,7 @@ async function switchToWorkspace(workspaceId){
     modelImages=saved?.modelImages||{};
     recycleBin=saved?.recycleBin||{};
     templates=saved?.templates||{};
+    standardTemplateSeeded=!!(saved&&saved.standardTemplateSeeded);
     // Re-baseline against the NEWLY loaded workspace's actual server data —
     // otherwise a later save() in this workspace would still be diffing
     // against the previous workspace's keys, which could wrongly delete
@@ -10268,6 +10670,7 @@ async function switchToWorkspace(workspaceId){
       recycleBin:new Set(Object.keys(recycleBin)),
       templates:new Set(Object.keys(templates))
     };
+    seedStandardTemplateIfNeeded();
     purgeExpiredRecycleItems();
     setArchiveView(false);
     setRecycleView(false);
@@ -10328,6 +10731,22 @@ async function joinWorkspaceByCode(rawCode){
 document.getElementById('teamMenuBtn').onclick=openTeamModal;
 document.getElementById('teamCloseBtn').onclick=closeTeamModal;
 document.getElementById('teamOverlay').addEventListener('click',e=>{ if(e.target.id==='teamOverlay') closeTeamModal(); });
+
+// ── TEMPLATE EDITOR BUTTON WIRING ──
+// (openTemplateEditor/renderTemplateEditor/commitTemplateEditorSave/
+// closeTemplateEditor are defined earlier in the file; this just has to run
+// after #templateEditorOverlay's HTML exists, which is why it's wired here
+// rather than alongside those function definitions.)
+document.getElementById('templateEditorAddTaskBtn').onclick=()=>{
+  teDraftTasks.push({name:'NEW TASK',priority:'med',notes:'',subtasks:[]});
+  renderTemplateEditor();
+};
+document.getElementById('templateEditorCancelBtn').onclick=closeTemplateEditor;
+document.getElementById('templateEditorSaveBtn').onclick=commitTemplateEditorSave;
+document.getElementById('templateEditorOverlay').addEventListener('click',e=>{
+  if(e.target.id==='templateEditorOverlay') closeTemplateEditor();
+});
+
 document.getElementById('teamGenerateCodeBtn').onclick=generateInviteCode;
 document.getElementById('teamCopyCodeBtn').onclick=()=>{
   const code=document.getElementById('teamInviteCodeDisplay').textContent;
