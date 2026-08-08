@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Model Launch Dashboard</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#09090b">
@@ -3072,6 +3072,7 @@ body {
       (navigator.maxTouchPoints > 0) ||
       (navigator.msMaxTouchPoints > 0);
   }
+  let wasLocked = false;
   function evalPortraitLock() {
     const landscape = window.innerWidth > window.innerHeight;
     const shortSide = Math.min(window.innerWidth, window.innerHeight);
@@ -3080,6 +3081,17 @@ body {
     // aren't force-rotated.
     const shouldLock = isTouchDevice() && landscape && shortSide <= 500;
     document.documentElement.classList.toggle('force-portrait-lock', shouldLock);
+    // Going from locked (rotated, position:absolute/top:100%) back to
+    // normal portrait can leave the page at a leftover scroll offset,
+    // which reads as the app having "zoomed in" even though the scale
+    // itself didn't change. Snapping scroll back to the top on unlock
+    // fixes that. A tiny delay lets the browser finish reflowing the
+    // now-unrotated layout before we scroll.
+    if (wasLocked && !shouldLock) {
+      window.scrollTo(0, 0);
+      setTimeout(() => window.scrollTo(0, 0), 50);
+    }
+    wasLocked = shouldLock;
   }
   evalPortraitLock();
   window.addEventListener('resize', evalPortraitLock);
