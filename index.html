@@ -2784,51 +2784,40 @@ img { -webkit-user-drag: none; }
 .team-join-input:focus { outline: none; border-color: var(--accent1); }
 .team-join-error { font-size: 12px; color: var(--red); margin-top: 6px; min-height: 14px; }
 
-/* ── ROTATION LOCK (portrait-only mobile app view) ──────────────────────
-   A web page can't force the OS to physically stop rotating the screen —
-   that's only possible from a native/installed context via the Screen
-   Orientation API (attempted in JS below, works on Android when this is
-   opened as an installed PWA). iOS Safari ignores that API entirely, so
-   as the reliable fallback: whenever the viewport is landscape *and*
-   phone-sized, block the layout behind a simple "rotate back" overlay
-   instead of letting the dashboard reflow into landscape. */
-#rotateGuardOverlay {
-  display: none;
-  position: fixed; inset: 0; z-index: 99999;
-  background: var(--bg);
-  flex-direction: column; align-items: center; justify-content: center;
-  gap: 18px; padding: 32px; text-align: center;
-}
-#rotateGuardOverlay .rotate-icon {
-  width: 56px; height: 56px; color: var(--accent1);
-  animation: rotateGuardSpin 1.8s ease-in-out infinite;
-}
-@keyframes rotateGuardSpin {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-90deg); }
-}
-#rotateGuardOverlay h2 { font-size: 17px; font-weight: 600; color: var(--text); margin: 0; }
-#rotateGuardOverlay p { font-size: 13px; color: var(--text-muted); margin: 0; max-width: 280px; }
-@media (orientation: landscape) and (max-width: 900px) {
-  #rotateGuardOverlay { display: flex; }
+/* ── FORCE-PORTRAIT LOCK (mobile app view) ───────────────────────────────
+   The Screen Orientation API (attempted in JS below) can truly lock
+   rotation, but only on Android when this is opened as an installed PWA
+   — iOS Safari ignores it completely, and a plain browser tab can't use
+   it at all. So instead of blocking landscape with a message, this pure
+   CSS trick rotates the whole page -90° and re-fits it to the physical
+   screen whenever the phone is turned sideways, so the dashboard keeps
+   rendering upright and portrait no matter which way the phone is held.
+   width/height are swapped (100vh/100vw) to match the rotated box, and
+   the position:absolute + top:100% shift re-centers it in the new
+   (landscape) viewport. Scoped to phone-sized landscape widths so a
+   desktop/tablet browser window in landscape is unaffected. */
+@media screen and (orientation: landscape) and (max-width: 900px) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
 }
 
 </style>
 </head>
 <body>
-<div id="rotateGuardOverlay">
-  <svg class="rotate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="7" y="2" width="10" height="20" rx="2"/>
-    <line x1="11" y1="18" x2="13" y2="18"/>
-  </svg>
-  <h2>Please rotate back to portrait</h2>
-  <p>Model Launch Dashboard is designed for portrait mode on mobile.</p>
-</div>
 <script>
 // ── ORIENTATION LOCK ATTEMPT ── Works on Android when this is opened as
 // an installed PWA (standalone display mode); throws/rejects everywhere
 // else (regular browser tabs, iOS Safari), which we just swallow — the
-// CSS rotate-guard overlay above is the fallback that always works.
+// CSS force-portrait rotate trick above is what actually keeps the
+// dashboard upright everywhere else.
 (function lockPortrait(){
   try{
     const so = screen.orientation;
@@ -2842,6 +2831,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (screen.orientation && typeof screen.orientation.lock === 'function') {
       screen.orientation.lock('portrait').catch(()=>{});
     }
+
   }catch(e){}
 });
 </script>
@@ -3796,7 +3786,7 @@ document.getElementById('forgotLink').onclick=async()=>{
 // than the 'menu-open' class, and is wired to both triggers below.
 function clampMenuToViewport(anchorEl,menu){
   if(!anchorEl||!menu) return;
-  requestAnimationFrame(()=>{
+  const doClamp=()=>{
     const cs=getComputedStyle(menu);
     if(cs.visibility==='hidden'||parseFloat(cs.opacity)===0) return;
     menu.style.left=''; menu.style.right='';
@@ -3810,8 +3800,20 @@ function clampMenuToViewport(anchorEl,menu){
       menu.style.left=(desiredLeft-parentRect.left)+'px';
       menu.style.right='auto';
     }
-  });
+  };
+  // Two rAFs (not one): the open transition's transform/opacity is still
+  // animating on the very first frame on some devices, which can throw
+  // off the measured box. Waiting a frame further, plus a small timeout
+  // as a final safety net, makes sure we measure the settled layout.
+  requestAnimationFrame(()=>requestAnimationFrame(doClamp));
+  setTimeout(doClamp,220);
 }
+window.addEventListener('resize',()=>{
+  document.querySelectorAll('.export-dropdown.menu-open, .user-badge.menu-open, .bulk-move-dropdown.menu-open').forEach(dd=>{
+    const menu=dd.querySelector(':scope > .user-menu, :scope > .export-menu, :scope > .bulk-move-menu');
+    if(menu) clampMenuToViewport(dd,menu);
+  });
+});
 // Hover-opened path: CSS reveals these menus on mouseenter with no JS
 // class change, so clamp on mouseenter too — harmless no-op on touch
 // devices, which generally don't fire mouseenter on tap.
