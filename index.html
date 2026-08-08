@@ -3020,38 +3020,73 @@ img { -webkit-user-drag: none; }
    the position:absolute + top:100% shift re-centers it in the new
    (landscape) viewport. Scoped to phone-sized landscape widths so a
    desktop/tablet browser window in landscape is unaffected. */
-/* Scoped by (hover:none)+(pointer:coarse) — a real touchscreen check —
-   instead of a max-width guess. A phone's landscape WIDTH (long side) is
-   often 800-950px, which used to slip past a "max-width:900px" guard and
-   fall through to the desktop grid, still rotated — the squashed layout
-   seen in the bug report. max-width:1024px here is just a ceiling to
-   keep iPad/desktop-in-a-small-window out; it is not the detection
-   mechanism. */
-@media screen and (orientation: landscape) and (hover: none) and (pointer: coarse) and (max-width: 1024px) {
-  html {
-    transform: rotate(-90deg);
-    transform-origin: left top;
-    width: 100vh;
-    height: 100vw;
-    overflow-x: hidden;
-    position: absolute;
-    top: 100%;
-    left: 0;
-  }
-  /* body becomes a query container so the mobile layout rules below
-     (converted from @media to @container) measure the SWAPPED size
-     (100vh = the phone's short/physical width) instead of the real,
-     unrotated device viewport — that mismatch is what let the desktop
-     grid activate while visually rotated. */
-  body {
-    container-type: inline-size;
-    container-name: app-root;
-  }
+/* Detection moved to JS (see script right after </head> opens, below).
+   CSS media features like (hover:none)/(pointer:coarse) turned out to be
+   unreliable inside some mobile "app" WebViews — they didn't match on a
+   real device even though it's a touchscreen phone, so the rotate never
+   engaged and the desktop grid rendered at full (unrotated) landscape
+   width instead. JS touch-detection (ontouchstart / maxTouchPoints) is
+   reliable across normal mobile browsers AND embedded WebViews, so the
+   html.force-portrait-lock class below is toggled from JS instead. */
+html.force-portrait-lock {
+  transform: rotate(-90deg);
+  transform-origin: left top;
+  width: 100vh;
+  height: 100vw;
+  overflow-x: hidden;
+  position: absolute;
+  top: 100%;
+  left: 0;
+}
+
+/* body is ALWAYS a query container (not just while rotated). In the
+   normal (non-rotated) state its inline-size just equals the real
+   viewport width, so @container behaves identically to a plain @media
+   check. While rotated, its inline-size becomes the swapped 100vh
+   (phone's true short/physical width), so the mobile layout rules
+   below (converted from @media to @container) correctly detect "narrow"
+   instead of measuring the real, unrotated device width — that mismatch
+   is what let the desktop grid render squashed inside the rotated box. */
+body {
+  container-type: inline-size;
+  container-name: app-root;
 }
 
 </style>
 </head>
 <body>
+<script>
+// ── FORCE-PORTRAIT CLASS TOGGLE ── Drives the html.force-portrait-lock
+// CSS rotate trick (see <style> above). Detection is done here in JS,
+// not via CSS (hover:none)/(pointer:coarse) media features, because
+// those didn't reliably match inside some mobile "app" WebViews on real
+// devices — touch phones sometimes reported as if they had a fine
+// pointer/hover capability, so the rotate never engaged and the desktop
+// grid rendered at full landscape width instead.
+// navigator.maxTouchPoints / 'ontouchstart' in window are checked
+// directly instead, which works consistently across normal mobile
+// browsers and embedded WebViews alike.
+(function () {
+  function isTouchDevice() {
+    return ('ontouchstart' in window) ||
+      (navigator.maxTouchPoints > 0) ||
+      (navigator.msMaxTouchPoints > 0);
+  }
+  function evalPortraitLock() {
+    const landscape = window.innerWidth > window.innerHeight;
+    const shortSide = Math.min(window.innerWidth, window.innerHeight);
+    // shortSide cap keeps this to phone-class screens (physical width
+    // when held portrait), so tablets/desktops in a landscape window
+    // aren't force-rotated.
+    const shouldLock = isTouchDevice() && landscape && shortSide <= 500;
+    document.documentElement.classList.toggle('force-portrait-lock', shouldLock);
+  }
+  evalPortraitLock();
+  window.addEventListener('resize', evalPortraitLock);
+  window.addEventListener('orientationchange', evalPortraitLock);
+  document.addEventListener('DOMContentLoaded', evalPortraitLock);
+})();
+</script>
 <script>
 // ── ORIENTATION LOCK ATTEMPT ── Works on Android when this is opened as
 // an installed PWA (standalone display mode); throws/rejects everywhere
