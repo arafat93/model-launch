@@ -3742,6 +3742,7 @@ document.addEventListener('keydown', e => {
     <div class="modal-subtitle" id="activitySubtitle">Every change made across your workspace, most recent first.</div>
     <div class="activity-body" id="activityBody"></div>
     <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-btn secondary" id="activityClearBtn" style="color:var(--red);border-color:rgba(244,63,94,0.25);" title="Permanently delete every entry in this workspace's activity log">Clear Log</button>
       <button class="modal-btn primary" id="activityCloseBtn">Close</button>
     </div>
   </div>
@@ -5804,9 +5805,53 @@ function openActivityModal(){
 function closeActivityModal(){
   document.getElementById('activityModal').classList.remove('open');
 }
+async function clearActivityLog(){
+  // Local/preview mode (no signed-in user or workspace): nothing is
+  // persisted server-side, so just clear the in-memory feed — same
+  // "no-op gracefully" spirit as logActivity()'s own guard.
+  if(!auth||!auth.currentUser||!db||!currentWorkspaceId){
+    if(!activityFeed.length){ toast('×','Activity log is already empty',false); return; }
+    activityFeed=[];
+    renderActivityFeed();
+    updateNotifBadge();
+    toast('🗑','Activity log cleared',false);
+    return;
+  }
+  if(!activityFeed.length){ toast('×','Activity log is already empty',false); return; }
+  const n=activityFeed.length;
+  const ok=await showConfirm({
+    title:'Clear activity log?',
+    message:`This will permanently delete all ${n} activity ${n===1?'entry':'entries'} for this workspace. This can't be undone.`,
+    confirmText:'Clear Log',
+    danger:true,
+    icon:'🗑'
+  });
+  if(!ok) return;
+  try{
+    // Firestore has no "delete whole subcollection" call from the client
+    // SDK — batch-delete every doc currently loaded (the listener caps
+    // at 200, i.e. everything visible in the log).
+    const batch=db.batch();
+    activityFeed.forEach(e=>{
+      if(e.id) batch.delete(getWorkspaceDoc().collection('activity').doc(e.id));
+    });
+    await batch.commit();
+    // The onSnapshot listener (listenForActivity) will pick up the
+    // deletions and re-render on its own; clear the local copy too so
+    // the modal reflects "empty" instantly rather than waiting on it.
+    activityFeed=[];
+    renderActivityFeed();
+    updateNotifBadge();
+    toast('🗑','Activity log cleared',false);
+  }catch(e){
+    console.warn('Clear activity log failed:',e);
+    toast('!','Could not clear activity log — try again',false);
+  }
+}
 document.getElementById('notifBellBtn').onclick=openActivityModal;
 document.getElementById('activityLogMenuBtn').onclick=openActivityModal;
 document.getElementById('activityCloseBtn').onclick=closeActivityModal;
+document.getElementById('activityClearBtn').onclick=clearActivityLog;
 document.getElementById('activityModal').onclick=e=>{
   if(e.target.id==='activityModal') closeActivityModal();
 };
