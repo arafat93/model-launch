@@ -2790,8 +2790,8 @@ img { -webkit-user-drag: none; }
    Orientation API (attempted in JS below, works on Android when this is
    opened as an installed PWA). iOS Safari ignores that API entirely, so
    as the reliable fallback: whenever the viewport is landscape *and*
-   phone-sized, block the skewed layout behind a simple "rotate back"
-   overlay instead of letting the dashboard reflow into landscape. */
+   phone-sized, block the layout behind a simple "rotate back" overlay
+   instead of letting the dashboard reflow into landscape. */
 #rotateGuardOverlay {
   display: none;
   position: fixed; inset: 0; z-index: 99999;
