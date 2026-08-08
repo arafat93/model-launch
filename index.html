@@ -384,6 +384,12 @@ footer {
   .footer-right { gap: 14px; }
 }
 
+@container app-root (max-width: 700px) {
+  footer { flex-direction: column; align-items: flex-start; text-align: left; }
+  .footer-mid { order: 3; }
+  .footer-right { gap: 14px; }
+}
+
 /* ── KPI CARDS ── */
 .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 44px; }
 .kpi-card {
@@ -431,6 +437,8 @@ footer {
 .analytics-kpi-card .kpi-sub { font-size: 12px; color: var(--text-muted); font-weight: 300; }
 .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 980px){ .analytics-grid{ grid-template-columns: 1fr; } .analytics-kpi-grid{ grid-template-columns: repeat(2,1fr); } }
+
+@container app-root (max-width: 980px) { .analytics-grid{ grid-template-columns: 1fr; } .analytics-kpi-grid{ grid-template-columns: repeat(2,1fr); } }
 .analytics-panel {
   background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
   padding: 22px 24px; box-shadow: var(--shadow-sm);
@@ -692,6 +700,12 @@ footer {
   .recycle-row-actions .row-action-btn { flex: 1; }
 }
 
+@container app-root (max-width: 640px) {
+  .recycle-row { flex-wrap: wrap; }
+  .recycle-row-actions { width: 100%; }
+  .recycle-row-actions .row-action-btn { flex: 1; }
+}
+
 /* ── SECTION LABEL ── */
 .section-label {
   font-size: 16px; font-weight: 600; color: var(--text);
@@ -896,6 +910,12 @@ footer {
 .dep-modal-empty { font-size: 12.5px; color: var(--text-muted); font-style: italic; padding: 10px 0; }
 .dep-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 @media (max-width: 768px) {
+  .gantt-labels { width: 150px; }
+  .gantt-toolbar { border-radius: 16px 16px 0 0; }
+  .gantt-wrap { border-radius: 0 0 16px 16px; }
+}
+
+@container app-root (max-width: 768px) {
   .gantt-labels { width: 150px; }
   .gantt-toolbar { border-radius: 16px 16px 0 0; }
   .gantt-wrap { border-radius: 0 0 16px 16px; }
@@ -2236,7 +2256,41 @@ kbd {
   .subtask-panel-title, .subtask-add-bar { padding-left: 102px; }
   .subtask-title-row { grid-template-columns: 30px 48px 1fr; }
 }
+
+@container app-root (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .table-header, .task-row, .subtask-row { grid-template-columns: 30px 48px 1fr 100px 120px 80px 80px 150px; }
+  .subtask-panel-title, .subtask-add-bar { padding-left: 102px; }
+  .subtask-title-row { grid-template-columns: 30px 48px 1fr; }
+}
 @media(max-width: 900px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .models-grid { grid-template-columns: 1fr; }
+  .table-header { grid-template-columns: 26px 40px 1fr 100px 110px; }
+  .table-header > *:nth-child(6), .table-header > *:nth-child(7), .table-header > *:nth-child(8) { display: none; }
+  .task-row, .subtask-row {
+    grid-template-columns: 26px 40px 1fr 100px 110px;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "sn chk name prio status"
+      "spacer1 spacer2 icons actions actions";
+    row-gap: 8px; padding-top: 12px; padding-bottom: 12px;
+  }
+  .task-row > *:nth-child(1), .subtask-row > *:nth-child(1) { grid-area: sn; }
+  .task-row > *:nth-child(2), .subtask-row > *:nth-child(2) { grid-area: chk; }
+  .task-row > *:nth-child(3), .subtask-row > *:nth-child(3) { grid-area: name; }
+  .task-row > *:nth-child(4), .subtask-row > *:nth-child(4) { grid-area: prio; }
+  .task-row > *:nth-child(5), .subtask-row > *:nth-child(5) { grid-area: status; }
+  .task-row > *:nth-child(6), .subtask-row > *:nth-child(6) { display: none; } /* Due column */
+  .task-row > .task-icons-cell, .subtask-row > .task-icons-cell { grid-area: icons; justify-content: flex-start; }
+  .task-row > .row-actions, .subtask-row > .row-actions { grid-area: actions; justify-content: flex-end; }
+  .subtask-panel-title, .subtask-add-bar { padding-left: 90px; }
+  .subtask-title-row { grid-template-columns: 26px 40px 1fr; }
+  .compare-header, .compare-row { grid-template-columns: 40px 1fr 140px; }
+  .compare-header > *:last-child, .compare-row > *:last-child { display: none; }
+}
+
+@container app-root (max-width: 900px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .models-grid { grid-template-columns: 1fr; }
   .table-header { grid-template-columns: 26px 40px 1fr 100px 110px; }
@@ -2270,6 +2324,14 @@ kbd {
   .wrap { padding: 0 16px 40px; }
 }
 
+@container app-root (max-width: 600px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  h1 { font-size: 20px; }
+  .search-box { width: 140px; }
+  .hdr-btn span { display: none; }
+  .wrap { padding: 0 16px 40px; }
+}
+
 /* ── PHONE BREAKPOINT (≤480px): covers virtually all phones in portrait.
    Restores button labels (hidden by the 600px rule above) but lets them
    wrap onto multiple lines instead of overflowing, fixes the task-table
@@ -2277,6 +2339,60 @@ kbd {
    priority/status into a second row, and repositions the toast so it's
    full-width instead of clipped. ── */
 @media(max-width: 480px) {
+  .wrap { padding: 0 12px 32px; }
+
+  /* Header: restore labels but allow wrapping across rows instead of
+     a single overflowing line. */
+  .header-right { width: 100%; flex-basis: 100%; }
+  .hdr-btn span { display: inline; }
+  .hdr-btn { padding: 7px 12px; font-size: 11.5px; }
+  .search-box { width: 100%; }
+
+  /* Tab-bar action buttons (Set Deadline / Export / Import / Archive /
+     Delete) — same .hdr-btn class, restore labels and allow wrap. */
+  .hdr-deadline-btn span,
+  #exportModelToggleBtn span,
+  #importExcelLabel span { display: inline; }
+
+  /* Task table: drop the serial-number column entirely (least essential
+     on a phone) and shrink padding so the remaining columns fit. */
+  .table-header, .task-row, .subtask-row { padding: 0 12px; }
+  .table-header { grid-template-columns: 32px 1fr 72px; }
+  .table-header > *:nth-child(1) { display: none; } /* # column header */
+  .table-header > *:nth-child(5) { display: none; } /* status column header */
+  .task-row, .subtask-row {
+    grid-template-columns: 32px 1fr 72px;
+    grid-template-areas:
+      "chk name prio"
+      "spacer icons actions"
+      "spacer status status";
+    row-gap: 6px;
+  }
+  .task-row > *:nth-child(1) { display: none; } /* serial number cell (task rows only — subtask numbering stays visible) */
+  .subtask-row > *:nth-child(1) { grid-area: chk; justify-self: start; }
+  .subtask-row > *:nth-child(2) { display: none; } /* checkbox hidden on phone to make room; tap status chip to toggle */
+  .task-row > *:nth-child(2), .subtask-row > *:nth-child(2) { grid-area: chk; }
+  .task-row > *:nth-child(3), .subtask-row > *:nth-child(3) { grid-area: name; }
+  .task-row > *:nth-child(4), .subtask-row > *:nth-child(4) { grid-area: prio; justify-self: end; }
+  .task-row > *:nth-child(5), .subtask-row > *:nth-child(5) { grid-area: status; justify-self: start; margin-top: 2px; }
+  .task-row > .task-icons-cell, .subtask-row > .task-icons-cell { grid-area: icons; justify-content: flex-start; }
+  .task-row > .row-actions, .subtask-row > .row-actions { grid-area: actions; justify-content: flex-end; }
+  .priority-badge { width: auto; padding: 6px 10px; }
+  .subtask-panel-title, .subtask-add-bar { padding: 0 12px; }
+  .subtask-title-row { display: flex; align-items: center; gap: 10px; grid-template-columns: unset; padding: 0 12px 0 44px; }
+  .subtask-title-row .subtask-panel-title { grid-column: unset; }
+  .bulk-bar.subtask-bulk-bar { margin: 0 12px 10px; }
+
+  /* Toast: full-width banner instead of a fixed min-width box that can
+     clip or sit awkwardly close to the viewport edge. */
+  .toast {
+    left: 12px; right: 12px; bottom: 16px;
+    min-width: 0; width: auto;
+    padding: 14px 16px;
+  }
+}
+
+@container app-root (max-width: 480px) {
   .wrap { padding: 0 12px 32px; }
 
   /* Header: restore labels but allow wrapping across rows instead of
@@ -2437,7 +2553,115 @@ kbd {
   }
 }
 
+@container app-root (max-width: 768px) {
+  /* Prevent iOS Safari from auto-zooming the page when a <16px input
+     is focused — every text input/textarea/select gets bumped to 16px. */
+  input, textarea, select { font-size: 16px !important; }
+  .search-box, .modal-textarea, #globalSearchInput { font-size: 16px !important; }
+
+  /* Kill the sticky grey tap-flash on buttons/links; we already have
+     our own hover/active states so the native highlight just looks buggy. */
+  a, button, .hdr-btn, .tab-btn, .filter-btn, .row-action-btn,
+  .kpi-card, .model-card, .task-row, .subtask-row {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Bigger, easier-to-hit row action icons (edit/delete/archive/etc). */
+  .row-action-btn { width: 38px; height: 38px; font-size: 15px; }
+  .subtask-toggle-btn { width: 26px; height: 26px; }
+
+  /* Header buttons get a touch-friendly minimum height. */
+  .hdr-btn { min-height: 40px; }
+  .notif-bell-btn { width: 40px; height: 40px; }
+
+  /* Tab bar: wrap onto multiple lines on mobile instead of scrolling
+     horizontally — a horizontal-scroll strip was slicing the last tab's
+     text off at the screen edge with no visible cue to swipe. Wrapping
+     keeps every model name fully readable without any hidden content. */
+  .tab-bar {
+    flex-wrap: wrap; overflow-x: visible; max-width: 100%;
+  }
+  .tab-btn { white-space: normal; min-height: 38px; word-break: break-word; }
+
+  /* The bar and its flex-item wrappers need explicit width/min-width
+     rules, otherwise flex items refuse to shrink below their content
+     size and the tab strip pushes the whole page wider instead of
+     staying within the screen. This is what actually makes the
+     model bar "shrink" to fit the phone screen. */
+  #taskSectionWrap > div:first-of-type { width: 100%; }
+  .sticky-model-bar { flex: 1 1 100%; width: 100%; min-width: 0; }
+  .sticky-model-bar.is-pinned { width: 100% !important; left: 0 !important; padding-left: 0 !important; }
+  #stickyModelBarSpacer { width: 100%; }
+
+  /* Pinned/frozen state is disabled on mobile via JS (updateStickyBarPin),
+     but as a CSS-level safety net also stop it visually locking in place
+     if that JS path is ever bypassed. */
+  .sticky-model-bar.is-pinned { position: static !important; top: auto !important; }
+
+  /* Filter bar: search box drops to full width below the filter chips
+     rather than squeezing into whatever space is left. */
+  .filter-bar { gap: 8px 10px; }
+  .search-box { margin-left: 0; flex: 1 1 100%; order: 99; }
+  .filter-btn { min-height: 36px; padding: 8px 14px; }
+
+  /* Modals: behave like a mobile sheet — capped to the viewport, own
+     scroll for long content, comfortably padded but not wasteful,
+     and safe-area aware for notched phones. */
+  .modal-overlay { padding: 12px; align-items: flex-end; }
+  .modal-box {
+    width: 100%; max-width: 100%;
+    max-height: 88vh; overflow-y: auto;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    animation: modalInMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes modalInMobile { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  .modal-title { font-size: 18px; }
+  .modal-actions { flex-direction: column-reverse; gap: 10px; }
+  .modal-actions .modal-btn { width: 100%; min-height: 46px; }
+  .confirm-actions.modal-actions { flex-direction: column-reverse; }
+
+  /* KPI cards: tighter padding + smaller figure so 2-up rows stay
+     comfortable, instead of desktop sizing squeezed into half-width. */
+  .kpi-card { padding: 18px 16px; border-radius: 14px; }
+  .kpi-value { font-size: 30px; }
+  .kpi-label { font-size: 10px; margin-bottom: 8px; }
+
+  /* Model cards: stack stats/actions with enough breathing room and
+     make sure any inline action rows keep full-width tap targets. */
+  .model-card { padding: 20px; }
+  .model-header-main { gap: 10px; }
+  .model-thumb-wrap, .model-thumb { width: 46px; height: 46px; }
+  .model-name { font-size: 16px; }
+  .model-stats { gap: 16px; flex-wrap: wrap; }
+  .archive-card-actions button { min-height: 42px; }
+
+  /* Gantt view is inherently a wide-canvas tool; make sure it scrolls
+     rather than crushing bars unreadably, and hint that it's scrollable. */
+  .gantt-toolbar { padding: 12px 14px; }
+  .gantt-labels { width: 120px; }
+  .gantt-label-name { font-size: 11.5px; }
+
+  /* User menu ("Arafat" badge): on desktop it opens right-anchored
+     (right:0), which is fine because there's room to its left. On mobile
+     the badge sits at the far-left edge of the header row, so a
+     right-anchored menu expands leftward off the screen and gets
+     clipped by body{overflow-x:hidden} — the "Search"/"e Bin"/"tart"
+     truncation. Anchor from the left instead so it opens rightward,
+     into the open space, and stays fully on-screen. */
+  .user-menu {
+    left: 0; right: auto;
+    max-width: calc(100vw - 48px);
+  }
+}
+
 @media (max-width: 480px) {
+  .modal-box { padding: 20px 16px calc(18px + env(safe-area-inset-bottom)); }
+  .kpi-value { font-size: 26px; }
+  .filter-btn { font-size: 11.5px; padding: 7px 12px; }
+}
+
+@container app-root (max-width: 480px) {
   .modal-box { padding: 20px 16px calc(18px + env(safe-area-inset-bottom)); }
   .kpi-value { font-size: 26px; }
   .filter-btn { font-size: 11.5px; padding: 7px 12px; }
@@ -2796,7 +3020,14 @@ img { -webkit-user-drag: none; }
    the position:absolute + top:100% shift re-centers it in the new
    (landscape) viewport. Scoped to phone-sized landscape widths so a
    desktop/tablet browser window in landscape is unaffected. */
-@media screen and (orientation: landscape) and (max-width: 900px) {
+/* Scoped by (hover:none)+(pointer:coarse) — a real touchscreen check —
+   instead of a max-width guess. A phone's landscape WIDTH (long side) is
+   often 800-950px, which used to slip past a "max-width:900px" guard and
+   fall through to the desktop grid, still rotated — the squashed layout
+   seen in the bug report. max-width:1024px here is just a ceiling to
+   keep iPad/desktop-in-a-small-window out; it is not the detection
+   mechanism. */
+@media screen and (orientation: landscape) and (hover: none) and (pointer: coarse) and (max-width: 1024px) {
   html {
     transform: rotate(-90deg);
     transform-origin: left top;
@@ -2806,6 +3037,15 @@ img { -webkit-user-drag: none; }
     position: absolute;
     top: 100%;
     left: 0;
+  }
+  /* body becomes a query container so the mobile layout rules below
+     (converted from @media to @container) measure the SWAPPED size
+     (100vh = the phone's short/physical width) instead of the real,
+     unrotated device viewport — that mismatch is what let the desktop
+     grid activate while visually rotated. */
+  body {
+    container-type: inline-size;
+    container-name: app-root;
   }
 }
 
