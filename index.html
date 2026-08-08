@@ -2423,6 +2423,18 @@ kbd {
   .gantt-toolbar { padding: 12px 14px; }
   .gantt-labels { width: 120px; }
   .gantt-label-name { font-size: 11.5px; }
+
+  /* User menu ("Arafat" badge): on desktop it opens right-anchored
+     (right:0), which is fine because there's room to its left. On mobile
+     the badge sits at the far-left edge of the header row, so a
+     right-anchored menu expands leftward off the screen and gets
+     clipped by body{overflow-x:hidden} — the "Search"/"e Bin"/"tart"
+     truncation. Anchor from the left instead so it opens rightward,
+     into the open space, and stays fully on-screen. */
+  .user-menu {
+    left: 0; right: auto;
+    max-width: calc(100vw - 48px);
+  }
 }
 
 @media (max-width: 480px) {
@@ -2771,9 +2783,68 @@ img { -webkit-user-drag: none; }
 }
 .team-join-input:focus { outline: none; border-color: var(--accent1); }
 .team-join-error { font-size: 12px; color: var(--red); margin-top: 6px; min-height: 14px; }
+
+/* ── ROTATION LOCK (portrait-only mobile app view) ──────────────────────
+   A web page can't force the OS to physically stop rotating the screen —
+   that's only possible from a native/installed context via the Screen
+   Orientation API (attempted in JS below, works on Android when this is
+   opened as an installed PWA). iOS Safari ignores that API entirely, so
+   as the reliable fallback: whenever the viewport is landscape *and*
+   phone-sized, block the skewed layout behind a simple "rotate back"
+   overlay instead of letting the dashboard reflow into landscape. */
+#rotateGuardOverlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 99999;
+  background: var(--bg);
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 32px; text-align: center;
+}
+#rotateGuardOverlay .rotate-icon {
+  width: 56px; height: 56px; color: var(--accent1);
+  animation: rotateGuardSpin 1.8s ease-in-out infinite;
+}
+@keyframes rotateGuardSpin {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+#rotateGuardOverlay h2 { font-size: 17px; font-weight: 600; color: var(--text); margin: 0; }
+#rotateGuardOverlay p { font-size: 13px; color: var(--text-muted); margin: 0; max-width: 280px; }
+@media (orientation: landscape) and (max-width: 900px) {
+  #rotateGuardOverlay { display: flex; }
+}
+
 </style>
 </head>
 <body>
+<div id="rotateGuardOverlay">
+  <svg class="rotate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="7" y="2" width="10" height="20" rx="2"/>
+    <line x1="11" y1="18" x2="13" y2="18"/>
+  </svg>
+  <h2>Please rotate back to portrait</h2>
+  <p>Model Launch Dashboard is designed for portrait mode on mobile.</p>
+</div>
+<script>
+// ── ORIENTATION LOCK ATTEMPT ── Works on Android when this is opened as
+// an installed PWA (standalone display mode); throws/rejects everywhere
+// else (regular browser tabs, iOS Safari), which we just swallow — the
+// CSS rotate-guard overlay above is the fallback that always works.
+(function lockPortrait(){
+  try{
+    const so = screen.orientation;
+    if (so && typeof so.lock === 'function') {
+      so.lock('portrait').catch(()=>{});
+    }
+  }catch(e){}
+})();
+window.addEventListener('DOMContentLoaded', () => {
+  try{
+    if (screen.orientation && typeof screen.orientation.lock === 'function') {
+      screen.orientation.lock('portrait').catch(()=>{});
+    }
+  }catch(e){}
+});
+</script>
 <script>
 // ── COPY PROTECTION (deters casual copying — not a real security measure) ──
 document.addEventListener('contextmenu', e => e.preventDefault());
@@ -3708,10 +3779,69 @@ document.getElementById('forgotLink').onclick=async()=>{
 // Logout — intercepted by export-before-logout modal (wired up below)
 // The modal handler re-assigns logoutBtn.onclick after DOM is ready.
 
+// ── DROPDOWN MENU VIEWPORT CLAMP ────────────────────────────────────────────
+// .user-menu / .export-menu / .bulk-move-menu are all CSS-anchored
+// (left:0 or right:0) to whichever button opens them. On mobile, header
+// and toolbar buttons wrap onto different rows depending on screen width,
+// so a fixed anchor can push the menu off either edge of the viewport —
+// body{overflow-x:hidden} then silently clips its content (text like
+// "Global Search" or "Export as Excel" gets truncated with no visible
+// cue). This re-measures the menu right after it opens and, only if it's
+// actually off-screen, nudges it back in with an inline `left`.
+//
+// These menus can open two different ways — a JS class toggle on touch
+// (see the click handlers below) or a pure-CSS :hover rule on devices
+// that report real hover support (a mouse, or a resized desktop
+// browser) — so this checks the menu's own rendered visibility rather
+// than the 'menu-open' class, and is wired to both triggers below.
+function clampMenuToViewport(anchorEl,menu){
+  if(!anchorEl||!menu) return;
+  requestAnimationFrame(()=>{
+    const cs=getComputedStyle(menu);
+    if(cs.visibility==='hidden'||parseFloat(cs.opacity)===0) return;
+    menu.style.left=''; menu.style.right='';
+    const margin=10;
+    const rect=menu.getBoundingClientRect();
+    let desiredLeft=rect.left;
+    if(rect.right>window.innerWidth-margin) desiredLeft=window.innerWidth-margin-rect.width;
+    if(rect.left<margin) desiredLeft=margin;
+    if(Math.round(desiredLeft)!==Math.round(rect.left)){
+      const parentRect=(menu.offsetParent||anchorEl).getBoundingClientRect();
+      menu.style.left=(desiredLeft-parentRect.left)+'px';
+      menu.style.right='auto';
+    }
+  });
+}
+// Hover-opened path: CSS reveals these menus on mouseenter with no JS
+// class change, so clamp on mouseenter too — harmless no-op on touch
+// devices, which generally don't fire mouseenter on tap.
+document.getElementById('userBadge').addEventListener('mouseenter',()=>{
+  const badge=document.getElementById('userBadge');
+  clampMenuToViewport(badge,document.getElementById('userMenu'));
+});
+document.getElementById('themeDropdown').addEventListener('mouseenter',()=>{
+  const dd=document.getElementById('themeDropdown');
+  clampMenuToViewport(dd,document.getElementById('themeMenu'));
+});
+document.getElementById('exportAllDropdown').addEventListener('mouseenter',()=>{
+  const dd=document.getElementById('exportAllDropdown');
+  clampMenuToViewport(dd,document.getElementById('exportAllMenu'));
+});
+document.getElementById('exportModelDropdown').addEventListener('mouseenter',()=>{
+  const dd=document.getElementById('exportModelDropdown');
+  clampMenuToViewport(dd,document.getElementById('exportModelMenu'));
+});
+document.getElementById('bulkMoveDropdown').addEventListener('mouseenter',()=>{
+  const dd=document.getElementById('bulkMoveDropdown');
+  clampMenuToViewport(dd,dd.querySelector('.bulk-move-menu'));
+});
+
 // User badge dropdown: click the name/avatar to reveal the Sign Out menu
 document.getElementById('userBadge').addEventListener('click',(e)=>{
   e.stopPropagation();
-  document.getElementById('userBadge').classList.toggle('menu-open');
+  const badge=document.getElementById('userBadge');
+  badge.classList.toggle('menu-open');
+  clampMenuToViewport(badge,document.getElementById('userMenu'));
 });
 
 // Export format dropdowns: hover reveals the menu on desktop. On touch
@@ -3721,14 +3851,18 @@ document.getElementById('exportAllToggleBtn').addEventListener('click',(e)=>{
   e.stopPropagation();
   document.getElementById('exportModelDropdown').classList.remove('menu-open');
   document.getElementById('themeDropdown').classList.remove('menu-open');
-  document.getElementById('exportAllDropdown').classList.toggle('menu-open');
+  const dd=document.getElementById('exportAllDropdown');
+  dd.classList.toggle('menu-open');
+  clampMenuToViewport(dd,document.getElementById('exportAllMenu'));
 });
 document.getElementById('exportModelToggleBtn').addEventListener('click',(e)=>{
   if(window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
   e.stopPropagation();
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
   document.getElementById('themeDropdown').classList.remove('menu-open');
-  document.getElementById('exportModelDropdown').classList.toggle('menu-open');
+  const dd=document.getElementById('exportModelDropdown');
+  dd.classList.toggle('menu-open');
+  clampMenuToViewport(dd,document.getElementById('exportModelMenu'));
 });
 
 // Bulk "Move" dropdown: hover reveals Move to Top/Bottom/Model on desktop.
@@ -3736,7 +3870,9 @@ document.getElementById('exportModelToggleBtn').addEventListener('click',(e)=>{
 document.getElementById('bulkMoveToggleBtn').addEventListener('click',(e)=>{
   if(window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
   e.stopPropagation();
-  document.getElementById('bulkMoveDropdown').classList.toggle('menu-open');
+  const dd=document.getElementById('bulkMoveDropdown');
+  dd.classList.toggle('menu-open');
+  clampMenuToViewport(dd,dd.querySelector('.bulk-move-menu'));
 });
 
 document.addEventListener('click',()=>{
@@ -9945,7 +10081,9 @@ document.getElementById('themeToggleBtn').addEventListener('click',(e)=>{
   e.stopPropagation();
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
   document.getElementById('exportModelDropdown').classList.remove('menu-open');
-  document.getElementById('themeDropdown').classList.toggle('menu-open');
+  const dd=document.getElementById('themeDropdown');
+  dd.classList.toggle('menu-open');
+  clampMenuToViewport(dd,document.getElementById('themeMenu'));
 });
 
 // ── FILTER & SEARCH ───────────────────────────────────────────────────────────
