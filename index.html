@@ -1699,6 +1699,11 @@ footer {
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
 .modal-overlay.open { display: flex; }
+/* The shared confirm/alert modal (showConfirm/showAlert) can be triggered
+   from inside other modals — e.g. deleting a template from the template
+   chooser (z-index 9999) or editor (z-index 10000). It must always render
+   above every other modal layer or it opens invisibly behind them. */
+#confirmModal { z-index: 10500; }
 .overdue-modal-body { max-height: 60vh; overflow-y: auto; margin-top: 10px; }
 .overdue-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -4952,7 +4957,36 @@ const INITIAL_DATA = {
   ]
 };
 
-const STANDARD_TASK_TEMPLATE = Object.values(INITIAL_DATA)[0].map(t=>t.name);
+// Standard checklist template seeded for every new user/workspace (with or
+// without login). Sourced from the MINI SIZE KETTLE launch checklist:
+// 23 top-level tasks with 93 nested subtasks, all starting at Med priority
+// and Pending status. This is intentionally separate from INITIAL_DATA,
+// which only supplies the three demo models' sample data.
+const STANDARD_CHECKLIST_TEMPLATE = [
+  {name:"MODEL SELECTION",priority:"med",notes:"",subtasks:[{name:"SAMPLE COLLECTION",priority:"med"},{name:"PRIMARY TEST",priority:"med"},{name:"TEST FEEDBACK TO SUPPLIER",priority:"med"},{name:"TEST FEEDBACK FROM SUPPLIER",priority:"med"},{name:"TARGET PRICE",priority:"med"},{name:"SALES FORECAST",priority:"med"},{name:"SAMPLE CONFIRMATION FROM MANAGEMENT",priority:"med"}]},
+  {name:"PRICE LOCK",priority:"med",notes:"",subtasks:[{name:"SPEC FINALIZATION",priority:"med"},{name:"BOM FINALIZATION",priority:"med"},{name:"SKD BREAKDOWN FINALIZE",priority:"med"},{name:"PACKAGING FINALIZATION",priority:"med"},{name:"ORDER QUANTITY LOCK",priority:"med"},{name:"PRICE LOCK",priority:"med"},{name:"AGREEMENT",priority:"med"},{name:"UPCOMING WEBSITE UPLOAD APPROVAL",priority:"med"}]},
+  {name:"MODEL PRE COSTING",priority:"med",notes:"",subtasks:[{name:"PRICE BREAKDOWN",priority:"med"},{name:"COSTING",priority:"med"},{name:"PRICE DRAFT APPROVAL",priority:"med"}]},
+  {name:"MODEL NAME SELECTION",priority:"med",notes:"",subtasks:[]},
+  {name:"CODE",priority:"med",notes:"",subtasks:[{name:"FG CODE OPEN",priority:"med"},{name:"RM CODE OPEN",priority:"med"},{name:"SFG CODE OPEN",priority:"med"},{name:"SFG CARTON CODE OPEN",priority:"med"},{name:"SFG MASTER CARTON CODE OPEN",priority:"med"},{name:"SFG MANUAL CODE OPEN",priority:"med"}]},
+  {name:"PACKAGING DESIGN & DEMAND",priority:"med",notes:"",subtasks:[{name:"PACKAGING DESIGN REQUISITION",priority:"med"},{name:"FEATURE DESIGN REQUISITION",priority:"med"},{name:"CARTON DESIGN",priority:"med"},{name:"CARTON DESIGN APPROVAL",priority:"med"},{name:"CARTON DESIGN LAYOUT CONFIRM",priority:"med"},{name:"CARTON DEMO MAKE",priority:"med"},{name:"CARTON CUTTING DIE CONFIRM",priority:"med"},{name:"CARTON SAMPLE CONFIRMATION",priority:"med"},{name:"CARTON DEMAND",priority:"med"},{name:"MASTER CARTON DEMAND",priority:"med"},{name:"MANUAL DEMAND",priority:"med"}]},
+  {name:"FINAL SAMPLE COLLECT FROM SUPPLIER",priority:"med",notes:"",subtasks:[]},
+  {name:"LOCAL RM ORDER",priority:"med",notes:"",subtasks:[]},
+  {name:"SERVICE",priority:"med",notes:"",subtasks:[{name:"COMPONENT MATRIX",priority:"med"},{name:"SERVICE PERCENTAGE FORECAST",priority:"med"},{name:"SERVICE PARTS ORDER",priority:"med"}]},
+  {name:"FIXTURE DESIGN & MAKE",priority:"med",notes:"",subtasks:[]},
+  {name:"LC & PSI & SHIPMENT",priority:"med",notes:"",subtasks:[{name:"PR",priority:"med"},{name:"PI",priority:"med"},{name:"PO",priority:"med"},{name:"LC DRAFT",priority:"med"},{name:"LC FINAL",priority:"med"},{name:"SUPPLIER PRODUCTION",priority:"med"},{name:"PSI CHECKLIST",priority:"med"},{name:"PSI",priority:"med"},{name:"SHIPMENT CONFIRMATION",priority:"med"},{name:"SHIPMENT BOOKING",priority:"med"},{name:"ETD",priority:"med"},{name:"ETA",priority:"med"},{name:"CUSTOMS CLEARANCE",priority:"med"}]},
+  {name:"MATERIAL RECEIVE",priority:"med",notes:"",subtasks:[{name:"FACTORY RECEIVE",priority:"med"},{name:"GRN",priority:"med"},{name:"IQC",priority:"med"},{name:"SOFTWARE RECEIVE",priority:"med"}]},
+  {name:"FINAL COSTING",priority:"med",notes:"",subtasks:[{name:"EXCEL BOM MAKING",priority:"med"},{name:"FINAL COSTING",priority:"med"},{name:"PRICE FINAL APPROVAL",priority:"med"},{name:"RESOURCE FROM COSTING",priority:"med"}]},
+  {name:"TESTING",priority:"med",notes:"",subtasks:[{name:"INTERNAL USER TEST",priority:"med"},{name:"EXTERNAL USER TEST",priority:"med"},{name:"SERVICE TEST",priority:"med"},{name:"NUSDAT PERFORMANCE TEST",priority:"med"},{name:"NUSDAT PACKAGING TEST",priority:"med"},{name:"QC CLEARANCE",priority:"med"},{name:"R&I TESTING",priority:"med"},{name:"QM TESTING",priority:"med"}]},
+  {name:"MODEL LAUNCH APPROVAL",priority:"med",notes:"",subtasks:[]},
+  {name:"BOM",priority:"med",notes:"",subtasks:[{name:"BOM REVIEW & FINALIZATION",priority:"med"},{name:"BOM UPLOAD",priority:"med"},{name:"BOM MEETING",priority:"med"},{name:"BOM APPROVAL",priority:"med"}]},
+  {name:"DO JOB",priority:"med",notes:"",subtasks:[]},
+  {name:"STICKER",priority:"med",notes:"",subtasks:[{name:"RATING STICKER DESIGN",priority:"med"},{name:"RATING STICKER UPLOAD",priority:"med"},{name:"BARCODE MAIL",priority:"med"},{name:"WBST ADD",priority:"med"},{name:"MRP STICKER DESIGN",priority:"med"},{name:"MRP STICKER CONFIRM",priority:"med"}]},
+  {name:"MASTER SAMPLE MAKE",priority:"med",notes:"",subtasks:[]},
+  {name:"VAT & MRP DECLARATION",priority:"med",notes:"",subtasks:[{name:"BOM FOR VAT",priority:"med"},{name:"FACTORY VAT DECLARATION",priority:"med"},{name:"CORPORATE VAT DECLARATION",priority:"med"},{name:"PRICE ADD",priority:"med"},{name:"PRICE DECELERATION",priority:"med"}]},
+  {name:"PRODUCTION",priority:"med",notes:"",subtasks:[{name:"TRIAL PRODUCTION",priority:"med"},{name:"SOP REVIEW",priority:"med"},{name:"SOP APPROVAL",priority:"med"},{name:"MASS PRODUCTION",priority:"med"},{name:"QUALITY REVIEW",priority:"med"},{name:"QUALITY FEEDBACK TO SUPPLIER",priority:"med"},{name:"PROBLEM IDENTIFY & SOLUTION",priority:"med"},{name:"NEXT LOT IMPROVEMENT",priority:"med"}]},
+  {name:"WEBSITE MANAGEMENT",priority:"med",notes:"",subtasks:[{name:"ETA HIDE",priority:"med"},{name:"WEBSITE UPLOAD",priority:"med"},{name:"UPLOAD REVIEW & FINALIZATION",priority:"med"}]},
+  {name:"LAUNCH ACKNOWLEDGEMENT",priority:"med",notes:"",subtasks:[]},
+];
 
 // ── STATE LOAD ─────────────────────────────────────────────────────────────────
 function loadState(saved) {
@@ -5005,7 +5039,10 @@ let templates = {};
 // the next reload/sync.
 let standardTemplateSeeded = false;
 function buildDefaultStandardTemplate(){
-  return {createdAt:Date.now(),tasks:STANDARD_TASK_TEMPLATE.map(n=>({name:n,priority:'med',notes:'',subtasks:[]}))};
+  return {createdAt:Date.now(),tasks:STANDARD_CHECKLIST_TEMPLATE.map(t=>({
+    name:t.name,priority:t.priority||'med',notes:t.notes||'',
+    subtasks:(t.subtasks||[]).map(s=>({name:s.name,priority:s.priority||'med'}))
+  }))};
 }
 function seedStandardTemplateIfNeeded(){
   if(standardTemplateSeeded) return;
