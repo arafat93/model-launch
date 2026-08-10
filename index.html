@@ -1633,6 +1633,52 @@ footer {
 .move-model-option .move-model-arrow { opacity: 0; transition: opacity 0.2s ease; font-size: 16px; }
 .move-model-option:hover .move-model-arrow { opacity: 1; }
 .move-model-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 24px 0; }
+/* Cross-Model Bulk Update modal */
+.crossmodel-field-group { margin-top: 18px; }
+.crossmodel-field-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 8px;
+}
+.crossmodel-select {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; color: var(--text);
+  font-family: inherit; font-size: 14px; outline: none; cursor: pointer;
+}
+.crossmodel-select:focus { border-color: var(--accent1); box-shadow: 0 0 0 3px var(--accent1-dim); }
+.crossmodel-list {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-top: 4px; max-height: 260px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: 12px; padding: 8px;
+}
+.crossmodel-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px; border-radius: 9px; transition: background .15s ease;
+}
+.crossmodel-row:hover { background: var(--surface2); }
+.crossmodel-row .cm-name { flex: 1; font-size: 13.5px; font-weight: 600; color: var(--text); }
+.crossmodel-row .cm-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.crossmodel-row .cm-tag {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  padding: 3px 8px; border-radius: 6px; white-space: nowrap;
+}
+.crossmodel-row .cm-tag.status-done { color: var(--green); background: rgba(16,185,129,0.12); }
+.crossmodel-row .cm-tag.status-inprogress { color: var(--accent2); background: rgba(96,165,250,0.12); }
+.crossmodel-row .cm-tag.status-pending { color: var(--text-muted); background: rgba(161,161,170,0.12); }
+.crossmodel-row .cm-tag.prio-high { color: var(--red); background: rgba(244,63,94,0.12); }
+.crossmodel-row .cm-tag.prio-med { color: var(--yellow); background: rgba(245,158,11,0.12); }
+.crossmodel-row .cm-tag.prio-low { color: var(--text-muted); background: rgba(161,161,170,0.12); }
+.crossmodel-row .cm-dl { font-size: 11px; color: var(--text-muted); }
+.crossmodel-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 24px 0; }
+.crossmodel-select-all-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px; padding: 0 2px;
+}
+.crossmodel-select-all-row label { font-size: 12.5px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.crossmodal-scroll-body {
+  overflow-y: auto; overflow-x: hidden;
+  flex: 1 1 auto; min-height: 0;
+  padding-right: 4px; margin-right: -4px;
+}
 .task-checkbox {
   -webkit-appearance: none; -moz-appearance: none; appearance: none;
   width: 19px; height: 19px; min-width: 19px; cursor: pointer;
@@ -3281,6 +3327,7 @@ document.addEventListener('keydown', e => {
       <span class="user-badge-caret">▾</span>
       <div class="user-menu" id="userMenu">
         <button class="menu-item" id="globalSearchBtn" title="Search tasks &amp; models across your entire workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Global Search</span><span class="menu-item-kbd">Ctrl K</span></button>
+        <button class="menu-item" id="crossModelBulkBtn" title="Update the same task across all your models at once"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Bulk Update by Task</span></button>
         <button class="menu-item" id="activityLogMenuBtn" title="See every change across your workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg><span>Activity Log</span></button>
         <div class="menu-divider"></div>
         <button class="menu-item" id="teamMenuBtn" title="Invite teammates or manage your shared workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span><span class="archive-count-badge" id="teamCountBadge" style="display:none;">1</span></button>
@@ -3852,6 +3899,74 @@ document.addEventListener('keydown', e => {
     <div class="move-model-list" id="moveModelList"></div>
     <div class="modal-actions" style="margin-top:24px;">
       <button class="modal-btn secondary" id="bulkMoveModelCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CROSS-MODEL BULK UPDATE MODAL — pick a task name shared across models, choose which
+     models to touch, then update status/deadline/priority for all of them in one go. -->
+<div class="modal-overlay" id="crossModelBulkModal">
+  <div class="modal-box" style="width:min(560px, 92vw); max-height:88vh; display:flex; flex-direction:column; padding-bottom:24px;">
+    <div class="modal-title">Bulk Update by Task</div>
+    <div class="modal-subtitle">Pick a task that appears in more than one model, choose which models to update, then set the new status, deadline, or priority.</div>
+
+    <div class="crossmodal-scroll-body">
+      <div class="crossmodel-field-group" style="margin-top:0;">
+        <label class="crossmodel-field-label" for="crossTaskSelect">Task</label>
+        <select class="crossmodel-select" id="crossTaskSelect"></select>
+      </div>
+
+      <div class="crossmodel-select-all-row">
+        <label><input type="checkbox" class="task-checkbox" id="crossSelectAllChk">Select all models</label>
+        <span class="cm-dl" id="crossMatchCount"></span>
+      </div>
+      <div class="crossmodel-list" id="crossModelList"></div>
+
+      <div class="crossmodel-field-group" id="crossSubtaskSection" style="display:none;">
+        <div class="crossmodel-select-all-row" style="margin-top:0;">
+          <label><input type="checkbox" class="task-checkbox" id="crossIncludeSubtasksChk">Also apply to subtasks</label>
+          <span class="cm-dl" id="crossSubtaskCount"></span>
+        </div>
+        <div class="crossmodel-select-all-row" id="crossSubtaskSelectAllRow" style="display:none;margin-top:8px;">
+          <label><input type="checkbox" class="task-checkbox" id="crossSubtaskSelectAllChk" checked>Select all subtasks</label>
+        </div>
+        <div class="crossmodel-list" id="crossSubtaskList" style="display:none;"></div>
+      </div>
+
+      <div class="crossmodel-field-group">
+        <label class="crossmodel-field-label" for="crossStatusSelect">Status</label>
+        <select class="crossmodel-select" id="crossStatusSelect">
+          <option value="nochange">— No change —</option>
+          <option value="pending">Pending</option>
+          <option value="inprogress">In Progress</option>
+          <option value="done">Completed</option>
+        </select>
+      </div>
+
+      <div class="crossmodel-field-group">
+        <label class="crossmodel-field-label" for="crossPrioritySelect">Priority</label>
+        <select class="crossmodel-select" id="crossPrioritySelect">
+          <option value="nochange">— No change —</option>
+          <option value="high">High</option>
+          <option value="med">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+
+      <div class="crossmodel-field-group">
+        <label class="crossmodel-field-label" for="crossDeadlineSelect">Deadline</label>
+        <select class="crossmodel-select" id="crossDeadlineSelect">
+          <option value="nochange">— No change —</option>
+          <option value="set">Set date…</option>
+          <option value="clear">Clear deadline</option>
+        </select>
+        <input type="date" class="deadline-input" id="crossDeadlinePicker" style="margin-top:8px;display:none;">
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px;flex-shrink:0;">
+      <button class="modal-btn secondary" id="crossModelBulkCancelBtn">Cancel</button>
+      <button class="modal-btn primary" id="crossModelBulkApplyBtn">Apply</button>
     </div>
   </div>
 </div>
@@ -5691,6 +5806,10 @@ function closeGlobalSearchModal(){
   document.getElementById('globalSearchModal').classList.remove('open');
 }
 document.getElementById('globalSearchBtn').onclick=openGlobalSearchModal;
+document.getElementById('crossModelBulkBtn').onclick=()=>{
+  document.getElementById('userBadge').classList.remove('menu-open');
+  openCrossModelBulkModal();
+};
 document.getElementById('globalSearchCloseBtn').onclick=closeGlobalSearchModal;
 document.getElementById('globalSearchModal').onclick=e=>{
   if(e.target.id==='globalSearchModal') closeGlobalSearchModal();
@@ -9505,6 +9624,216 @@ document.getElementById('bulkMoveModelCancelBtn').onclick=()=>document.getElemen
 document.getElementById('bulkMoveModelModal').onclick=e=>{
   if(e.target===document.getElementById('bulkMoveModelModal'))
     document.getElementById('bulkMoveModelModal').classList.remove('open');
+};
+
+// ── CROSS-MODEL BULK UPDATE ─────────────────────────────────────────────────
+// Lets you pick one task NAME (e.g. "CODE") that recurs across multiple
+// models' identical launch checklists, choose which of those models to
+// touch, and push a status / deadline / priority change to all of them in
+// one action — instead of repeating the same edit inside each model's tab.
+function getCommonTaskNames(){
+  // Only task names that appear as a top-level task in 2+ active models
+  // count as "common" — a name unique to one model has nothing to bulk-update.
+  const counts={};
+  models.forEach(m=>{
+    const seenInModel=new Set();
+    (state[m]||[]).forEach(t=>{
+      if(seenInModel.has(t.name))return; // count each name once per model
+      seenInModel.add(t.name);
+      counts[t.name]=(counts[t.name]||0)+1;
+    });
+  });
+  return Object.keys(counts).filter(n=>counts[n]>=2).sort((a,b)=>a.localeCompare(b));
+}
+function openCrossModelBulkModal(){
+  const sel=document.getElementById('crossTaskSelect');
+  const names=getCommonTaskNames();
+  sel.innerHTML = names.length
+    ? names.map(n=>`<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('')
+    : `<option value="">No shared tasks found</option>`;
+  document.getElementById('crossStatusSelect').value='nochange';
+  document.getElementById('crossPrioritySelect').value='nochange';
+  document.getElementById('crossDeadlineSelect').value='nochange';
+  document.getElementById('crossDeadlinePicker').style.display='none';
+  document.getElementById('crossDeadlinePicker').value='';
+  document.getElementById('crossIncludeSubtasksChk').checked=false;
+  document.getElementById('crossSubtaskSelectAllChk').checked=true;
+  renderCrossModelList();
+  document.getElementById('crossModelBulkModal').classList.add('open');
+}
+function renderCrossModelList(){
+  const taskName=document.getElementById('crossTaskSelect').value;
+  const list=document.getElementById('crossModelList');
+  const matches=models
+    .map(m=>({model:m, task:(state[m]||[]).find(t=>t.name===taskName)}))
+    .filter(x=>x.task);
+  document.getElementById('crossMatchCount').textContent =
+    matches.length ? `${matches.length} model${matches.length===1?'':'s'} have this task` : '';
+  if(!taskName || !matches.length){
+    list.innerHTML=`<div class="crossmodel-empty">No models have a matching task.</div>`;
+    document.getElementById('crossSelectAllChk').checked=false;
+    renderCrossSubtaskList([]);
+    return;
+  }
+  const statusLabel={done:'Completed',inprogress:'In Progress',pending:'Pending'};
+  const prioLabel={high:'High',med:'Med',low:'Low'};
+  list.innerHTML = matches.map(({model,task})=>{
+    const status=task.status || (task.done?'done':'pending');
+    const dl = task.taskDeadline
+      ? new Date(task.taskDeadline+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})
+      : 'No date';
+    return `
+      <label class="crossmodel-row">
+        <input type="checkbox" class="task-checkbox cm-row-chk" data-model="${escHtml(model)}" checked>
+        <span class="cm-name">${escHtml(model)}</span>
+        <span class="cm-meta">
+          <span class="cm-tag status-${status}">${statusLabel[status]||status}</span>
+          <span class="cm-tag prio-${task.priority||'med'}">${prioLabel[task.priority||'med']}</span>
+          <span class="cm-dl">${dl}</span>
+        </span>
+      </label>`;
+  }).join('');
+  document.getElementById('crossSelectAllChk').checked=true;
+  renderCrossSubtaskList(matches);
+}
+// Builds the "Also apply to subtasks" list — every distinct subtask name
+// found under the matched task, across whichever models have it. Hidden
+// entirely when the selected task has no subtasks anywhere.
+function renderCrossSubtaskList(matches){
+  const section=document.getElementById('crossSubtaskSection');
+  const subList=document.getElementById('crossSubtaskList');
+  const selectAllRow=document.getElementById('crossSubtaskSelectAllRow');
+  const includeChk=document.getElementById('crossIncludeSubtasksChk');
+  const names=[];
+  const seen=new Set();
+  matches.forEach(({task})=>{
+    (task.subtasks||[]).forEach(s=>{
+      if(!seen.has(s.name)){ seen.add(s.name); names.push(s.name); }
+    });
+  });
+  if(!names.length){
+    section.style.display='none';
+    includeChk.checked=false;
+    subList.style.display='none';
+    selectAllRow.style.display='none';
+    subList.innerHTML='';
+    return;
+  }
+  section.style.display='';
+  document.getElementById('crossSubtaskCount').textContent=`${names.length} subtask${names.length===1?'':'s'}`;
+  subList.innerHTML = names.map(n=>`
+    <label class="crossmodel-row">
+      <input type="checkbox" class="task-checkbox cm-sub-chk" data-subname="${escHtml(n)}" checked>
+      <span class="cm-name">${escHtml(n)}</span>
+    </label>`).join('');
+  // Collapsed by default until "Also apply to subtasks" is checked.
+  subList.style.display = includeChk.checked ? '' : 'none';
+  selectAllRow.style.display = includeChk.checked ? '' : 'none';
+}
+document.getElementById('crossTaskSelect').onchange=renderCrossModelList;
+document.getElementById('crossSelectAllChk').onchange=e=>{
+  document.querySelectorAll('#crossModelList .cm-row-chk').forEach(chk=>{chk.checked=e.target.checked;});
+};
+document.getElementById('crossIncludeSubtasksChk').onchange=e=>{
+  document.getElementById('crossSubtaskList').style.display = e.target.checked ? '' : 'none';
+  document.getElementById('crossSubtaskSelectAllRow').style.display = e.target.checked ? '' : 'none';
+};
+document.getElementById('crossSubtaskSelectAllChk').onchange=e=>{
+  document.querySelectorAll('#crossSubtaskList .cm-sub-chk').forEach(chk=>{chk.checked=e.target.checked;});
+};
+document.getElementById('crossDeadlineSelect').onchange=e=>{
+  document.getElementById('crossDeadlinePicker').style.display = e.target.value==='set' ? 'block' : 'none';
+};
+document.getElementById('crossModelBulkCancelBtn').onclick=()=>document.getElementById('crossModelBulkModal').classList.remove('open');
+document.getElementById('crossModelBulkModal').onclick=e=>{
+  if(e.target===document.getElementById('crossModelBulkModal'))
+    document.getElementById('crossModelBulkModal').classList.remove('open');
+};
+document.getElementById('crossModelBulkApplyBtn').onclick=()=>{
+  const taskName=document.getElementById('crossTaskSelect').value;
+  if(!taskName)return;
+  const targetModels=[...document.querySelectorAll('#crossModelList .cm-row-chk:checked')].map(c=>c.dataset.model);
+  if(!targetModels.length){ toast('⚠','Select at least one model'); return; }
+
+  const statusMode=document.getElementById('crossStatusSelect').value;     // nochange|pending|inprogress|done
+  const prioMode=document.getElementById('crossPrioritySelect').value;     // nochange|high|med|low
+  const deadlineMode=document.getElementById('crossDeadlineSelect').value; // nochange|set|clear
+  const deadlineVal=document.getElementById('crossDeadlinePicker').value;
+
+  if(statusMode==='nochange' && prioMode==='nochange' && deadlineMode==='nochange'){
+    toast('⚠','Choose at least one field to update');
+    return;
+  }
+  if(deadlineMode==='set' && !deadlineVal){
+    toast('⚠','Pick a date first');
+    return;
+  }
+
+  let updated=0, subtasksUpdated=0, heldBack=0;
+  const includeSubtasks=document.getElementById('crossIncludeSubtasksChk').checked;
+  const selectedSubtaskNames = includeSubtasks
+    ? [...document.querySelectorAll('#crossSubtaskList .cm-sub-chk:checked')].map(c=>c.dataset.subname)
+    : [];
+  targetModels.forEach(model=>{
+    const task=(state[model]||[]).find(t=>t.name===taskName);
+    if(!task)return;
+
+    // Subtasks are applied FIRST — whether the parent is allowed to become
+    // Completed below depends on every subtask's final done state, so that
+    // decision has to see the post-update subtasks, not the stale ones.
+    // Subtasks are only ever touched if "Also apply to subtasks" is checked,
+    // and then only the specific ones left checked — unchecking a subtask
+    // must leave it completely untouched.
+    let subCountForModel=0;
+    if(includeSubtasks && selectedSubtaskNames.length && Array.isArray(task.subtasks)){
+      task.subtasks.forEach(sub=>{
+        if(!selectedSubtaskNames.includes(sub.name))return;
+        if(statusMode!=='nochange'){
+          sub.done = statusMode==='done';
+          sub.status = statusMode;
+        }
+        if(prioMode!=='nochange') sub.priority=prioMode;
+        if(deadlineMode==='set') sub.taskDeadline=deadlineVal;
+        else if(deadlineMode==='clear') sub.taskDeadline='';
+        subCountForModel++;
+      });
+      subtasksUpdated+=subCountForModel;
+    }
+
+    let wasHeldBack=false;
+    if(statusMode!=='nochange'){
+      if(statusMode==='done'){
+        // A task can't land in the Completed section while it still has
+        // an open subtask — same rule the rest of the dashboard follows.
+        // If any subtask (touched or not) is still incomplete, keep the
+        // task active instead of forcing it done.
+        const hasSubtasks = Array.isArray(task.subtasks) && task.subtasks.length>0;
+        const allSubtasksDone = !hasSubtasks || task.subtasks.every(s=>s.done);
+        if(allSubtasksDone){
+          task.done=true;task.status='done';task.completedAt=Date.now();
+        } else {
+          task.done=false;task.status='inprogress';task.completedAt=null;
+          wasHeldBack=true; heldBack++;
+        }
+      } else {
+        task.done=false;task.status=statusMode;task.completedAt=null;
+      }
+    }
+    if(prioMode!=='nochange') task.priority=prioMode;
+    if(deadlineMode==='set') task.taskDeadline=deadlineVal;
+    else if(deadlineMode==='clear') task.taskDeadline='';
+
+    updated++;
+    const subNote=subCountForModel?' and its subtasks':'';
+    const heldNote=wasHeldBack?' (kept In Progress — open subtasks remain)':'';
+    logActivity('🔁',`bulk-updated task "${taskName}"${subNote}${heldNote}`,model);
+  });
+
+  save();renderAll();
+  document.getElementById('crossModelBulkModal').classList.remove('open');
+  const subtaskNote = subtasksUpdated ? ` (+${subtasksUpdated} subtask${subtasksUpdated===1?'':'s'})` : '';
+  const heldNote = heldBack ? ` — ${heldBack} kept In Progress (open subtasks)` : '';
+  toast('✓',`Updated "${taskName}" in ${updated} model${updated===1?'':'s'}${subtaskNote}${heldNote}`);
 };
 // Duplicates each selected task in place — right after its original —
 // within the current model. Sits beside Copy to Model in the bulk bar, but
