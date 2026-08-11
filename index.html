@@ -1845,6 +1845,14 @@ footer {
 .activity-row-text b { color: var(--accent1); font-weight: 600; }
 .activity-row-meta { font-size: 11px; color: var(--text-dim); margin-top: 3px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .activity-row-model-tag { background: var(--surface3); color: var(--text-muted); border-radius: 5px; padding: 1px 6px; font-weight: 600; }
+.activity-restore-btn {
+  flex-shrink: 0; align-self: center; display: flex; align-items: center; gap: 4px;
+  background: transparent; color: var(--accent1); border: 1px solid var(--accent1-dim);
+  border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600;
+  font-family: 'Sora', sans-serif; cursor: pointer; white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.activity-restore-btn:hover { background: var(--accent1-dim); border-color: var(--accent1); }
 .modal-box {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 24px; padding: 36px; width: min(500px, 90vw);
@@ -4731,7 +4739,11 @@ function undo(){
   }
   renderAll();
   toast('↺','Undone',false);
-  logActivity('↺','undid the last change',activeTab);
+  // Explicit null: undo() pops undoStack by hand rather than going through
+  // pushUndoSnapshot(), so undoStack's top can't be trusted as "state right
+  // before this undo" here — and restoring to before an undo is redundant
+  // with just hitting Redo, so skip offering a restore point for this entry.
+  logActivity('↺','undid the last change',activeTab,null);
 }
 
 function redo(){
@@ -4761,7 +4773,9 @@ function redo(){
   }
   renderAll();
   toast('↻','Redone',false);
-  logActivity('↻','redid the last change',activeTab);
+  // Same reasoning as undo() above: redoStack was popped by hand, so
+  // there's no trustworthy "before this change" snapshot to offer here.
+  logActivity('↻','redid the last change',activeTab,null);
 }
 
 let deletedModelsSet=new Set();
@@ -5487,7 +5501,15 @@ function addSubtask(model,idx,name){
 //   • no subtask has any progress                → task falls back to Pending
 // Tasks with no subtasks are left alone — there's nothing to derive from,
 // so manual status changes on subtask-less tasks are never touched here.
-function syncTaskStatusFromSubtasks(model,idx){
+// `beforeSnapshot` (optional): every caller of this function runs it BEFORE
+// its own save(), so undoStack's top at logActivity()-time here would still
+// be the OLD entry from whatever action came before this one — not "state
+// right before this change" — which meant the restore button on these
+// auto-status entries either pointed too far back or (once undoStack was
+// empty) never appeared at all. Callers now capture snapshotNow() right
+// before they start mutating anything and pass it through here so these
+// entries get a correct, present restore point same as everything else.
+function syncTaskStatusFromSubtasks(model,idx,beforeSnapshot){
   const task=state[model]&&state[model][idx];
   if(!task) return;
   const subs=getSubtasks(model,idx);
@@ -5499,17 +5521,17 @@ function syncTaskStatusFromSubtasks(model,idx){
   if(allDone){
     if(!task.done){
       task.done=true; task.status='done'; task.completedAt=Date.now();
-      logActivity('✓',`auto-completed "${task.name}" — all subtasks done`,model);
+      logActivity('✓',`auto-completed "${task.name}" — all subtasks done`,model,beforeSnapshot);
     }
   } else if(anyActive){
     if(task.done||task.status!=='inprogress'){
       task.done=false; task.status='inprogress'; task.completedAt=null;
-      logActivity('⏳',`auto-marked "${task.name}" in progress — subtask activity detected`,model);
+      logActivity('⏳',`auto-marked "${task.name}" in progress — subtask activity detected`,model,beforeSnapshot);
     }
   } else {
     if(task.done||task.status==='inprogress'){
       task.done=false; task.status='pending'; task.completedAt=null;
-      logActivity('↺',`auto-reset "${task.name}" to pending — no active subtasks`,model);
+      logActivity('↺',`auto-reset "${task.name}" to pending — no active subtasks`,model,beforeSnapshot);
     }
   }
 }
@@ -5517,9 +5539,10 @@ function setSubtaskStatus(model,idx,sIdx,newStatus){
   const s=getSubtasks(model,idx)[sIdx]; if(!s) return;
   closeStatusDropdown();
   if((s.done?'done':(s.status==='inprogress'?'inprogress':'pending'))===newStatus) return;
+  const _before=snapshotNow(); // captured before any mutation, for the auto-status log entry below
   s.done=newStatus==='done';
   s.status=newStatus;
-  syncTaskStatusFromSubtasks(model,idx);
+  syncTaskStatusFromSubtasks(model,idx,_before);
   save(); renderAll();
   const verb=newStatus==='done'?'completed':(newStatus==='inprogress'?'marked in progress':'reopened');
   const icon=newStatus==='done'?'✓':(newStatus==='inprogress'?'⏳':'↺');
@@ -5529,10 +5552,11 @@ function deleteSubtask(model,idx,sIdx){
   const subs=getSubtasks(model,idx);
   const parentTask=state[model][idx];
   const nm=subs[sIdx].name;
+  const _before=snapshotNow(); // captured before any mutation, for the auto-status log entry below
   recycleSubtask(model,parentTask.name,subs[sIdx],sIdx);
   subs.splice(sIdx,1);
   clearSubSelectionsForTask(model,idx);
-  syncTaskStatusFromSubtasks(model,idx);
+  syncTaskStatusFromSubtasks(model,idx,_before);
   save(); renderAll(); updateRecycleBadge(); toast('🗑','Moved to Recycle Bin: '+nm.slice(0,28));
   logActivity('🗑',`deleted subtask "${nm}"`,model);
 }
@@ -5940,9 +5964,37 @@ function setActivitySeenNow(){ localStorage.setItem(getActivitySeenKey(), String
 // Fire-and-forget: never blocks the action that triggered it, and quietly
 // no-ops in local/preview mode (no signed-in user or workspace) — same
 // spirit as save()'s own "if not signed in, skip the network part" guard.
-function logActivity(icon,text,model){
+// Local-session-only map of Firestore activity-doc-id -> a deep-cloned
+// "state right before this change" snapshot, so the Activity Log can offer
+// a Restore button next to entries this browser tab itself produced. Other
+// people's entries (and entries from before a page reload) simply won't
+// have one — there's no way to recover the exact pre-change state for
+// those without persisting a full snapshot per log entry, which would
+// bloat the Firestore activity collection far beyond what it's meant for.
+let activityUndoSnapshots=new Map();
+const ACTIVITY_UNDO_CAP=60; // keep memory bounded; oldest restore points drop off first
+// Optional 4th arg `beforeSnapshot`:
+//  - omitted (undefined)  → derive it from undoStack, as before (correct
+//    for the common "mutate → save() → logActivity()" call order, since
+//    save()'s pushUndoSnapshot() has, by then, already pushed "state right
+//    before this change" onto the top of undoStack).
+//  - an object            → use it as-is. Needed for call sites where
+//    logActivity() fires BEFORE save() has run for this change (e.g. the
+//    auto-status logActivity() calls inside syncTaskStatusFromSubtasks(),
+//    which execute before the outer handler's own save()) — undoStack's
+//    top at that moment still reflects the change-before-last, not this
+//    one, so those callers capture snapshotNow() themselves beforehand
+//    and pass it through explicitly.
+//  - explicit null         → no restore point at all for this entry (used
+//    by undo()/redo(), where undoStack was just popped/pushed by hand
+//    rather than via pushUndoSnapshot(), so its top can't be trusted —
+//    and "restore to before an undo" is redundant with hitting Redo anyway).
+function logActivity(icon,text,model,beforeSnapshot){
   if(!auth||!auth.currentUser||!db||!currentWorkspaceId) return;
   const user=auth.currentUser;
+  const restorePoint=beforeSnapshot!==undefined
+    ? (beforeSnapshot?JSON.parse(JSON.stringify(beforeSnapshot)):null)
+    : (undoStack.length ? JSON.parse(JSON.stringify(undoStack[undoStack.length-1])) : null);
   const entry={
     uid:user.uid,
     userLabel:user.displayName||(user.email||'').split('@')[0]||'Someone',
@@ -5951,7 +6003,28 @@ function logActivity(icon,text,model){
     model:model||null,
     ts:firebase.firestore.FieldValue.serverTimestamp()
   };
-  getWorkspaceDoc().collection('activity').add(entry).catch(e=>console.warn('Activity log write failed:',e));
+  // .doc() (no args) generates a fresh document ID entirely client-side —
+  // no network round-trip needed for that part. Registering the restore
+  // point under it BEFORE the write even starts means it's already sitting
+  // in activityUndoSnapshots by the time the realtime listener's local-cache
+  // echo of this same write reaches renderActivityFeed(), which is normally
+  // near-instant. Previously we only learned the ID from .add()'s resolved
+  // promise, i.e. after the full round-trip — the entry would appear in the
+  // feed first, sans Restore button, and only gain one once that later
+  // promise resolved (the visible "delay" this replaces).
+  const docRef=getWorkspaceDoc().collection('activity').doc();
+  if(restorePoint){
+    activityUndoSnapshots.set(docRef.id,restorePoint);
+    if(activityUndoSnapshots.size>ACTIVITY_UNDO_CAP){
+      activityUndoSnapshots.delete(activityUndoSnapshots.keys().next().value);
+    }
+  }
+  docRef.set(entry).catch(e=>{
+    console.warn('Activity log write failed:',e);
+    // The write never made it — drop the now-orphaned restore point so it
+    // doesn't linger under an ID that'll never appear in the feed.
+    activityUndoSnapshots.delete(docRef.id);
+  });
 }
 
 function listenForActivity(workspaceId){
@@ -6022,6 +6095,7 @@ function renderActivityFeed(){
   body.innerHTML=activityFeed.map(e=>{
     const ms=_activityTsMillis(e);
     const unread=e.uid!==myUid&&ms>seen;
+    const canRestore=e.id&&activityUndoSnapshots.has(e.id);
     return `<div class="activity-row${unread?' unread':''}">
       <div class="activity-row-icon">${escHtml(_sanitizeActivityIcon(e.icon))}</div>
       <div class="activity-row-main">
@@ -6031,8 +6105,50 @@ function renderActivityFeed(){
           ${e.model?`<span class="activity-row-model-tag">${escHtml(e.model)}</span>`:''}
         </div>
       </div>
+      ${canRestore?`<button class="activity-restore-btn" data-restore-id="${escHtml(e.id)}" title="Put the workspace back exactly as it was right before this change">↩ Restore</button>`:''}
     </div>`;
   }).join('');
+  body.querySelectorAll('.activity-restore-btn').forEach(btn=>{
+    btn.onclick=()=>restoreToActivity(btn.getAttribute('data-restore-id'));
+  });
+}
+
+// Reverts the whole workspace to the local snapshot captured right before
+// the given activity entry's change — i.e. undoes that change and anything
+// that happened after it. Only ever available for this browser session's
+// own actions (see activityUndoSnapshots above).
+async function restoreToActivity(entryId){
+  const snap=activityUndoSnapshots.get(entryId);
+  if(!snap){
+    toast('⚠','Restore is only available for your own actions from this session',false);
+    return;
+  }
+  const entry=activityFeed.find(e=>e.id===entryId);
+  const ok=await showConfirm({
+    title:'Restore this change?',
+    message:`This puts the workspace back exactly as it was right before ${entry?`"${entry.text}"`:'this change'}. Anything done since then will be reverted — you can still hit Undo afterward if you change your mind.`,
+    confirmText:'Restore',
+    danger:true,
+    icon:'↩'
+  });
+  if(!ok) return;
+  state=JSON.parse(JSON.stringify(snap.state));
+  deadlines=JSON.parse(JSON.stringify(snap.deadlines));
+  modelImages=JSON.parse(JSON.stringify(snap.modelImages||{}));
+  deletedModelsSet=new Set(snap.deletedModels||[]);
+  archivedModelsSet=new Set(snap.archivedModels||[]);
+  pinnedModelsSet=new Set(snap.pinnedModels||[]);
+  modelOrder=snap.modelOrder?[...snap.modelOrder]:modelOrder;
+  recycleBin=JSON.parse(JSON.stringify(snap.recycleBin||{}));
+  refreshModelsList();
+  activeTab=models.includes(snap.activeTab)?snap.activeTab:(models[0]||'');
+  localStorage.setItem('mlc_activeTab',activeTab);
+  selectedTasks.clear();selectedSubtasks.clear();editingIdx=null;
+  save(); // pushes an undo point for "state right before this restore" and persists
+  renderAll();
+  closeActivityModal();
+  toast('↩','Restored to before that change',false);
+  logActivity('↩',`restored the workspace to before "${(entry&&entry.text||'a previous change').slice(0,80)}"`,activeTab);
 }
 
 function openActivityModal(){
@@ -8254,25 +8370,28 @@ function renderTaskList(){
         <button class="bulk-btn" data-act="clear" style="margin-left:auto;">Clear Selection</button>`;
       sBar.querySelector('[data-act="done"]').onclick=e=>{
         e.stopPropagation();
+        const _before=snapshotNow(); // captured before any mutation, for the auto-status log entry below
         selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI]){subs[sI].done=true;subs[sI].status='done';}});
         subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
-        syncTaskStatusFromSubtasks(activeTab,idx);
+        syncTaskStatusFromSubtasks(activeTab,idx,_before);
         save();renderAll();toast('✓',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} done`);
         logActivity('✓',`marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} done in "${state[activeTab][idx].name}"`,activeTab);
       };
       sBar.querySelector('[data-act="inprogress"]').onclick=e=>{
         e.stopPropagation();
+        const _before=snapshotNow();
         selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI]){subs[sI].done=false;subs[sI].status='inprogress';}});
         subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
-        syncTaskStatusFromSubtasks(activeTab,idx);
+        syncTaskStatusFromSubtasks(activeTab,idx,_before);
         save();renderAll();toast('⏳',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} in progress`);
         logActivity('⏳',`marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} in progress in "${state[activeTab][idx].name}"`,activeTab);
       };
       sBar.querySelector('[data-act="pending"]').onclick=e=>{
         e.stopPropagation();
+        const _before=snapshotNow();
         selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI]){subs[sI].done=false;subs[sI].status='pending';}});
         subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
-        syncTaskStatusFromSubtasks(activeTab,idx);
+        syncTaskStatusFromSubtasks(activeTab,idx,_before);
         save();renderAll();toast('↺',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} pending`);
         logActivity('↺',`marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} pending in "${state[activeTab][idx].name}"`,activeTab);
       };
