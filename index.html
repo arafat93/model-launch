@@ -2786,6 +2786,8 @@ img { -webkit-user-drag: none; }
   .exec-summary { display: flex; flex-direction: column; min-height: 253mm; }
   .es-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #d4af37; text-transform: uppercase; margin-bottom: 4px; }
   .es-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 20px; }
+  .es-header-left { display: flex; align-items: flex-start; gap: 16px; }
+  .es-photo { width: 64px; height: 64px; object-fit: cover; border-radius: 12px; border: 1px solid #ccc; flex-shrink: 0; }
   .es-header h1 { font-size: 26px; font-weight: 800; margin: 0 0 8px 0; color: #111; }
   .es-status-pill { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; border: 1.5px solid; border-radius: 20px; padding: 3px 12px; }
   .es-header-right { text-align: right; }
@@ -7353,7 +7355,8 @@ function execSummaryData(modelName){
   })).sort((a,b)=>b.count-a.count);
 
   return{modelName,stats:s,dlText,dlSub,statusText,statusColor,prio,
-    overdue:overdue.slice(0,6),upcoming:upcoming.slice(0,6),team:team.slice(0,6)};
+    overdue:overdue.slice(0,6),upcoming:upcoming.slice(0,6),team:team.slice(0,6),
+    photo:modelImages[modelName]||null};
 }
 
 function _svgProgressRing(pct,color){
@@ -7385,10 +7388,13 @@ function _buildExecSummarySection(modelName){
 
   return `
     <div class="es-header">
-      <div>
-        <div class="es-eyebrow">Executive Summary</div>
-        <h1>${escHtml(modelName)}</h1>
-        <div class="es-status-pill" style="color:${d.statusColor};border-color:${d.statusColor};">${d.statusText}</div>
+      <div class="es-header-left">
+        ${d.photo?`<img class="es-photo" src="${d.photo}" alt="">`:''}
+        <div>
+          <div class="es-eyebrow">Executive Summary</div>
+          <h1>${escHtml(modelName)}</h1>
+          <div class="es-status-pill" style="color:${d.statusColor};border-color:${d.statusColor};">${d.statusText}</div>
+        </div>
       </div>
       <div class="es-header-right">
         <div class="es-deadline-label">Target Launch</div>
@@ -7471,10 +7477,15 @@ function _addExecSummarySlide(pres,modelName){
   const slide=pres.addSlide();
   slide.background={color:C.bg};
 
-  slide.addText('EXECUTIVE SUMMARY',{x:0.5,y:0.32,w:6,h:0.3,fontSize:11,color:C.gold,bold:true,charSpacing:2,fontFace:'Arial'});
-  slide.addText(modelName,{x:0.5,y:0.6,w:7.6,h:0.6,fontSize:30,color:C.text,bold:true,fontFace:'Arial'});
-  slide.addShape('roundRect',{x:0.5,y:1.28,w:1.9,h:0.34,rectRadius:0.06,fill:{color:C.surface2},line:{color:statusHex,width:1}});
-  slide.addText(d.statusText,{x:0.5,y:1.28,w:1.9,h:0.34,align:'center',valign:'middle',fontSize:10,bold:true,color:statusHex,fontFace:'Arial'});
+  const titleX=d.photo?1.55:0.5;
+  if(d.photo){
+    slide.addShape('roundRect',{x:0.5,y:0.32,w:0.9,h:0.9,rectRadius:0.08,fill:{color:C.surface2},line:{color:C.gold,width:1}});
+    slide.addImage({data:d.photo,x:0.55,y:0.37,w:0.8,h:0.8,rounding:true});
+  }
+  slide.addText('EXECUTIVE SUMMARY',{x:titleX,y:0.32,w:6,h:0.3,fontSize:11,color:C.gold,bold:true,charSpacing:2,fontFace:'Arial'});
+  slide.addText(modelName,{x:titleX,y:0.6,w:7.6,h:0.6,fontSize:30,color:C.text,bold:true,fontFace:'Arial'});
+  slide.addShape('roundRect',{x:titleX,y:1.28,w:1.9,h:0.34,rectRadius:0.06,fill:{color:C.surface2},line:{color:statusHex,width:1}});
+  slide.addText(d.statusText,{x:titleX,y:1.28,w:1.9,h:0.34,align:'center',valign:'middle',fontSize:10,bold:true,color:statusHex,fontFace:'Arial'});
 
   slide.addText('TARGET LAUNCH',{x:8.4,y:0.32,w:4.4,h:0.25,fontSize:10,color:C.muted,align:'right',charSpacing:1,fontFace:'Arial'});
   slide.addText(d.dlText,{x:8.4,y:0.58,w:4.4,h:0.4,fontSize:18,color:C.text,bold:true,align:'right',fontFace:'Arial'});
