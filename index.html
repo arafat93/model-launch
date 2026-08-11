@@ -2781,6 +2781,47 @@ img { -webkit-user-drag: none; }
   .print-table tr.pt-subtask td:nth-child(2) { padding-left: 22px; }
   .print-table tr.pt-subtask.pt-done td { color: #999; }
   @page { margin: 18mm 14mm; }
+
+  /* ── EXECUTIVE SUMMARY (one page per model) ── */
+  .exec-summary { display: flex; flex-direction: column; min-height: 253mm; }
+  .es-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #d4af37; text-transform: uppercase; margin-bottom: 4px; }
+  .es-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 20px; }
+  .es-header h1 { font-size: 26px; font-weight: 800; margin: 0 0 8px 0; color: #111; }
+  .es-status-pill { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; border: 1.5px solid; border-radius: 20px; padding: 3px 12px; }
+  .es-header-right { text-align: right; }
+  .es-deadline-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; color: #888; text-transform: uppercase; margin-bottom: 3px; }
+  .es-deadline-val { font-size: 17px; font-weight: 700; color: #111; }
+  .es-deadline-sub { font-size: 11px; color: #b00020; font-weight: 600; margin-top: 2px; }
+  .es-body { display: flex; gap: 28px; flex: 1; }
+  .es-col-left { width: 40%; flex-shrink: 0; }
+  .es-col-right { width: 60%; display: flex; flex-direction: column; gap: 16px; }
+  .es-ring-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+  .es-kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 20px; }
+  .es-kpi { text-align: center; background: #f7f7f7; border-radius: 8px; padding: 8px 4px; }
+  .es-kpi-val { font-size: 18px; font-weight: 800; color: #111; }
+  .es-kpi.es-danger .es-kpi-val { color: #b00020; }
+  .es-kpi-label { font-size: 8px; font-weight: 700; letter-spacing: 0.5px; color: #888; text-transform: uppercase; margin-top: 2px; }
+  .es-section-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #888; text-transform: uppercase; margin: 14px 0 8px; }
+  .es-prio-row { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 0; }
+  .es-prio-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .es-prio-label { flex: 1; color: #333; }
+  .es-prio-count { font-weight: 700; color: #111; }
+  .es-team-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .es-team-chip { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #333; }
+  .es-team-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .es-team-count { margin-left: auto; font-size: 10px; color: #888; font-weight: 600; }
+  .es-panel { border: 1px solid #ccc; border-radius: 10px; padding: 14px 16px; flex: 1; }
+  .es-panel-danger { border-color: #e5989b; background: #fdf2f2; }
+  .es-panel-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+  .es-panel-danger .es-panel-title { color: #b00020; }
+  .es-list { list-style: none; margin: 0; padding: 0; }
+  .es-list li { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 5px 0; border-bottom: 1px dashed #ddd; }
+  .es-list li:last-child { border-bottom: none; }
+  .es-li-name { color: #222; }
+  .es-li-date { color: #666; white-space: nowrap; }
+  .es-li-date.es-danger { color: #b00020; font-weight: 700; }
+  .es-empty { color: #999; font-style: italic; padding: 5px 0; }
+  .es-footer { margin-top: 20px; font-size: 10px; color: #888; text-align: right; border-top: 1px solid #ddd; padding-top: 8px; }
 }
 
 /* ── EXPORT-BEFORE-LOGOUT MODAL ── */
@@ -3362,6 +3403,9 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="exportAllExcelBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#21a366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="11" x2="10" y2="19"/></svg><span>Export as Excel</span></button>
         <button class="menu-item" id="exportAllPdfBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#e5484d" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="#e5484d" stroke-width="2"/><line x1="7.5" y1="13" x2="16.5" y2="13" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="16" x2="16.5" y2="16" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="19" x2="13" y2="19" stroke="#e5484d" stroke-width="1.6"/></svg><span>Export as PDF</span></button>
         <div class="menu-divider"></div>
+        <button class="menu-item" id="exportAllExecPdfBtn" title="One page per model — executive summary (PDF)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span>Executive Summaries (PDF)</span></button>
+        <button class="menu-item" id="exportAllExecPptxBtn" title="One slide per model — executive summary deck (PowerPoint)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97b3f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="4" width="20" height="14" rx="1.5"/><path d="M8 20h8"/><path d="M6 9l3 3-3 3" stroke-width="1.6"/><path d="M12 15h4" stroke-width="1.6"/></svg><span>Executive Summaries (PPTX)</span></button>
+        <div class="menu-divider"></div>
         <button class="menu-item" id="backupNowBtn" title="Save a local backup right now (replaces the previous one — only the latest is ever kept)"><svg id="backupNowIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="btn-spinner" id="backupNowSpinner" style="display:none;"></span><span id="backupNowLabel">Backup Now</span></button>
         <button class="menu-item" id="restoreBackupBtn" title="No backup yet — use &quot;Backup Now&quot; once to create one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span id="restoreBackupLabel">Restore Last Backup</span></button>
       </div>
@@ -3446,6 +3490,9 @@ document.addEventListener('keydown', e => {
       <div class="export-menu" id="exportModelMenu">
         <button class="menu-item" id="exportExcelBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#21a366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="11" x2="10" y2="19"/></svg><span>Export as Excel</span></button>
         <button class="menu-item" id="exportPdfBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#e5484d" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="#e5484d" stroke-width="2"/><line x1="7.5" y1="13" x2="16.5" y2="13" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="16" x2="16.5" y2="16" stroke="#e5484d" stroke-width="1.6"/><line x1="7.5" y1="19" x2="13" y2="19" stroke="#e5484d" stroke-width="1.6"/></svg><span>Export as PDF</span></button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" id="exportExecPdfBtn" title="One-page executive summary for this model (PDF)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span>Executive Summary (PDF)</span></button>
+        <button class="menu-item" id="exportExecPptxBtn" title="One-slide executive summary for this model (PowerPoint)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97b3f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="4" width="20" height="14" rx="1.5"/><path d="M8 20h8"/><path d="M6 9l3 3-3 3" stroke-width="1.6"/><path d="M12 15h4" stroke-width="1.6"/></svg><span>Executive Summary (PPTX)</span></button>
       </div>
     </div>
     <label class="hdr-btn" id="importExcelLabel" title="Import tasks from Excel into the current model" style="cursor:pointer;">
@@ -7255,6 +7302,255 @@ function _buildModelPrintSection(modelName){
   `;
 }
 
+// ── EXECUTIVE SUMMARY (one-page-per-model PDF / PPTX) ─────────────────────────
+// Gathers everything a stakeholder skim needs for one model: overall progress,
+// status, priority mix of what's still open, who owns the open work, and the
+// two lists that actually matter — what's overdue and what's coming up next.
+function execSummaryData(modelName){
+  const tasks=state[modelName]||[];
+  const s=stats(modelName);
+  const dl=deadlines[modelName];
+  const today=new Date(); today.setHours(0,0,0,0);
+  let dlText='No deadline set', dlSub='';
+  if(dl){
+    const d=new Date(dl+'T00:00:00');
+    const diff=Math.round((d-today)/(1000*60*60*24));
+    dlText=d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+    dlSub = diff<0?`Overdue by ${-diff}d`:diff===0?'Due today':`${diff}d remaining`;
+  }
+  const [statusText,statusColor]=statusLabel(s.pct);
+
+  // Priority mix of everything still open (tasks + subtasks).
+  const prio={high:0,med:0,low:0};
+  const allOpen=[];
+  tasks.forEach(t=>{
+    if(!t.done){ prio[t.priority||'med']++; allOpen.push(t); }
+    (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(sub=>{
+      if(!sub.done){ prio[sub.priority||'med']++; allOpen.push({...sub,_parent:t.name}); }
+    });
+  });
+
+  // Overdue, most urgent first (soonest-passed deadline last isn't useful —
+  // sort by deadline ascending so the longest-overdue item leads).
+  const overdue=allOpen
+    .filter(t=>isOverdueTask(t))
+    .sort((a,b)=>new Date(a.taskDeadline)-new Date(b.taskDeadline))
+    .map(t=>({name:t._parent?`↳ ${t.name}`:t.name, taskDeadline:t.taskDeadline}));
+
+  // Coming up: open, has a deadline, not yet overdue — nearest first.
+  const upcoming=allOpen
+    .filter(t=>t.taskDeadline && !isOverdueTask(t))
+    .sort((a,b)=>new Date(a.taskDeadline)-new Date(b.taskDeadline))
+    .map(t=>({name:t._parent?`↳ ${t.name}`:t.name, taskDeadline:t.taskDeadline}));
+
+  // Who's carrying the open work right now, for this model.
+  const teamCounts={};
+  allOpen.forEach(t=>{ if(t.assignee) teamCounts[t.assignee]=(teamCounts[t.assignee]||0)+1; });
+  const team=Object.entries(teamCounts).map(([uid,count])=>({
+    uid,count,
+    name:(workspaceMembers[uid]&&(workspaceMembers[uid].displayName||workspaceMembers[uid].email))||'Unknown',
+    color:colorForAssignee(uid)
+  })).sort((a,b)=>b.count-a.count);
+
+  return{modelName,stats:s,dlText,dlSub,statusText,statusColor,prio,
+    overdue:overdue.slice(0,6),upcoming:upcoming.slice(0,6),team:team.slice(0,6)};
+}
+
+function _svgProgressRing(pct,color){
+  const r=52,c=2*Math.PI*r;
+  const off=c*(1-Math.max(0,Math.min(100,pct))/100);
+  return `<svg viewBox="0 0 130 130" width="150" height="150">
+    <circle cx="65" cy="65" r="${r}" fill="none" stroke="#e9e9e9" stroke-width="13"/>
+    <circle cx="65" cy="65" r="${r}" fill="none" stroke="${color}" stroke-width="13" stroke-linecap="round"
+      stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 65 65)"/>
+    <text x="65" y="61" text-anchor="middle" font-size="27" font-weight="800" fill="#111" font-family="Sora,sans-serif">${pct}%</text>
+    <text x="65" y="79" text-anchor="middle" font-size="9" letter-spacing="1" fill="#888" font-family="Sora,sans-serif">COMPLETE</text>
+  </svg>`;
+}
+
+function _buildExecSummarySection(modelName){
+  const d=execSummaryData(modelName);
+  const prioRow=(label,count,color)=>`<div class="es-prio-row"><span class="es-prio-dot" style="background:${color}"></span><span class="es-prio-label">${label}</span><span class="es-prio-count">${count}</span></div>`;
+  const fmtDl=v=>v?new Date(v+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):'—';
+
+  const overdueList=d.overdue.length
+    ? d.overdue.map(o=>`<li><span class="es-li-name">${escHtml(o.name)}</span><span class="es-li-date es-danger">${fmtDl(o.taskDeadline)}</span></li>`).join('')
+    : `<li class="es-empty">No overdue tasks 🎉</li>`;
+  const upcomingList=d.upcoming.length
+    ? d.upcoming.map(t=>`<li><span class="es-li-name">${escHtml(t.name)}</span><span class="es-li-date">${fmtDl(t.taskDeadline)}</span></li>`).join('')
+    : `<li class="es-empty">Nothing scheduled</li>`;
+  const teamList=d.team.length
+    ? d.team.map(m=>`<div class="es-team-chip"><span class="es-team-dot" style="background:${m.color}"></span>${escHtml(m.name)}<span class="es-team-count">${m.count} open</span></div>`).join('')
+    : `<div class="es-empty">No assignees yet</div>`;
+
+  return `
+    <div class="es-header">
+      <div>
+        <div class="es-eyebrow">Executive Summary</div>
+        <h1>${escHtml(modelName)}</h1>
+        <div class="es-status-pill" style="color:${d.statusColor};border-color:${d.statusColor};">${d.statusText}</div>
+      </div>
+      <div class="es-header-right">
+        <div class="es-deadline-label">Target Launch</div>
+        <div class="es-deadline-val">${d.dlText}</div>
+        ${d.dlSub?`<div class="es-deadline-sub">${d.dlSub}</div>`:''}
+      </div>
+    </div>
+    <div class="es-body">
+      <div class="es-col es-col-left">
+        <div class="es-ring-wrap">${_svgProgressRing(d.stats.pct,d.statusColor)}</div>
+        <div class="es-kpi-grid">
+          <div class="es-kpi"><div class="es-kpi-val">${d.stats.total}</div><div class="es-kpi-label">Total</div></div>
+          <div class="es-kpi"><div class="es-kpi-val">${d.stats.done}</div><div class="es-kpi-label">Done</div></div>
+          <div class="es-kpi"><div class="es-kpi-val">${d.stats.pending}</div><div class="es-kpi-label">Pending</div></div>
+          <div class="es-kpi es-danger"><div class="es-kpi-val">${d.overdue.length}</div><div class="es-kpi-label">Overdue</div></div>
+        </div>
+        <div class="es-section-title">Priority Breakdown (Open)</div>
+        ${prioRow('High',d.prio.high,'#e5484d')}
+        ${prioRow('Medium',d.prio.med,'#f5a623')}
+        ${prioRow('Low',d.prio.low,'#3ea36e')}
+        <div class="es-section-title">Team Snapshot</div>
+        <div class="es-team-wrap">${teamList}</div>
+      </div>
+      <div class="es-col es-col-right">
+        <div class="es-panel es-panel-danger">
+          <div class="es-panel-title">Overdue (${d.overdue.length})</div>
+          <ul class="es-list">${overdueList}</ul>
+        </div>
+        <div class="es-panel">
+          <div class="es-panel-title">Coming Up</div>
+          <ul class="es-list">${upcomingList}</ul>
+        </div>
+      </div>
+    </div>
+    <div class="es-footer">Model Launch Dashboard · Executive Summary · Generated ${new Date().toLocaleString()}</div>
+  `;
+}
+
+function exportExecSummaryPdf(modelName){
+  if(!modelName||!state[modelName]){ toast('⚠','Select a model first to export its summary',false); return; }
+  const printArea=document.getElementById('printArea');
+  printArea.innerHTML=`<div class="print-model-section exec-summary">${_buildExecSummarySection(modelName)}</div>`;
+  window.print();
+}
+
+function exportExecSummaryPdfAll(){
+  if(!models.length){ toast('⚠','Add at least one model before exporting',false); return; }
+  const printArea=document.getElementById('printArea');
+  printArea.innerHTML=models
+    .map(m=>`<div class="print-model-section exec-summary">${_buildExecSummarySection(m)}</div>`)
+    .join('');
+  window.print();
+  toast('📋',`Prepared executive summaries for ${models.length} model${models.length===1?'':'s'}`,false);
+}
+
+// ── LAZY-LOAD PPTXGENJS (only needed for the PowerPoint executive summary) ──
+let _pptxLoadPromise=null;
+function loadPptxGen(){
+  if(window.PptxGenJS) return Promise.resolve();
+  if(_pptxLoadPromise) return _pptxLoadPromise;
+  _pptxLoadPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
+    s.onload=()=>resolve();
+    s.onerror=()=>{_pptxLoadPromise=null;reject(new Error('Failed to load PowerPoint library'));};
+    document.head.appendChild(s);
+  });
+  return _pptxLoadPromise;
+}
+
+// Draws one dark, gold-accented executive-summary slide for `modelName` onto
+// an already-created pptxgenjs presentation (LAYOUT_WIDE, 13.33in × 7.5in).
+function _addExecSummarySlide(pres,modelName){
+  const d=execSummaryData(modelName);
+  const C={bg:'09090B',surface:'131316',surface2:'1E1E24',border:'27272A',gold:'D4AF37',
+    text:'FAFAFA',muted:'A1A1AA',green:'10B981',red:'F43F5E',amber:'F59E0B',blue:'60A5FA'};
+  const statusHex=(d.statusColor||'#a1a1aa').replace('#','').toUpperCase();
+  const fmtDl=v=>v?new Date(v+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):'—';
+
+  const slide=pres.addSlide();
+  slide.background={color:C.bg};
+
+  slide.addText('EXECUTIVE SUMMARY',{x:0.5,y:0.32,w:6,h:0.3,fontSize:11,color:C.gold,bold:true,charSpacing:2,fontFace:'Arial'});
+  slide.addText(modelName,{x:0.5,y:0.6,w:7.6,h:0.6,fontSize:30,color:C.text,bold:true,fontFace:'Arial'});
+  slide.addShape('roundRect',{x:0.5,y:1.28,w:1.9,h:0.34,rectRadius:0.06,fill:{color:C.surface2},line:{color:statusHex,width:1}});
+  slide.addText(d.statusText,{x:0.5,y:1.28,w:1.9,h:0.34,align:'center',valign:'middle',fontSize:10,bold:true,color:statusHex,fontFace:'Arial'});
+
+  slide.addText('TARGET LAUNCH',{x:8.4,y:0.32,w:4.4,h:0.25,fontSize:10,color:C.muted,align:'right',charSpacing:1,fontFace:'Arial'});
+  slide.addText(d.dlText,{x:8.4,y:0.58,w:4.4,h:0.4,fontSize:18,color:C.text,bold:true,align:'right',fontFace:'Arial'});
+  if(d.dlSub) slide.addText(d.dlSub,{x:8.4,y:0.98,w:4.4,h:0.28,fontSize:11,color:C.red,align:'right',fontFace:'Arial'});
+
+  // Progress donut (native pptxgenjs chart) with the % centered on top.
+  slide.addChart('doughnut',[{name:'Progress',labels:['Complete','Remaining'],values:[d.stats.pct,100-d.stats.pct]}],{
+    x:0.4,y:1.85,w:2.7,h:2.7,chartColors:[statusHex,C.surface2],
+    showLegend:false,showTitle:false,showValue:false,dataLabelColor:C.text,holeSize:72
+  });
+  slide.addText(`${d.stats.pct}%`,{x:0.4,y:2.85,w:2.7,h:0.5,align:'center',fontSize:22,bold:true,color:C.text,fontFace:'Arial'});
+
+  const kpis=[['Total',d.stats.total,C.text],['Done',d.stats.done,C.green],['Pending',d.stats.pending,C.blue],['Overdue',d.overdue.length,C.red]];
+  kpis.forEach((k,i)=>{
+    const x=3.35+i*1.02;
+    slide.addText(String(k[1]),{x,y:1.9,w:1.0,h:0.5,align:'center',fontSize:20,bold:true,color:k[2],fontFace:'Arial'});
+    slide.addText(k[0].toUpperCase(),{x,y:2.42,w:1.0,h:0.3,align:'center',fontSize:8,color:C.muted,charSpacing:1,fontFace:'Arial'});
+  });
+
+  slide.addText('PRIORITY BREAKDOWN (OPEN)',{x:3.35,y:2.95,w:4,h:0.25,fontSize:9,color:C.muted,charSpacing:1,fontFace:'Arial'});
+  [['High',d.prio.high,C.red],['Medium',d.prio.med,C.amber],['Low',d.prio.low,C.green]].forEach((p,i)=>{
+    const y=3.25+i*0.32;
+    slide.addShape('ellipse',{x:3.35,y:y+0.07,w:0.12,h:0.12,fill:{color:p[2]},line:{type:'none'}});
+    slide.addText(p[0],{x:3.58,y,h:0.28,w:1.2,fontSize:11,color:C.text,valign:'middle',fontFace:'Arial'});
+    slide.addText(String(p[1]),{x:4.75,y,h:0.28,w:0.6,fontSize:11,bold:true,color:C.text,align:'right',valign:'middle',fontFace:'Arial'});
+  });
+
+  slide.addText('TEAM SNAPSHOT',{x:3.35,y:4.35,w:4,h:0.25,fontSize:9,color:C.muted,charSpacing:1,fontFace:'Arial'});
+  if(d.team.length){
+    d.team.slice(0,4).forEach((m,i)=>{
+      const y=4.65+i*0.32;
+      slide.addShape('ellipse',{x:3.35,y:y+0.06,w:0.14,h:0.14,fill:{color:(m.color||'#888888').replace('#','')},line:{type:'none'}});
+      slide.addText(m.name,{x:3.6,y,h:0.28,w:1.9,fontSize:10,color:C.text,valign:'middle',fontFace:'Arial'});
+      slide.addText(`${m.count} open`,{x:5.5,y,h:0.28,w:0.9,fontSize:9,color:C.muted,align:'right',valign:'middle',fontFace:'Arial'});
+    });
+  }else{
+    slide.addText('No assignees yet',{x:3.35,y:4.65,w:2.6,h:0.28,fontSize:10,color:C.muted,italic:true,fontFace:'Arial'});
+  }
+
+  slide.addShape('roundRect',{x:7.9,y:1.85,w:4.9,h:2.55,rectRadius:0.05,fill:{color:C.surface},line:{color:C.red,width:0.75}});
+  slide.addText(`OVERDUE (${d.overdue.length})`,{x:8.15,y:2.0,w:4.4,h:0.25,fontSize:10,bold:true,color:C.red,charSpacing:1,fontFace:'Arial'});
+  slide.addText(
+    d.overdue.length?d.overdue.map(o=>`•  ${o.name}  —  ${fmtDl(o.taskDeadline)}`).join('\n'):'No overdue tasks',
+    {x:8.15,y:2.3,w:4.4,h:2.0,fontSize:10.5,color:C.text,valign:'top',lineSpacingMultiple:1.3,fontFace:'Arial'}
+  );
+
+  slide.addShape('roundRect',{x:7.9,y:4.6,w:4.9,h:2.35,rectRadius:0.05,fill:{color:C.surface},line:{color:C.border,width:0.75}});
+  slide.addText('COMING UP',{x:8.15,y:4.75,w:4.4,h:0.25,fontSize:10,bold:true,color:C.gold,charSpacing:1,fontFace:'Arial'});
+  slide.addText(
+    d.upcoming.length?d.upcoming.map(t=>`•  ${t.name}  —  ${fmtDl(t.taskDeadline)}`).join('\n'):'Nothing scheduled',
+    {x:8.15,y:5.05,w:4.4,h:1.85,fontSize:10.5,color:C.text,valign:'top',lineSpacingMultiple:1.3,fontFace:'Arial'}
+  );
+
+  slide.addText(`Model Launch Dashboard  ·  Generated ${new Date().toLocaleDateString()}`,{x:0.5,y:7.08,w:12.3,h:0.3,fontSize:8,color:C.muted,fontFace:'Arial'});
+}
+
+async function exportExecSummaryPptx(modelName){
+  if(!modelName||!state[modelName]){ toast('⚠','Select a model first to export its summary',false); return; }
+  try{ await loadPptxGen(); }catch(e){ await showAlert({title:'Could not load PowerPoint library',message:'Check your internet connection and try again.',tone:'error'}); return; }
+  const pres=new window.PptxGenJS();
+  pres.layout='LAYOUT_WIDE';
+  _addExecSummarySlide(pres,modelName);
+  await pres.writeFile({fileName:`${modelName.replace(/[^a-z0-9]+/gi,'_')}_exec_summary.pptx`});
+  toast('📊','Executive summary slide downloaded',false);
+}
+
+async function exportExecSummaryPptxAll(){
+  if(!models.length){ toast('⚠','Add at least one model before exporting',false); return; }
+  try{ await loadPptxGen(); }catch(e){ await showAlert({title:'Could not load PowerPoint library',message:'Check your internet connection and try again.',tone:'error'}); return; }
+  const pres=new window.PptxGenJS();
+  pres.layout='LAYOUT_WIDE';
+  models.forEach(m=>_addExecSummarySlide(pres,m));
+  await pres.writeFile({fileName:'All_Models_Exec_Summary.pptx'});
+  toast('📊',`Executive summary deck ready — ${models.length} slide${models.length===1?'':'s'}`,false);
+}
+
 function exportChecklistToPdf(){
   if(!activeTab || !state[activeTab] || activeTab==='Compare Models'){
     toast('⚠','Select a model first to export its checklist',false);
@@ -10670,6 +10966,26 @@ document.getElementById('exportPdfBtn').onclick=()=>{
 document.getElementById('exportAllPdfBtn').onclick=()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
   exportAllModelsToPdf();
+};
+
+// ── EXECUTIVE SUMMARY EXPORTS (PDF + PPTX, one page/slide per model) ────────
+document.getElementById('exportExecPdfBtn').onclick=()=>{
+  document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  if(activeTab==='Compare Models'){ toast('⚠','Select a model first to export its summary',false); return; }
+  exportExecSummaryPdf(activeTab);
+};
+document.getElementById('exportExecPptxBtn').onclick=()=>{
+  document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  if(activeTab==='Compare Models'){ toast('⚠','Select a model first to export its summary',false); return; }
+  exportExecSummaryPptx(activeTab);
+};
+document.getElementById('exportAllExecPdfBtn').onclick=()=>{
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  exportExecSummaryPdfAll();
+};
+document.getElementById('exportAllExecPptxBtn').onclick=()=>{
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  exportExecSummaryPptxAll();
 };
 
 // ── EXCEL IMPORT (append tasks to current model) ─────────────────────────────
