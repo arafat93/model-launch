@@ -5429,12 +5429,48 @@ function addSubtask(model,idx,name){
   save(); renderAll(); toast('＋','Subtask added: '+n.slice(0,28));
   logActivity('＋',`added subtask "${n.toUpperCase()}"`,model);
 }
+// Auto-derive a task's own status from the status of its subtasks. Called
+// any time a subtask's status changes — single toggle, bulk actions, or
+// deletion — so the parent task never drifts out of sync with what's
+// actually done underneath it:
+//   • at least one subtask Done or In Progress  → task becomes In Progress
+//   • every subtask Done                        → task becomes Completed
+//   • no subtask has any progress                → task falls back to Pending
+// Tasks with no subtasks are left alone — there's nothing to derive from,
+// so manual status changes on subtask-less tasks are never touched here.
+function syncTaskStatusFromSubtasks(model,idx){
+  const task=state[model]&&state[model][idx];
+  if(!task) return;
+  const subs=getSubtasks(model,idx);
+  if(!subs.length) return;
+
+  const allDone=subs.every(s=>s.done);
+  const anyActive=subs.some(s=>s.done||s.status==='inprogress');
+
+  if(allDone){
+    if(!task.done){
+      task.done=true; task.status='done'; task.completedAt=Date.now();
+      logActivity('✓',`auto-completed "${task.name}" — all subtasks done`,model);
+    }
+  } else if(anyActive){
+    if(task.done||task.status!=='inprogress'){
+      task.done=false; task.status='inprogress'; task.completedAt=null;
+      logActivity('⏳',`auto-marked "${task.name}" in progress — subtask activity detected`,model);
+    }
+  } else {
+    if(task.done||task.status==='inprogress'){
+      task.done=false; task.status='pending'; task.completedAt=null;
+      logActivity('↺',`auto-reset "${task.name}" to pending — no active subtasks`,model);
+    }
+  }
+}
 function setSubtaskStatus(model,idx,sIdx,newStatus){
   const s=getSubtasks(model,idx)[sIdx]; if(!s) return;
   closeStatusDropdown();
   if((s.done?'done':(s.status==='inprogress'?'inprogress':'pending'))===newStatus) return;
   s.done=newStatus==='done';
   s.status=newStatus;
+  syncTaskStatusFromSubtasks(model,idx);
   save(); renderAll();
   const verb=newStatus==='done'?'completed':(newStatus==='inprogress'?'marked in progress':'reopened');
   const icon=newStatus==='done'?'✓':(newStatus==='inprogress'?'⏳':'↺');
@@ -5447,6 +5483,7 @@ function deleteSubtask(model,idx,sIdx){
   recycleSubtask(model,parentTask.name,subs[sIdx],sIdx);
   subs.splice(sIdx,1);
   clearSubSelectionsForTask(model,idx);
+  syncTaskStatusFromSubtasks(model,idx);
   save(); renderAll(); updateRecycleBadge(); toast('🗑','Moved to Recycle Bin: '+nm.slice(0,28));
   logActivity('🗑',`deleted subtask "${nm}"`,model);
 }
@@ -7912,6 +7949,7 @@ function renderTaskList(){
         e.stopPropagation();
         selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI]){subs[sI].done=true;subs[sI].status='done';}});
         subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
+        syncTaskStatusFromSubtasks(activeTab,idx);
         save();renderAll();toast('✓',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} done`);
         logActivity('✓',`marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} done in "${state[activeTab][idx].name}"`,activeTab);
       };
@@ -7919,6 +7957,7 @@ function renderTaskList(){
         e.stopPropagation();
         selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI]){subs[sI].done=false;subs[sI].status='inprogress';}});
         subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
+        syncTaskStatusFromSubtasks(activeTab,idx);
         save();renderAll();toast('⏳',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} in progress`);
         logActivity('⏳',`marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} in progress in "${state[activeTab][idx].name}"`,activeTab);
       };
@@ -7926,6 +7965,7 @@ function renderTaskList(){
         e.stopPropagation();
         selectedHere.forEach(k=>{const sI=Number(k.split('::')[2]); if(subs[sI]){subs[sI].done=false;subs[sI].status='pending';}});
         subKeysForTask.forEach(k=>selectedSubtasks.delete(k));
+        syncTaskStatusFromSubtasks(activeTab,idx);
         save();renderAll();toast('↺',`Marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} pending`);
         logActivity('↺',`marked ${selectedHere.length} subtask${selectedHere.length===1?'':'s'} pending in "${state[activeTab][idx].name}"`,activeTab);
       };
