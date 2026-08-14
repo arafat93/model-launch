@@ -3083,47 +3083,6 @@ img { -webkit-user-drag: none; }
   margin-left: auto; font-size: 10.5px; color: var(--accent1);
   background: var(--accent1-dim); padding: 2px 8px; border-radius: 20px; font-weight: 600;
 }
-.team-member-role-tag {
-  margin-left: auto; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
-  width: 24px; height: 24px; border-radius: 50%; color: var(--green);
-  background: rgba(16,185,129,0.12);
-}
-.team-member-role-tag.is-viewer { color: var(--text-muted); background: var(--surface3); }
-.team-member-role-toggle-btn {
-  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
-  background: var(--surface3); border: 1px solid var(--border); color: var(--text);
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-.team-member-role-toggle-btn:hover { border-color: var(--border-hover); background: var(--accent1-dim); }
-/* Pencil (grant edit) reads as a positive/green action; eye (revoke, make
-   view-only) reads as a neutral/muted one — so the button's own color
-   signals its effect the same way the role tag next to it does. */
-.team-member-role-toggle-btn.is-viewer { color: var(--green); background: rgba(16,185,129,0.12); border-color: transparent; }
-.team-member-role-toggle-btn.is-viewer:hover { background: rgba(16,185,129,0.22); }
-.team-member-role-toggle-btn.is-editor { color: var(--text-muted); background: var(--surface3); }
-.team-member-role-toggle-btn.is-editor:hover { color: var(--text); background: var(--accent1-dim); }
-/* ── VIEW-ONLY MODE ── */
-#viewOnlyBanner {
-  display: none; align-items: center; gap: 8px;
-  padding: 8px 16px; font-size: 12.5px; font-weight: 600;
-  color: var(--text-muted); background: var(--surface2);
-  border-bottom: 1px solid var(--border);
-}
-body.viewer-mode .add-task-bar,
-body.viewer-mode #addModelBtn,
-body.viewer-mode #modelsEmptyStateBtn,
-body.viewer-mode .model-card-action-btn,
-body.viewer-mode #duplicateModelBtn,
-body.viewer-mode #archiveModelBtn,
-body.viewer-mode #deleteModelBtn {
-  opacity: 0.45; pointer-events: none; filter: grayscale(0.3);
-}
-body.viewer-mode .row-action-btn:not(.team-member-role-toggle-btn),
-body.viewer-mode .assignee-picker,
-body.viewer-mode .task-checkbox {
-  opacity: 0.55; cursor: not-allowed !important;
-}
 .team-member-remove-btn {
   margin-left: auto; flex-shrink: 0;
   width: 24px; height: 24px; border-radius: 50%;
@@ -3198,10 +3157,6 @@ body {
 </style>
 </head>
 <body>
-<div id="viewOnlyBanner">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-  <span>View only — ask the workspace owner for edit access to make changes</span>
-</div>
 <script>
 // ── FORCE-PORTRAIT CLASS TOGGLE ── Drives the html.force-portrait-lock
 // CSS rotate trick (see <style> above). Detection is done here in JS,
@@ -4427,57 +4382,6 @@ function getWorkspaceDoc(){ return db.collection('workspaces').doc(currentWorksp
 function getUserProfileDoc(uid){ return db.collection('users').doc(uid); }
 function isCurrentWorkspaceOwner(){ return !!auth&&!!auth.currentUser&&workspaceOwnerUid===auth.currentUser.uid; }
 
-// ── VIEW-ONLY / EDIT PERMISSIONS ──────────────────────────────────────────
-// Every member of a shared workspace has a role of 'editor' or 'viewer',
-// stored per-member at members.{uid}.role. The owner is always an editor.
-// Anyone who joins via an invite code starts out as a 'viewer' (can see
-// everything, can't change anything) until the owner grants them edit
-// access — teammates who were added before this feature existed have no
-// role field at all, so we default a missing role to 'editor' to avoid
-// silently locking out people who already had full access.
-function myMemberRole(){
-  if(!auth||!auth.currentUser) return 'editor';
-  const uid=auth.currentUser.uid;
-  if(workspaceOwnerUid===uid) return 'editor';
-  const info=workspaceMembers[uid];
-  if(!info) return 'editor';
-  return info.role==='viewer'?'viewer':'editor';
-}
-function canEdit(){ return myMemberRole()==='editor'; }
-function notifyViewOnly(){ toast('👁','View-only access — ask the workspace owner for edit permission',false); }
-
-// Toggles a body-level class + banner so the whole UI visually reflects
-// view-only status, and (re)wires a capture-phase guard that blocks clicks
-// on edit-affecting controls before their own handlers ever run.
-function applyViewOnlyMode(){
-  const viewOnly=!canEdit();
-  document.body.classList.toggle('viewer-mode',viewOnly);
-  const banner=document.getElementById('viewOnlyBanner');
-  if(banner) banner.style.display=viewOnly?'':'none';
-}
-const VIEW_ONLY_BLOCK_SELECTOR=[
-  '.add-task-btn','.add-task-bar input','.add-task-bar select',
-  '.row-action-btn','.task-checkbox','.assignee-picker',
-  '.model-card-action-btn','.model-pin-btn',
-  '.model-thumb-btn','.model-thumb-remove','.model-thumb-input',
-  '.model-deadline-native-input',
-  '#addModelBtn','#modelsEmptyStateBtn','#newModelInput','#newModelDeadline',
-  '#newTaskInput','#newTaskPosition'
-].join(',');
-document.addEventListener('click',e=>{
-  if(!document.body.classList.contains('viewer-mode')) return;
-  const el=e.target.closest(VIEW_ONLY_BLOCK_SELECTOR);
-  if(!el) return;
-  // Team modal (viewing/leaving), theme, export, and other read-safe
-  // controls live outside this selector set, so anything caught here is
-  // an edit action — stop it and explain why.
-  e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-  notifyViewOnly();
-},true);
-document.addEventListener('dragstart',e=>{
-  if(document.body.classList.contains('viewer-mode')) e.preventDefault();
-},true);
-
 function randomInviteCode(){
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid ambiguity
   let out='';
@@ -4709,17 +4613,6 @@ function listenForLastUpdated(workspaceId){
       document.getElementById('lastUpdated').textContent=formatLastUpdated(data.updatedAt);
     }
 
-    // Members/roles are kept live regardless of the task-diff short-circuit
-    // below, so a permission change (e.g. the owner granting edit access)
-    // takes effect immediately without waiting for an unrelated task edit.
-    if(data.members){
-      workspaceMembers=data.members;
-      workspaceOwnerUid=data.ownerUid||workspaceOwnerUid;
-      applyViewOnlyMode();
-      updateTeamUI();
-      if(document.getElementById('teamOverlay').classList.contains('open')) renderTeamModal();
-    }
-
     // Don't be intrusive: if the person is busy right now (typing, a modal
     // is open, mid-drag, or just recently clicked/scrolled/typed anywhere),
     // hold this snapshot and retry it automatically once they go idle,
@@ -4745,10 +4638,6 @@ let lastPersistedVersion=0;
 function hasUnsavedLocalEdit(){ return unsavedEditVersion!==lastPersistedVersion; }
 
 function save(){
-  // Defense in depth: the UI already blocks edit actions for view-only
-  // members (see applyViewOnlyMode), but this stops any write from ever
-  // reaching Firestore even if something slipped past that guard.
-  if(!canEdit()){ notifyViewOnly(); return; }
   // Undo history is purely local state, so it should track every change
   // whether or not the person is signed in — only the Firestore write
   // below is conditional on having an account to save to.
@@ -5074,7 +4963,6 @@ async function handleAuthState(user){
       : (currentWorkspaceId===user.uid ? await speculativeLoad : await loadFromFirestore(currentWorkspaceId));
     workspaceMembers=(saved&&saved.members)||{[user.uid]:{email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]}};
     workspaceOwnerUid=(saved&&saved.ownerUid)||user.uid;
-    applyViewOnlyMode();
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
     pinnedModelsSet=new Set(saved?.pinnedModels||[]);
@@ -5130,8 +5018,6 @@ async function handleAuthState(user){
     if(unsubscribeLastUpdated){ unsubscribeLastUpdated(); unsubscribeLastUpdated=null; }
     if(unsubscribeActivity){ unsubscribeActivity(); unsubscribeActivity=null; }
     activityFeed=[]; updateNotifBadge();
-    workspaceOwnerUid=null; workspaceMembers={};
-    applyViewOnlyMode();
     document.getElementById('userBadge').style.display='none';
     document.getElementById('userBadge').classList.remove('menu-open');
     document.getElementById('notifBellBtn').style.display='none';
@@ -11963,7 +11849,7 @@ updateStickyBarPin();
         <button class="elmodal-export-btn" id="teamGenerateCodeBtn" style="flex:0 0 auto;">Get Code</button>
         <button class="elmodal-export-btn" id="teamCopyCodeBtn" style="display:none;flex:0 0 auto;">Copy</button>
       </div>
-      <div class="elmodal-desc" style="margin:8px 0 0;font-size:12.5px;">Share this code with a teammate — they enter it below to join and can see everything right away. They'll be view-only until you grant them edit access below.</div>
+      <div class="elmodal-desc" style="margin:8px 0 0;font-size:12.5px;">Share this code with a teammate — they enter it below to join and start seeing/editing this workspace together.</div>
     </div>
 
     <div class="elmodal-divider">or</div>
@@ -12014,30 +11900,17 @@ function renderTeamModal(){
 
   const listEl=document.getElementById('teamMembersList');
   const iAmOwner=isCurrentWorkspaceOwner();
-  const EYE_SVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
-  const PENCIL_SVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
   listEl.innerHTML=Object.entries(workspaceMembers).map(([uid,info])=>{
     const initial=((info.displayName||info.email||'?')[0]||'?').toUpperCase();
     const isOwner=uid===workspaceOwnerUid;
     const showRemove=iAmOwner&&!isOwner;
-    const role=isOwner?'editor':(info.role==='viewer'?'viewer':'editor');
-    const showRoleToggle=iAmOwner&&!isOwner;
-    // One icon per member reflects their CURRENT role — green pencil for
-    // edit access, muted eye for view-only — and that same icon is the
-    // control the owner clicks to flip it, so state and color always
-    // move together instead of swapping between two separate elements.
-    const roleIndicator=isOwner
-      ?'<span class="team-member-owner-tag">Owner</span>'
-      :(showRoleToggle
-        ?`<button class="team-member-role-toggle-btn${role==='viewer'?' is-viewer':' is-editor'}" data-uid="${escHtml(uid)}" data-role="${role}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="${role==='viewer'?'View only — click to grant edit access':'Can edit — click to make view-only'}">${role==='viewer'?EYE_SVG:PENCIL_SVG}</button>`
-        :`<span class="team-member-role-tag${role==='viewer'?' is-viewer':''}" title="${role==='viewer'?'View only':'Can edit'}">${role==='viewer'?EYE_SVG:PENCIL_SVG}</span>`);
     return `<div class="team-member-row">
       <div class="team-member-avatar">${escHtml(initial)}</div>
       <div>
         <div class="team-member-name">${escHtml(info.displayName||info.email||'Unknown')}</div>
         <div class="team-member-email">${escHtml(info.email||'')}</div>
       </div>
-      ${roleIndicator}
+      ${isOwner?'<span class="team-member-owner-tag">Owner</span>':''}
       ${showRemove?`<button class="team-member-remove-btn" data-uid="${escHtml(uid)}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="Remove from workspace">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>`:''}
@@ -12051,13 +11924,6 @@ function renderTeamModal(){
       if(confirm(`Remove ${name} from this workspace? They'll lose access to these tasks immediately.`)){
         removeMemberFromWorkspace(uid);
       }
-    };
-  });
-  listEl.querySelectorAll('.team-member-role-toggle-btn').forEach(btn=>{
-    btn.onclick=()=>{
-      const uid=btn.dataset.uid;
-      const nextRole=btn.dataset.role==='viewer'?'editor':'viewer';
-      setMemberRole(uid,nextRole,btn.dataset.name);
     };
   });
 
@@ -12118,29 +11984,6 @@ async function removeMemberFromWorkspace(uid){
   }
 }
 
-// Grants or revokes edit access for a teammate. Owner-only at the UI
-// level (same trust model as removeMemberFromWorkspace above).
-async function setMemberRole(uid,role,name){
-  if(!isCurrentWorkspaceOwner()||!currentWorkspaceId) return;
-  if(!workspaceMembers[uid]) return;
-  const previousRole=workspaceMembers[uid].role;
-  // Optimistic update: flip the icon instantly instead of waiting on the
-  // round-trip to Firestore, so the click always feels responsive. Roll
-  // back and explain if the write actually fails.
-  workspaceMembers[uid].role=role;
-  renderTeamModal();
-  try{
-    await getWorkspaceDoc().update({['members.'+uid+'.role']: role});
-    toast(role==='editor'?'✎':'👁',`${name||'Member'} can now ${role==='editor'?'edit':'only view'} this workspace`,false);
-    logActivity(role==='editor'?'✎':'👁',`gave ${name||'a teammate'} ${role==='editor'?'edit access':'view-only access'}`);
-  }catch(e){
-    console.error('Set member role failed:',e);
-    if(workspaceMembers[uid]) workspaceMembers[uid].role=previousRole;
-    renderTeamModal();
-    toast('⚠','Could not update permission — check your connection',false);
-  }
-}
-
 async function generateInviteCode(){
   if(!auth||!auth.currentUser||!currentWorkspaceId) return;
   const btn=document.getElementById('teamGenerateCodeBtn');
@@ -12173,7 +12016,6 @@ async function switchToWorkspace(workspaceId){
     const saved=await loadFromFirestore(currentWorkspaceId);
     workspaceMembers=(saved&&saved.members)||{};
     workspaceOwnerUid=(saved&&saved.ownerUid)||null;
-    applyViewOnlyMode();
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
     pinnedModelsSet=new Set(saved?.pinnedModels||[]);
@@ -12234,15 +12076,13 @@ async function joinWorkspaceByCode(rawCode){
     const targetId=lookupSnap.data().workspaceId;
     if(targetId===currentWorkspaceId){ errEl.textContent="You're already in this workspace."; return; }
     const user=auth.currentUser;
-    // Joining via code grants view-only access by default — the owner can
-    // upgrade a member to edit access afterwards from the Team panel.
-    const myInfo={email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0],role:'viewer'};
+    const myInfo={email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]};
     await db.collection('workspaces').doc(targetId).update({
       memberUids: firebase.firestore.FieldValue.arrayUnion(user.uid),
       ['members.'+user.uid]: myInfo
     });
     await switchToWorkspace(targetId);
-    toast('👥','Joined the shared workspace (view-only — ask the owner for edit access)',false);
+    toast('👥','Joined the shared workspace',false);
     logActivity('👥',`joined the workspace`);
     closeTeamModal();
   }catch(e){
