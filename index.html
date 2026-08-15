@@ -3157,6 +3157,28 @@ img { -webkit-user-drag: none; }
   transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
 }
 #teamOverlay.open #teamModal { transform: translateY(0) scale(1); }
+#modelAccessOverlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 20px;
+}
+#modelAccessOverlay.open { opacity: 1; pointer-events: all; }
+#modelAccessModal {
+  background: var(--surface);
+  border: 1px solid var(--border-hover);
+  border-radius: 24px;
+  padding: 32px 30px 26px;
+  max-width: 440px; width: 100%; max-height: 85vh; overflow-y: auto;
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--border);
+  transform: translateY(14px) scale(0.97);
+  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
+}
+#modelAccessOverlay.open #modelAccessModal { transform: translateY(0) scale(1); }
 .team-section-label {
   font-size: 12px; font-weight: 600; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 8px;
@@ -3199,6 +3221,25 @@ img { -webkit-user-drag: none; }
 .team-member-role-toggle-btn.is-viewer:hover { background: rgba(16,185,129,0.22); }
 .team-member-role-toggle-btn.is-editor { color: var(--text-muted); background: var(--surface3); }
 .team-member-role-toggle-btn.is-editor:hover { color: var(--text); background: var(--accent1-dim); }
+.team-member-access-btn {
+  flex-shrink: 0; margin-left: auto; font-size: 11px; font-weight: 600; white-space: nowrap;
+  padding: 4px 10px; border-radius: 20px; cursor: pointer;
+  background: var(--surface3); border: 1px solid var(--border); color: var(--text-muted);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.team-member-access-btn:hover { border-color: var(--border-hover); color: var(--text); background: var(--accent1-dim); }
+.team-member-access-btn.is-restricted { color: var(--accent1); background: var(--accent1-dim); border-color: transparent; }
+/* ── MODEL ACCESS MODAL ── */
+.model-access-list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; max-height: 260px; overflow-y: auto; }
+.model-access-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.model-access-row input[type="checkbox"] { accent-color: var(--accent1); flex-shrink: 0; }
+.model-access-row label { font-size: 13px; color: var(--text); cursor: pointer; flex: 1; }
+.model-access-all-row { font-weight: 600; border-color: var(--accent1); background: var(--accent1-dim); }
+.model-access-empty-hint { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
 /* ── VIEW-ONLY MODE ── */
 #viewOnlyBanner {
   display: none; align-items: center; gap: 8px;
@@ -4590,6 +4631,29 @@ function myMemberRole(){
 function canEdit(){ return myMemberRole()==='editor'; }
 function notifyViewOnly(){ toast('👁','View-only access — ask the workspace owner for edit permission',false); }
 
+// ── PER-MODEL ACCESS RESTRICTION ──────────────────────────────────────────────
+// On top of the editor/viewer role above, the workspace owner can restrict a
+// member to a subset of models via members.{uid}.modelAccess (an array of
+// model names). Missing/null means unrestricted (full access) — this keeps
+// every existing member unaffected until the owner deliberately narrows
+// someone down. The owner themself is never restricted.
+// NOTE: this is a UI-level restriction only. Because every model in a shared
+// workspace currently lives in the same Firestore document/listener, a
+// restricted member's browser still receives the full dataset — this hides
+// other models from the interface but isn't a hard security boundary against
+// someone deliberately inspecting network traffic or the JS console.
+function myModelAccess(){
+  if(!auth||!auth.currentUser) return null;
+  if(isCurrentWorkspaceOwner()) return null;
+  const info=workspaceMembers[auth.currentUser.uid];
+  if(!info||!Array.isArray(info.modelAccess)) return null;
+  return info.modelAccess;
+}
+function isModelVisibleToMe(m){
+  const allowed=myModelAccess();
+  return !allowed||allowed.includes(m);
+}
+
 // Toggles a body-level class + banner so the whole UI visually reflects
 // view-only status, and (re)wires a capture-phase guard that blocks clicks
 // on edit-affecting controls before their own handlers ever run.
@@ -5535,7 +5599,7 @@ let expandedCompletedSet = new Set();
 let expandedSubtasksSet = new Set();
 
 function refreshModelsList(){
-  const active=Object.keys(state).filter(m=>!archivedModelsSet.has(m));
+  const active=refreshedActiveModelNames();
   // Merge saved order with current active models
   const ordered=modelOrder.filter(m=>active.includes(m));
   const unordered=active.filter(m=>!ordered.includes(m));
@@ -6991,7 +7055,7 @@ function renderArchiveView(){
   const grid=document.getElementById('archiveGrid');
   const emptyState=document.getElementById('archiveEmptyState');
   grid.innerHTML='';
-  const archived=[...archivedModelsSet].filter(m=>m in state);
+  const archived=[...archivedModelsSet].filter(m=>m in state&&isModelVisibleToMe(m));
   emptyState.style.display=archived.length?'none':'';
   grid.style.display=archived.length?'':'none';
   archived.forEach((m,idx)=>{
@@ -7564,7 +7628,7 @@ function analyticsAllTasks(modelFilter){
 // Active (non-archived) model names, freshly filtered from current state —
 // small helper so analytics never accidentally includes archived models.
 function refreshedActiveModelNames(){
-  return Object.keys(state).filter(m=>!archivedModelsSet.has(m));
+  return Object.keys(state).filter(m=>!archivedModelsSet.has(m)&&isModelVisibleToMe(m));
 }
 
 function fmtShortDate(d){ return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
@@ -7891,7 +7955,14 @@ function renderRecycleView(){
   listEl.innerHTML='';
   const entries=[];
   Object.keys(recycleBin).forEach(bucket=>{
-    recycleBin[bucket].forEach((entry,i)=>entries.push({bucket,entry,i}));
+    const modelForBucket = bucket===RECYCLE_MODELS_KEY ? null : bucket;
+    recycleBin[bucket].forEach((entry,i)=>{
+      // For the special "_models_" bucket, each entry carries its own
+      // deleted model name in entry.name; every other bucket is keyed by
+      // the model name itself.
+      const modelName = modelForBucket || entry.name;
+      if(isModelVisibleToMe(modelName)) entries.push({bucket,entry,i});
+    });
   });
   entries.sort((a,b)=>b.entry.deletedAt-a.entry.deletedAt);
   emptyState.style.display=entries.length?'none':'';
@@ -10478,6 +10549,7 @@ async function renameModel(oldName, newName){if(!canEdit()){notifyViewOnly();ret
   save(); renderAll();
   toast('✎',`Renamed: ${oldName.slice(0,20)} → ${trimmed.slice(0,20)}`);
   logActivity('✎',`renamed model "${oldName}" → "${trimmed}"`,trimmed);
+  propagateModelRenameToAccess(oldName,trimmed);
 }
 
 // ── NOTES & DEADLINE MODALS ───────────────────────────────────────────────────
@@ -12368,6 +12440,7 @@ document.addEventListener('keydown',e=>{
     document.getElementById('globalSearchModal').classList.remove('open');
     document.getElementById('activityModal').classList.remove('open');
     if(typeof closeVoiceModal==='function') closeVoiceModal();
+    if(typeof closeModelAccessModal==='function') closeModelAccessModal();
     document.getElementById('userBadge').classList.remove('menu-open');
     hideAuthGate();
     if (document.activeElement) document.activeElement.blur();
@@ -12854,6 +12927,20 @@ updateStickyBarPin();
   </div>
 </div>
 
+<div id="modelAccessOverlay" role="dialog" aria-modal="true" aria-labelledby="modelAccessModalTitle">
+  <div id="modelAccessModal">
+    <div class="elmodal-icon" style="background:var(--accent1-dim);border-color:var(--border-hover);">🔒</div>
+    <div class="elmodal-title" id="modelAccessModalTitle">Model Access</div>
+    <div class="elmodal-desc" id="modelAccessModalDesc">Choose which models this person can see.</div>
+    <div class="model-access-list" id="modelAccessList"></div>
+    <div class="model-access-empty-hint">Unchecking "All models" lets you pick specific ones below. This hides other models from their view — it isn't a hard security boundary, since workspace data still syncs to their device.</div>
+    <div class="elmodal-actions" style="margin-top:18px;">
+      <button class="elmodal-cancel-btn" id="modelAccessCancelBtn" style="flex:1;">Cancel</button>
+      <button class="modal-btn primary" id="modelAccessSaveBtn" style="flex:1;">Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── TEAM / SHARED WORKSPACE MODAL ─────────────────────────────────────────────
 function openTeamModal(){
@@ -12898,18 +12985,28 @@ function renderTeamModal(){
       :(showRoleToggle
         ?`<button class="team-member-role-toggle-btn${role==='viewer'?' is-viewer':' is-editor'}" data-uid="${escHtml(uid)}" data-role="${role}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="${role==='viewer'?'View only — click to grant edit access':'Can edit — click to make view-only'}">${role==='viewer'?EYE_SVG:PENCIL_SVG}</button>`
         :`<span class="team-member-role-tag${role==='viewer'?' is-viewer':''}" title="${role==='viewer'?'View only':'Can edit'}">${role==='viewer'?EYE_SVG:PENCIL_SVG}</span>`);
+    const accessArr=Array.isArray(info.modelAccess)?info.modelAccess:null;
+    const accessLabel=!accessArr?'All models':`${accessArr.length} model${accessArr.length===1?'':'s'}`;
+    const modelAccessBtn=(!isOwner&&iAmOwner)
+      ?`<button class="team-member-access-btn${accessArr?' is-restricted':''}" data-uid="${escHtml(uid)}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="Choose which models ${escHtml(info.displayName||info.email||'this person')} can see">${accessLabel}</button>`
+      :'';
     return `<div class="team-member-row">
       <div class="team-member-avatar">${escHtml(initial)}</div>
       <div>
         <div class="team-member-name">${escHtml(info.displayName||info.email||'Unknown')}</div>
         <div class="team-member-email">${escHtml(info.email||'')}</div>
       </div>
+      ${modelAccessBtn}
       ${roleIndicator}
       ${showRemove?`<button class="team-member-remove-btn" data-uid="${escHtml(uid)}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="Remove from workspace">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>`:''}
     </div>`;
   }).join('') || '<div class="elmodal-desc" style="margin:0;">No members found.</div>';
+
+  listEl.querySelectorAll('.team-member-access-btn').forEach(btn=>{
+    btn.onclick=()=>openModelAccessModal(btn.dataset.uid,btn.dataset.name);
+  });
 
   listEl.querySelectorAll('.team-member-remove-btn').forEach(btn=>{
     btn.onclick=()=>{
@@ -13009,6 +13106,106 @@ async function setMemberRole(uid,role,name){
     if(workspaceMembers[uid]) workspaceMembers[uid].role=previousRole;
     renderTeamModal();
     toast('⚠','Could not update permission — check your connection',false);
+  }
+}
+
+// ── MODEL ACCESS MODAL ────────────────────────────────────────────────────────
+// Lets the workspace owner restrict a specific member to a chosen subset of
+// models instead of the whole workspace. Enforcement itself lives in
+// isModelVisibleToMe()/refreshedActiveModelNames() — this is just the UI for
+// setting members.{uid}.modelAccess.
+let modelAccessCtx={uid:null,name:null};
+
+function openModelAccessModal(uid,name){
+  if(!isCurrentWorkspaceOwner()) return;
+  modelAccessCtx={uid,name};
+  document.getElementById('modelAccessModalDesc').textContent=`Choose which models ${name||'this person'} can see.`;
+  renderModelAccessModal();
+  document.getElementById('modelAccessOverlay').classList.add('open');
+}
+function closeModelAccessModal(){
+  document.getElementById('modelAccessOverlay').classList.remove('open');
+}
+function renderModelAccessModal(){
+  const list=document.getElementById('modelAccessList');
+  const {uid}=modelAccessCtx;
+  const info=workspaceMembers[uid]||{};
+  const currentAccess=Array.isArray(info.modelAccess)?info.modelAccess:null; // null = all models
+  const allModels=refreshedActiveModelNames(); // the owner's own view is always unrestricted
+  const isAll=!currentAccess;
+  list.innerHTML = `
+    <div class="model-access-row model-access-all-row">
+      <input type="checkbox" id="modelAccessAllCb" ${isAll?'checked':''}>
+      <label for="modelAccessAllCb">All models (including future ones)</label>
+    </div>
+    ${allModels.map((m,i)=>`
+      <div class="model-access-row">
+        <input type="checkbox" class="model-access-item-cb" id="modelAccessCb${i}" value="${escHtml(m)}" ${(isAll||currentAccess.includes(m))?'checked':''} ${isAll?'disabled':''}>
+        <label for="modelAccessCb${i}">${escHtml(m)}</label>
+      </div>`).join('')}
+  `;
+  const allCb=document.getElementById('modelAccessAllCb');
+  const itemCbs=()=>list.querySelectorAll('.model-access-item-cb');
+  allCb.onchange=()=>{
+    itemCbs().forEach(cb=>{ cb.disabled=allCb.checked; if(allCb.checked) cb.checked=true; });
+  };
+}
+async function saveModelAccess(){
+  const {uid,name}=modelAccessCtx;
+  if(!uid||!isCurrentWorkspaceOwner()||!currentWorkspaceId) return;
+  const list=document.getElementById('modelAccessList');
+  const allCb=document.getElementById('modelAccessAllCb');
+  const isAll=allCb.checked;
+  let modelAccess=null;
+  if(!isAll){
+    const chosen=[...list.querySelectorAll('.model-access-item-cb:checked')].map(cb=>cb.value);
+    if(!chosen.length){
+      toast('⚠','Pick at least one model, or check "All models"',false);
+      return;
+    }
+    modelAccess=chosen;
+  }
+  const saveBtn=document.getElementById('modelAccessSaveBtn');
+  saveBtn.disabled=true;
+  const previous=workspaceMembers[uid]?workspaceMembers[uid].modelAccess:undefined;
+  if(workspaceMembers[uid]) workspaceMembers[uid].modelAccess=modelAccess;
+  try{
+    await getWorkspaceDoc().update({['members.'+uid+'.modelAccess']: modelAccess});
+    toast('🔒', isAll ? `${name||'Member'} can now see all models` : `${name||'Member'} restricted to ${modelAccess.length} model${modelAccess.length===1?'':'s'}`, false);
+    logActivity('🔒', isAll ? `gave ${name||'a teammate'} access to all models` : `restricted ${name||'a teammate'} to ${modelAccess.length} model${modelAccess.length===1?'':'s'}`);
+    closeModelAccessModal();
+    renderTeamModal();
+  }catch(e){
+    console.error('Set model access failed:',e);
+    if(workspaceMembers[uid]) workspaceMembers[uid].modelAccess=previous;
+    toast('⚠','Could not update model access — check your connection',false);
+  }finally{
+    saveBtn.disabled=false;
+  }
+}
+document.getElementById('modelAccessCancelBtn').onclick=closeModelAccessModal;
+document.getElementById('modelAccessSaveBtn').onclick=saveModelAccess;
+document.getElementById('modelAccessOverlay').onclick=e=>{
+  if(e.target===document.getElementById('modelAccessOverlay')) closeModelAccessModal();
+};
+
+// If the owner renames a model, propagate that rename into any restricted
+// member's modelAccess list — otherwise the old name silently falls out of
+// their list and they lose access to what is, from their point of view, the
+// same model.
+async function propagateModelRenameToAccess(oldName,newName){
+  if(!isCurrentWorkspaceOwner()||!currentWorkspaceId) return;
+  const updates={};
+  Object.entries(workspaceMembers).forEach(([uid,info])=>{
+    if(Array.isArray(info.modelAccess)&&info.modelAccess.includes(oldName)){
+      const next=info.modelAccess.map(m=>m===oldName?newName:m);
+      workspaceMembers[uid].modelAccess=next;
+      updates['members.'+uid+'.modelAccess']=next;
+    }
+  });
+  if(Object.keys(updates).length){
+    try{ await getWorkspaceDoc().update(updates); }
+    catch(e){ console.error('Failed to propagate model rename to member access:',e); }
   }
 }
 
