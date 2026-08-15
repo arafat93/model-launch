@@ -1703,6 +1703,53 @@ footer {
   color: var(--accent1); background: var(--accent1-dim);
   padding: 3px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;
 }
+/* ── VOICE ASSISTANT ── */
+.voice-mic-row { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
+.voice-mic-btn {
+  flex-shrink: 0; width: 56px; height: 56px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, transform .1s ease;
+}
+.voice-mic-btn:hover { border-color: var(--accent1); }
+.voice-mic-btn:active { transform: scale(0.96); }
+.voice-mic-btn.listening {
+  background: var(--red); border-color: var(--red); color: #fff;
+  animation: voicePulse 1.4s ease-in-out infinite;
+}
+@keyframes voicePulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(244,63,94,0.45); }
+  50% { box-shadow: 0 0 0 10px rgba(244,63,94,0); }
+}
+.voice-mic-status { font-size: 13px; color: var(--text-muted); flex: 1; }
+.voice-mic-status.listening { color: var(--red); font-weight: 600; }
+.voice-transcript-box {
+  margin-top: 12px; min-height: 44px; max-height: 100px; overflow-y: auto;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; font-size: 13px; color: var(--text); white-space: pre-wrap;
+}
+.voice-transcript-box:empty::before { content: "Your speech will appear here…"; color: var(--text-muted); }
+.voice-fallback-label { font-size: 12px; color: var(--text-muted); margin-top: 16px; margin-bottom: 6px; }
+.voice-fallback-textarea {
+  width: 100%; min-height: 64px; max-height: 140px; resize: vertical;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; font-family: inherit; font-size: 13px; color: var(--text);
+}
+.voice-fallback-textarea:focus { outline: none; border-color: var(--accent1); }
+.voice-parse-btn { margin-top: 10px; }
+.voice-review-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; max-height: 260px; overflow-y: auto; }
+.voice-review-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px;
+}
+.voice-review-item.unresolved { border-color: rgba(244,63,94,0.35); }
+.voice-review-item input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent1); flex-shrink: 0; }
+.voice-review-item-main { flex: 1; min-width: 0; }
+.voice-review-item-summary { font-size: 13px; color: var(--text); line-height: 1.4; }
+.voice-review-item.unresolved .voice-review-item-summary { color: var(--red); }
+.voice-review-item-raw { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; font-style: italic; }
+.voice-review-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 18px 0; }
 .crossmodel-select-all-row {
   display: flex; align-items: center; justify-content: space-between;
   margin-top: 14px; padding: 0 2px;
@@ -3477,6 +3524,7 @@ document.addEventListener('keydown', e => {
         <div class="menu-divider"></div>
         <button class="menu-item" id="teamMenuBtn" title="Invite teammates or manage your shared workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span><span class="archive-count-badge" id="teamCountBadge" style="display:none;">1</span></button>
         <button class="menu-item" id="myTasksViewBtn" title="See every task assigned to you across all your models" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>My Tasks</span><span class="archive-count-badge" id="myTasksCountBadge" style="display:none;">0</span></button>
+        <button class="menu-item" id="voiceAssistantBtn" title="Add or update tasks in bulk by voice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg><span>Voice Assistant</span></button>
         <button class="menu-item" id="archiveViewBtn" title="View archived models"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg><span>Archived</span><span class="archive-count-badge" id="archiveCountBadge" style="display:none;">0</span></button>
         <button class="menu-item" id="recycleViewBtn" title="View deleted tasks (kept for 30 days)" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Recycle Bin</span><span class="archive-count-badge" id="recycleCountBadge" style="display:none;">0</span></button>
         <button class="menu-item" id="analyticsViewBtn" title="Burndown, trends, and overdue analysis"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Analytics</span></button>
@@ -3987,6 +4035,29 @@ document.addEventListener('keydown', e => {
     <div class="gsearch-body" id="globalSearchBody"></div>
     <div class="modal-actions" style="margin-top:16px;">
       <button class="modal-btn primary" id="globalSearchCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- VOICE ASSISTANT MODAL -->
+<div class="modal-overlay" id="voiceModal">
+  <div class="modal-box" id="voiceModalBox" style="width:min(560px, 92vw);">
+    <div class="modal-title">🎙️ Voice Assistant</div>
+    <div class="modal-subtitle">Speak (or type) several commands at once — new tasks, new subtasks, or status changes — then review and apply them together.</div>
+    <div class="voice-mic-row">
+      <button type="button" class="voice-mic-btn" id="voiceMicBtn" title="Start listening">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <div class="voice-mic-status" id="voiceMicStatus">Tap the mic and try: "add task Design homepage mockup" or "mark Create wireframes as done"</div>
+    </div>
+    <div class="voice-transcript-box" id="voiceTranscriptBox"></div>
+    <div class="voice-fallback-label">Or type commands — one per line, or separated by "and":</div>
+    <textarea class="voice-fallback-textarea" id="voiceFallbackText" placeholder="add task Design homepage mockup&#10;mark Create wireframes as done&#10;add subtask Export assets to Design homepage mockup"></textarea>
+    <button type="button" class="modal-btn secondary voice-parse-btn" id="voiceParseBtn">Parse Commands</button>
+    <div class="voice-review-list" id="voiceReviewList"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-btn secondary" id="voiceCloseBtn">Close</button>
+      <button class="modal-btn primary" id="voiceApplyBtn" disabled>Apply Selected</button>
     </div>
   </div>
 </div>
@@ -7200,6 +7271,285 @@ function renderMyTasksView(){
     };
   });
 }
+
+// ── VOICE ASSISTANT ────────────────────────────────────────────────────────────
+// Lets you speak (or type) several commands in one go — "add task X",
+// "add subtask Y to X", "mark X as done" — then shows exactly what it
+// understood before touching any data, so a misheard word never silently
+// creates or changes the wrong thing.
+let voiceRecognition=null;
+let voiceListening=false;
+let voiceFinalTranscript='';
+let voiceParsedItems=[];
+
+function voiceSupported(){
+  return !!(window.SpeechRecognition||window.webkitSpeechRecognition);
+}
+
+function initVoiceRecognition(){
+  if(voiceRecognition||!voiceSupported()) return voiceRecognition;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const rec=new SR();
+  rec.continuous=true;
+  rec.interimResults=true;
+  rec.lang=(navigator.language||'en-US');
+  rec.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const chunk=e.results[i][0].transcript;
+      if(e.results[i].isFinal) voiceFinalTranscript+=(voiceFinalTranscript&&!voiceFinalTranscript.endsWith(' ')?' ':'')+chunk.trim()+'. ';
+      else interim+=chunk;
+    }
+    const box=document.getElementById('voiceTranscriptBox');
+    if(box) box.textContent=(voiceFinalTranscript+' '+interim).trim();
+  };
+  rec.onerror=e=>{
+    const statusEl=document.getElementById('voiceMicStatus');
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      if(statusEl) statusEl.textContent='Microphone access was blocked — allow it in your browser, or type commands below instead.';
+    } else if(e.error==='no-speech'){
+      // Not an error worth surfacing — just means it timed out waiting.
+    } else {
+      if(statusEl) statusEl.textContent=`Voice recognition error (${e.error}) — you can type commands below instead.`;
+    }
+  };
+  rec.onend=()=>{
+    voiceListening=false;
+    const btn=document.getElementById('voiceMicBtn');
+    const statusEl=document.getElementById('voiceMicStatus');
+    if(btn) btn.classList.remove('listening');
+    if(statusEl){ statusEl.classList.remove('listening'); statusEl.textContent='Stopped listening. Tap "Parse Commands" below, or the mic to keep going.'; }
+  };
+  voiceRecognition=rec;
+  return rec;
+}
+
+function toggleVoiceListening(){
+  const statusEl=document.getElementById('voiceMicStatus');
+  if(!voiceSupported()){
+    if(statusEl) statusEl.textContent='Voice recognition isn\'t supported in this browser — type commands below instead.';
+    return;
+  }
+  const rec=initVoiceRecognition();
+  const btn=document.getElementById('voiceMicBtn');
+  if(voiceListening){
+    rec.stop();
+    return;
+  }
+  try{
+    rec.start();
+    voiceListening=true;
+    if(btn) btn.classList.add('listening');
+    if(statusEl){ statusEl.classList.add('listening'); statusEl.textContent='Listening… speak your commands, then tap the mic again to stop.'; }
+  }catch(err){
+    // start() throws if called while already running (rapid double-click etc.)
+    console.warn('Voice recognition start failed:',err);
+  }
+}
+
+// ── Command parsing ──
+function voiceStatusFromWord(w){
+  w=String(w||'').trim().toLowerCase();
+  if(/(done|complete)/.test(w)) return 'done';
+  if(/in\s?progress/.test(w)) return 'inprogress';
+  if(/(pending|not\s?started|open|reopen)/.test(w)) return 'pending';
+  return null;
+}
+
+function parseVoiceCommands(text){
+  if(!text||!text.trim()) return [];
+  const chunks=text
+    .split(/\n|(?:,?\s+and\s+then\s+)|(?:,?\s+then\s+)|(?:\.\s+)|(?:;\s*)|(?:,?\s+and\s+(?=add |mark |set |complete |reopen |uncomplete ))/i)
+    .map(s=>s.replace(/\.+$/,'').trim())
+    .filter(Boolean);
+  const cmds=[];
+  chunks.forEach(raw=>{
+    let m;
+    if((m=raw.match(/^add\s+(?:a\s+)?subtask\s+(.+?)\s+(?:to|under|for)\s+(.+?)(?:\s+in\s+(.+))?$/i))){
+      cmds.push({type:'addSubtask', raw, subName:m[1].trim(), taskQuery:m[2].trim(), modelQuery:m[3]?m[3].trim():null});
+      return;
+    }
+    if((m=raw.match(/^add\s+(?:a\s+)?(?:new\s+)?task\s+(.+?)(?:\s+(?:to|in)\s+(?:model\s+)?(.+))?$/i))){
+      cmds.push({type:'addTask', raw, taskName:m[1].trim(), modelQuery:m[2]?m[2].trim():null});
+      return;
+    }
+    if((m=raw.match(/^(?:mark|set)\s+(.+?)\s+(?:as|to)\s+(done|complete|completed|in\s?progress|pending|not\s?started|open)$/i))){
+      const status=voiceStatusFromWord(m[2]);
+      if(status){ cmds.push({type:'setStatus', raw, targetQuery:m[1].trim(), status}); return; }
+    }
+    if((m=raw.match(/^complete\s+(.+)$/i))){
+      cmds.push({type:'setStatus', raw, targetQuery:m[1].trim(), status:'done'});
+      return;
+    }
+    if((m=raw.match(/^(?:reopen|un-?complete)\s+(.+)$/i))){
+      cmds.push({type:'setStatus', raw, targetQuery:m[1].trim(), status:'pending'});
+      return;
+    }
+    cmds.push({type:'unknown', raw});
+  });
+  return cmds;
+}
+
+// ── Command resolution (read-only — matches spoken names against real data) ──
+function voiceFindModel(query){
+  const names=refreshedActiveModelNames();
+  if(!query) return names.includes(activeTab)?activeTab:(names[0]||null);
+  const q=query.trim().toLowerCase();
+  let match=names.find(m=>m.toLowerCase()===q);
+  if(!match) match=names.find(m=>m.toLowerCase().includes(q)||q.includes(m.toLowerCase()));
+  return match||null;
+}
+function voiceFindTaskIdx(model,query){
+  if(!model||!query) return -1;
+  const q=query.trim().toUpperCase();
+  const tasks=state[model]||[];
+  let idx=tasks.findIndex(t=>t.name===q);
+  if(idx===-1) idx=tasks.findIndex(t=>t.name.includes(q)||q.includes(t.name));
+  return idx;
+}
+function voiceFindAnyItem(query){
+  const q=query.trim();
+  if(!q) return null;
+  const names=refreshedActiveModelNames();
+  const order=[activeTab,...names.filter(m=>m!==activeTab)];
+  for(const m of order){
+    const idx=voiceFindTaskIdx(m,q);
+    if(idx!==-1) return {model:m, idx, subIdx:null};
+  }
+  const qu=q.toUpperCase();
+  for(const m of order){
+    const tasks=state[m]||[];
+    for(let i=0;i<tasks.length;i++){
+      const subs=getSubtasks(m,i);
+      let sIdx=subs.findIndex(s=>s.name===qu);
+      if(sIdx===-1) sIdx=subs.findIndex(s=>s.name.includes(qu)||qu.includes(s.name));
+      if(sIdx!==-1) return {model:m, idx:i, subIdx:sIdx};
+    }
+  }
+  return null;
+}
+const VOICE_STATUS_LABEL={done:'Done',inprogress:'In Progress',pending:'Pending'};
+
+function resolveVoiceCommand(cmd){
+  if(cmd.type==='addTask'){
+    const model=voiceFindModel(cmd.modelQuery);
+    return {...cmd, ok:!!model, apply:!!model, resolvedModel:model,
+      summary: model ? `➕ Add task "${cmd.taskName}" to <b>${escHtml(model)}</b>` : `➕ Add task "${cmd.taskName}" — no model found${cmd.modelQuery?` for "${escHtml(cmd.modelQuery)}"`:''}`};
+  }
+  if(cmd.type==='addSubtask'){
+    const model=voiceFindModel(cmd.modelQuery);
+    const idx=model?voiceFindTaskIdx(model,cmd.taskQuery):-1;
+    const ok=!!model&&idx!==-1;
+    return {...cmd, ok, apply:ok, resolvedModel:model, resolvedIdx:idx,
+      summary: ok
+        ? `➕ Add subtask "${cmd.subName}" to <b>${escHtml(state[model][idx].name)}</b> (${escHtml(model)})`
+        : `➕ Add subtask "${cmd.subName}" — couldn't find a task matching "${escHtml(cmd.taskQuery)}"`};
+  }
+  if(cmd.type==='setStatus'){
+    const found=voiceFindAnyItem(cmd.targetQuery);
+    if(!found){
+      return {...cmd, ok:false, apply:false, summary:`🔄 Couldn't find a task or subtask matching "${escHtml(cmd.targetQuery)}"`};
+    }
+    const {model,idx,subIdx}=found;
+    const label=subIdx==null?state[model][idx].name:getSubtasks(model,idx)[subIdx].name;
+    return {...cmd, ok:true, apply:true, resolvedModel:model, resolvedIdx:idx, resolvedSubIdx:subIdx,
+      summary:`🔄 Set "${escHtml(label)}" (${escHtml(model)}) to <b>${VOICE_STATUS_LABEL[cmd.status]}</b>`};
+  }
+  return {...cmd, ok:false, apply:false, summary:`❓ Didn't understand: "${escHtml(cmd.raw)}"`};
+}
+
+function renderVoiceReview(){
+  const list=document.getElementById('voiceReviewList');
+  const applyBtn=document.getElementById('voiceApplyBtn');
+  if(!list) return;
+  if(!voiceParsedItems.length){
+    list.innerHTML='';
+    if(applyBtn) applyBtn.disabled=true;
+    return;
+  }
+  list.innerHTML=voiceParsedItems.map((cmd,i)=>`
+    <div class="voice-review-item${cmd.ok?'':' unresolved'}">
+      <input type="checkbox" data-idx="${i}" ${cmd.apply?'checked':''} ${cmd.ok?'':'disabled'}>
+      <div class="voice-review-item-main">
+        <div class="voice-review-item-summary">${cmd.summary}</div>
+        <div class="voice-review-item-raw">"${escHtml(cmd.raw)}"</div>
+      </div>
+    </div>`).join('');
+  list.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+    cb.onchange=()=>{ voiceParsedItems[parseInt(cb.dataset.idx,10)].apply=cb.checked; updateVoiceApplyBtn(); };
+  });
+  updateVoiceApplyBtn();
+}
+function updateVoiceApplyBtn(){
+  const applyBtn=document.getElementById('voiceApplyBtn');
+  if(!applyBtn) return;
+  const n=voiceParsedItems.filter(c=>c.ok&&c.apply).length;
+  applyBtn.disabled=n===0;
+  applyBtn.textContent=n>0?`Apply ${n} Command${n===1?'':'s'}`:'Apply Selected';
+}
+
+function runVoiceParse(){
+  const box=document.getElementById('voiceTranscriptBox');
+  const fallback=document.getElementById('voiceFallbackText');
+  const spoken=(box&&box.textContent||'').trim();
+  const typed=(fallback&&fallback.value||'').trim();
+  const combined=[spoken,typed].filter(Boolean).join('. ');
+  if(!combined){
+    const statusEl=document.getElementById('voiceMicStatus');
+    if(statusEl) statusEl.textContent='Nothing to parse yet — speak into the mic or type a command below.';
+    return;
+  }
+  voiceParsedItems=parseVoiceCommands(combined).map(resolveVoiceCommand);
+  renderVoiceReview();
+}
+
+function applyVoiceCommands(){
+  if(!canEdit()){notifyViewOnly();return;}
+  const toApply=voiceParsedItems.filter(c=>c.ok&&c.apply);
+  if(!toApply.length) return;
+  toApply.forEach(cmd=>{
+    if(cmd.type==='addTask'){
+      addTask(cmd.resolvedModel,cmd.taskName);
+    } else if(cmd.type==='addSubtask'){
+      addSubtask(cmd.resolvedModel,cmd.resolvedIdx,cmd.subName);
+    } else if(cmd.type==='setStatus'){
+      if(cmd.resolvedSubIdx==null) setTaskStatus(cmd.resolvedModel,cmd.resolvedIdx,cmd.status);
+      else setSubtaskStatus(cmd.resolvedModel,cmd.resolvedIdx,cmd.resolvedSubIdx,cmd.status);
+    }
+  });
+  toast('🎙️',`Applied ${toApply.length} voice command${toApply.length===1?'':'s'}`);
+  closeVoiceModal();
+}
+
+function openVoiceModal(){
+  document.getElementById('userBadge').classList.remove('menu-open');
+  voiceFinalTranscript='';
+  voiceParsedItems=[];
+  const box=document.getElementById('voiceTranscriptBox');
+  const fallback=document.getElementById('voiceFallbackText');
+  const statusEl=document.getElementById('voiceMicStatus');
+  if(box) box.textContent='';
+  if(fallback) fallback.value='';
+  if(statusEl){
+    statusEl.classList.remove('listening');
+    statusEl.textContent=voiceSupported()
+      ? 'Tap the mic and try: "add task Design homepage mockup" or "mark Create wireframes as done"'
+      : 'Voice recognition isn\'t supported in this browser — type commands below instead.';
+  }
+  renderVoiceReview();
+  document.getElementById('voiceModal').classList.add('open');
+}
+function closeVoiceModal(){
+  if(voiceRecognition&&voiceListening){ try{ voiceRecognition.stop(); }catch(e){} }
+  document.getElementById('voiceModal').classList.remove('open');
+}
+
+document.getElementById('voiceAssistantBtn').onclick=openVoiceModal;
+document.getElementById('voiceMicBtn').onclick=toggleVoiceListening;
+document.getElementById('voiceParseBtn').onclick=runVoiceParse;
+document.getElementById('voiceApplyBtn').onclick=applyVoiceCommands;
+document.getElementById('voiceCloseBtn').onclick=closeVoiceModal;
+document.getElementById('voiceModal').onclick=e=>{if(e.target===document.getElementById('voiceModal'))closeVoiceModal();};
 
 // Which model the burndown chart focuses on. '__all__' aggregates every
 // active model's tasks against the earliest start / latest deadline span.
@@ -12017,6 +12367,7 @@ document.addEventListener('keydown',e=>{
     document.getElementById('overdueModal').classList.remove('open');
     document.getElementById('globalSearchModal').classList.remove('open');
     document.getElementById('activityModal').classList.remove('open');
+    if(typeof closeVoiceModal==='function') closeVoiceModal();
     document.getElementById('userBadge').classList.remove('menu-open');
     hideAuthGate();
     if (document.activeElement) document.activeElement.blur();
