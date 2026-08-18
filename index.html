@@ -3168,6 +3168,62 @@ img { -webkit-user-drag: none; }
   padding: 20px;
 }
 #modelAccessOverlay.open { opacity: 1; pointer-events: all; }
+#profileOverlay {
+  position: fixed; inset: 0; z-index: 10001;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 20px;
+}
+#profileOverlay.open { opacity: 1; pointer-events: all; }
+#profileModal {
+  background: var(--surface);
+  border: 1px solid var(--border-hover);
+  border-radius: 24px;
+  padding: 32px 30px 26px;
+  max-width: 420px; width: 100%; max-height: 85vh; overflow-y: auto;
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--border);
+  transform: translateY(14px) scale(0.97);
+  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
+}
+#profileOverlay.open #profileModal { transform: translateY(0) scale(1); }
+.profile-avatar-wrap {
+  position: relative; width: 84px; height: 84px; margin: 0 auto 18px;
+}
+.profile-avatar-lg {
+  width: 84px; height: 84px; border-radius: 50%;
+  background: var(--accent1); color: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 700; overflow: hidden;
+  background-size: cover; background-position: center;
+  border: 2px solid var(--border-hover);
+}
+.profile-avatar-camera-btn {
+  position: absolute; right: -2px; bottom: -2px;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface2); border: 2px solid var(--surface);
+  color: var(--text); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: filter 0.15s ease;
+}
+.profile-avatar-camera-btn:hover { filter: brightness(1.25); }
+.profile-field-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .5px; display: block; margin: 16px 0 8px;
+}
+.profile-field-label:first-of-type { margin-top: 0; }
+.profile-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; color: var(--text);
+  font-family: inherit; font-size: 14px; outline: none; box-sizing: border-box;
+}
+.profile-input:focus { border-color: var(--accent1); }
+.profile-hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+.profile-error { font-size: 12.5px; color: var(--red); margin-top: 10px; min-height: 0; }
+.profile-success { font-size: 12.5px; color: var(--green); margin-top: 10px; min-height: 0; }
 #modelAccessModal {
   background: var(--surface);
   border: 1px solid var(--border-hover);
@@ -3559,6 +3615,8 @@ document.addEventListener('keydown', e => {
       <span id="userEmail" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <span class="user-badge-caret">▾</span>
       <div class="user-menu" id="userMenu">
+        <button class="menu-item" id="myProfileBtn" title="Edit your name, email &amp; profile photo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>My Profile</span></button>
+        <div class="menu-divider"></div>
         <button class="menu-item" id="globalSearchBtn" title="Search tasks &amp; models across your entire workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Global Search</span><span class="menu-item-kbd">Ctrl K</span></button>
         <button class="menu-item" id="crossModelBulkBtn" title="Update the same task across all your models at once"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Bulk Update by Task</span></button>
         <button class="menu-item" id="activityLogMenuBtn" title="See every change across your workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg><span>Activity Log</span></button>
@@ -4591,6 +4649,9 @@ function friendlyAuthError(code){
     'auth/too-many-requests':'Too many attempts. Please wait a moment.',
     'auth/invalid-credential':'Invalid email or password.',
     'auth/network-request-failed':'Network error. Check your connection.',
+    'auth/requires-recent-login':'Please re-enter your current password and try again.',
+    'auth/operation-not-allowed':'Email sign-in isn\'t enabled for this project.',
+    'auth/popup-closed-by-user':'Sign-in was cancelled before it finished.',
   };
   return map[code]||'Something went wrong. Please try again.';
 }
@@ -4610,6 +4671,29 @@ let workspaceOwnerUid=null;
 let workspaceMembers={};         // {uid: {email, displayName}} for everyone in currentWorkspaceId
 function getWorkspaceDoc(){ return db.collection('workspaces').doc(currentWorkspaceId); }
 function getUserProfileDoc(uid){ return db.collection('users').doc(uid); }
+
+// Renders a member's avatar into `el` — their photo if set, otherwise the
+// first letter of their name/email on the accent background. Shared by the
+// header badge and the team members list so photos show up everywhere.
+function renderMemberAvatar(el,uid,fallbackNameOrEmail){
+  if(!el) return;
+  const info=(uid&&workspaceMembers[uid])||null;
+  const photo=info&&info.photo;
+  const label=(info&&(info.displayName||info.email))||fallbackNameOrEmail||'?';
+  if(photo){
+    el.style.backgroundImage=`url("${photo}")`;
+    el.style.backgroundSize='cover';
+    el.style.backgroundPosition='center';
+    el.style.backgroundRepeat='no-repeat';
+    el.textContent='';
+  }else{
+    el.style.backgroundImage='';
+    el.style.backgroundSize='';
+    el.style.backgroundPosition='';
+    el.style.backgroundRepeat='';
+    el.textContent=(label[0]||'?').toUpperCase();
+  }
+}
 function isCurrentWorkspaceOwner(){ return !!auth&&!!auth.currentUser&&workspaceOwnerUid===auth.currentUser.uid; }
 
 // ── VIEW-ONLY / EDIT PERMISSIONS ──────────────────────────────────────────
@@ -4714,6 +4798,7 @@ async function resolveWorkspace(user){
 
   const profile=profileSnap&&profileSnap.exists?profileSnap.data():null;
   const myInfo={email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]};
+  if(profile&&profile.photo) myInfo.photo=profile.photo;
 
   if(profile && profile.workspaceId){
     // Keep the denormalized member info fresh (in case display name
@@ -4852,7 +4937,7 @@ function userIsBusy(){
   const activeEl=document.activeElement;
   const isTypingInTaskArea = activeEl && (activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')
     && activeEl.closest && (activeEl.closest('#taskRows')||activeEl.closest('.model-rename-input')||activeEl.closest('#modelsGrid'));
-  const modalIsOpen = document.querySelector('.modal-overlay.open, #teamOverlay.open, #exportLogoutOverlay.open, #bulkMoveModelModal.open');
+  const modalIsOpen = document.querySelector('.modal-overlay.open, #teamOverlay.open, #exportLogoutOverlay.open, #bulkMoveModelModal.open, #profileOverlay.open');
   const recentlyActive = (Date.now()-lastActivityTime) < ACTIVITY_IDLE_MS;
   return !!(isTypingInTaskArea || modalIsOpen || isDragInProgress || recentlyActive || hasUnsavedLocalEdit());
 }
@@ -5265,6 +5350,7 @@ async function handleAuthState(user){
     const loginOpenBtn=document.getElementById('loginOpenBtn');
     avatar.textContent=(user.displayName||user.email||'?')[0].toUpperCase();
     emailEl.textContent=user.displayName||(user.email||'').split('@')[0];
+    // Re-rendered with the real photo (if any) once workspaceMembers loads below.
     badge.style.display='flex';
     loginOpenBtn.style.display='none';
     document.getElementById('notifBellBtn').style.display='';
@@ -5285,6 +5371,7 @@ async function handleAuthState(user){
       : (currentWorkspaceId===user.uid ? await speculativeLoad : await loadFromFirestore(currentWorkspaceId));
     workspaceMembers=(saved&&saved.members)||{[user.uid]:{email:user.email||'',displayName:user.displayName||(user.email||'').split('@')[0]}};
     workspaceOwnerUid=(saved&&saved.ownerUid)||user.uid;
+    renderMemberAvatar(avatar,user.uid,user.displayName||user.email);
     applyViewOnlyMode();
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
@@ -12441,6 +12528,7 @@ document.addEventListener('keydown',e=>{
     document.getElementById('activityModal').classList.remove('open');
     if(typeof closeVoiceModal==='function') closeVoiceModal();
     if(typeof closeModelAccessModal==='function') closeModelAccessModal();
+    if(typeof closeProfileModal==='function') closeProfileModal();
     document.getElementById('userBadge').classList.remove('menu-open');
     hideAuthGate();
     if (document.activeElement) document.activeElement.blur();
@@ -12941,6 +13029,42 @@ updateStickyBarPin();
   </div>
 </div>
 
+<div id="profileOverlay" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+  <div id="profileModal">
+    <div class="elmodal-title" id="profileModalTitle" style="text-align:center;">My Profile</div>
+    <div class="elmodal-desc" style="text-align:center;">Update your name, email or profile photo.</div>
+
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar-lg" id="profileAvatarPreview">?</div>
+      <div class="profile-avatar-camera-btn" id="profilePhotoBtn" title="Change photo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;">
+    </div>
+
+    <label class="profile-field-label" for="profileNameInput">Display Name</label>
+    <input type="text" id="profileNameInput" class="profile-input" placeholder="Your name" maxlength="60">
+
+    <label class="profile-field-label" for="profileEmailInput">Email Address</label>
+    <input type="email" id="profileEmailInput" class="profile-input" placeholder="you@example.com">
+    <div class="profile-hint">Changing this sends a confirmation link to the new address — your email only updates once you click it.</div>
+
+    <div id="profilePasswordSection" style="display:none;">
+      <label class="profile-field-label" for="profileReauthPassword">Current Password</label>
+      <input type="password" id="profileReauthPassword" class="profile-input" placeholder="Confirm with your current password" autocomplete="current-password">
+      <div class="profile-hint">Changing your email needs a quick re-confirmation for security.</div>
+    </div>
+
+    <div class="profile-error" id="profileError"></div>
+    <div class="profile-success" id="profileSuccess"></div>
+
+    <div class="elmodal-actions" style="margin-top:18px;">
+      <button class="elmodal-cancel-btn" id="profileCancelBtn" style="flex:1;">Cancel</button>
+      <button class="modal-btn primary" id="profileSaveBtn" style="flex:1;">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── TEAM / SHARED WORKSPACE MODAL ─────────────────────────────────────────────
 function openTeamModal(){
@@ -12991,7 +13115,7 @@ function renderTeamModal(){
       ?`<button class="team-member-access-btn${accessArr?' is-restricted':''}" data-uid="${escHtml(uid)}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="Choose which models ${escHtml(info.displayName||info.email||'this person')} can see">${accessLabel}</button>`
       :'';
     return `<div class="team-member-row">
-      <div class="team-member-avatar">${escHtml(initial)}</div>
+      <div class="team-member-avatar"${info.photo?` style="background-image:url(&quot;${escHtml(info.photo)}&quot;);background-size:cover;background-position:center;"`:''}>${info.photo?'':escHtml(initial)}</div>
       <div>
         <div class="team-member-name">${escHtml(info.displayName||info.email||'Unknown')}</div>
         <div class="team-member-email">${escHtml(info.email||'')}</div>
@@ -13187,6 +13311,130 @@ document.getElementById('modelAccessCancelBtn').onclick=closeModelAccessModal;
 document.getElementById('modelAccessSaveBtn').onclick=saveModelAccess;
 document.getElementById('modelAccessOverlay').onclick=e=>{
   if(e.target===document.getElementById('modelAccessOverlay')) closeModelAccessModal();
+};
+
+// ── MY PROFILE MODAL ──────────────────────────────────────────────────────────
+let pendingProfilePhoto=undefined; // undefined = unchanged this session, string = new data URL
+function openProfileModal(){
+  document.getElementById('userBadge').classList.remove('menu-open');
+  if(!auth||!auth.currentUser){ toast('⚠','Sign in to edit your profile',false); return; }
+  const user=auth.currentUser;
+  pendingProfilePhoto=undefined;
+  document.getElementById('profileNameInput').value=user.displayName||'';
+  document.getElementById('profileEmailInput').value=user.email||'';
+  document.getElementById('profileReauthPassword').value='';
+  document.getElementById('profilePasswordSection').style.display='none';
+  document.getElementById('profileError').textContent='';
+  document.getElementById('profileSuccess').textContent='';
+  renderMemberAvatar(document.getElementById('profileAvatarPreview'),user.uid,user.displayName||user.email);
+  document.getElementById('profileSaveBtn').disabled=false;
+  document.getElementById('profileSaveBtn').textContent='Save Changes';
+  document.getElementById('profileOverlay').classList.add('open');
+}
+function closeProfileModal(){
+  document.getElementById('profileOverlay').classList.remove('open');
+}
+document.getElementById('profilePhotoBtn').onclick=()=>document.getElementById('profilePhotoInput').click();
+document.getElementById('profilePhotoInput').onchange=async(e)=>{
+  const file=e.target.files&&e.target.files[0];
+  e.target.value='';
+  if(!file) return;
+  if(!file.type.startsWith('image/')){ document.getElementById('profileError').textContent='Please choose an image file.'; return; }
+  try{
+    const dataUrl=await resizeImageFile(file,240,240,0.85);
+    pendingProfilePhoto=dataUrl;
+    const preview=document.getElementById('profileAvatarPreview');
+    preview.style.backgroundImage=`url("${dataUrl}")`;
+    preview.textContent='';
+    document.getElementById('profileError').textContent='';
+  }catch(err){
+    console.error('Profile photo resize failed:',err);
+    document.getElementById('profileError').textContent='Could not read that image — please try another.';
+  }
+};
+// Email edits need a fresh sign-in per Firebase's security rules — reveal
+// the confirm-password field only once the person actually changes it.
+document.getElementById('profileEmailInput').addEventListener('input',()=>{
+  const user=auth&&auth.currentUser;
+  const changed=user&&document.getElementById('profileEmailInput').value.trim()!==(user.email||'');
+  const hasPasswordProvider=user&&user.providerData.some(p=>p.providerId==='password');
+  document.getElementById('profilePasswordSection').style.display=(changed&&hasPasswordProvider)?'':'none';
+});
+async function saveProfile(){
+  const user=auth&&auth.currentUser;
+  if(!user) return;
+  const errEl=document.getElementById('profileError');
+  const okEl=document.getElementById('profileSuccess');
+  const saveBtn=document.getElementById('profileSaveBtn');
+  errEl.textContent='';okEl.textContent='';
+  const newName=document.getElementById('profileNameInput').value.trim();
+  const newEmail=document.getElementById('profileEmailInput').value.trim();
+  const password=document.getElementById('profileReauthPassword').value;
+  if(!newName){ errEl.textContent='Please enter a display name.'; return; }
+  if(!newEmail){ errEl.textContent='Please enter an email address.'; return; }
+  const emailChanged=newEmail!==(user.email||'');
+  const hasPasswordProvider=user.providerData.some(p=>p.providerId==='password');
+  if(emailChanged&&hasPasswordProvider&&!password){ errEl.textContent='Enter your current password to confirm the email change.'; return; }
+  saveBtn.disabled=true;saveBtn.textContent='Saving…';
+  let verificationSent=false;
+  try{
+    if(emailChanged){
+      // Re-confirm identity before touching the email — password accounts
+      // reauth with the password just entered; Google-only accounts (no
+      // password provider at all) reauth via a fresh Google popup instead.
+      if(hasPasswordProvider){
+        const cred=firebase.auth.EmailAuthProvider.credential(user.email,password);
+        await user.reauthenticateWithCredential(cred);
+      }else{
+        await user.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider());
+      }
+      // Firebase projects with email-enumeration protection reject the old
+      // updateEmail() call outright — verifyBeforeUpdateEmail is the
+      // supported path: it emails a confirmation link to the NEW address,
+      // and the email only actually changes once that link is clicked.
+      await user.verifyBeforeUpdateEmail(newEmail);
+      verificationSent=true;
+    }
+    if(newName!==(user.displayName||'')){
+      await user.updateProfile({displayName:newName});
+    }
+    // Email in Firestore stays the still-current auth email until the
+    // verification link is clicked — otherwise the workspace roster would
+    // show an address that doesn't work yet.
+    const memberUpdate={displayName:newName,email:user.email||''};
+    if(pendingProfilePhoto!==undefined) memberUpdate.photo=pendingProfilePhoto;
+    if(!workspaceMembers[user.uid]) workspaceMembers[user.uid]={};
+    Object.assign(workspaceMembers[user.uid],memberUpdate);
+    await Promise.all([
+      getUserProfileDoc(user.uid).set(memberUpdate,{merge:true}),
+      currentWorkspaceId?getWorkspaceDoc().set({members:{[user.uid]:memberUpdate}},{merge:true}):Promise.resolve()
+    ]);
+    document.getElementById('userEmail').textContent=newName||(user.email||'').split('@')[0];
+    renderMemberAvatar(document.getElementById('userAvatar'),user.uid,newName||user.email);
+    updateTeamUI();
+    if(verificationSent){
+      document.getElementById('profileEmailInput').value=user.email||'';
+      document.getElementById('profilePasswordSection').style.display='none';
+      document.getElementById('profileReauthPassword').value='';
+      okEl.textContent=`Verification link sent to ${newEmail} — click it to finish changing your email. It stays ${user.email} until then.`;
+      setTimeout(closeProfileModal,4000);
+    }else{
+      okEl.textContent='Profile updated.';
+      setTimeout(closeProfileModal,900);
+    }
+  }catch(e){
+    console.error('Profile save failed:',e);
+    errEl.textContent=friendlyAuthError(e.code)||'Could not save your profile — please try again.';
+    saveBtn.disabled=false;saveBtn.textContent='Save Changes';
+    return;
+  }
+  saveBtn.disabled=false;saveBtn.textContent='Save Changes';
+}
+document.getElementById('myProfileBtn').onclick=openProfileModal;
+document.getElementById('profileCancelBtn').onclick=closeProfileModal;
+document.getElementById('profileSaveBtn').onclick=saveProfile;
+document.getElementById('profileOverlay').onclick=e=>{
+  if(e.target===document.getElementById('profileOverlay')) closeProfileModal();
 };
 
 // If the owner renames a model, propagate that rename into any restricted
