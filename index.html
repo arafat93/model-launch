@@ -2196,6 +2196,22 @@ footer {
 .menu-item:disabled:hover svg { opacity: 0.75; color: inherit; }
 .menu-item .archive-count-badge { margin-left: auto; }
 .menu-divider { height: 1px; background: var(--border); margin: 6px 6px; }
+.menu-section-label {
+  padding: 6px 10px 4px; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--text-muted); opacity: 0.55; user-select: none;
+}
+/* Long menus (user menu especially, once every option is grouped in) can
+   run taller than the viewport on shorter screens — scroll instead of
+   spilling off-screen. */
+.user-menu {
+  max-height: min(620px, calc(100vh - 90px));
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.user-menu::-webkit-scrollbar { width: 6px; }
+.user-menu::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 3px; }
+.user-menu::-webkit-scrollbar-track { background: transparent; }
 
 /* ── EXPORT FORMAT DROPDOWN ── */
 .export-dropdown { position: relative; }
@@ -3616,24 +3632,39 @@ document.addEventListener('keydown', e => {
       <span class="user-badge-caret">▾</span>
       <div class="user-menu" id="userMenu">
         <button class="menu-item" id="myProfileBtn" title="Edit your name, email &amp; profile photo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>My Profile</span></button>
-        <button class="logout-btn" id="logoutBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Sign Out</span></button>
-        <button class="menu-item" id="teamMenuBtn" title="Invite teammates or manage your shared workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span><span class="archive-count-badge" id="teamCountBadge" style="display:none;">1</span></button>
-        <button class="menu-item" id="myTasksViewBtn" title="See every task assigned to you across all your models" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>My Tasks</span><span class="archive-count-badge" id="myTasksCountBadge" style="display:none;">0</span></button>
+
         <div class="menu-divider"></div>
+        <div class="menu-section-label">Find &amp; Bulk Edit</div>
         <button class="menu-item" id="globalSearchBtn" title="Search tasks &amp; models across your entire workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Global Search</span><span class="menu-item-kbd">Ctrl K</span></button>
         <button class="menu-item" id="crossModelBulkBtn" title="Update the same task across all your models at once"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Bulk Update by Task</span></button>
-        <button class="menu-item" id="activityLogMenuBtn" title="See every change across your workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg><span>Activity Log</span></button>
-        <div class="menu-divider"></div>
+        <button class="menu-item" id="bulkModelDeadlineBtn" title="Set or clear the deadline for several models at once"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Bulk Set Deadlines</span></button>
         <button class="menu-item" id="voiceAssistantBtn" title="Add or update tasks in bulk by voice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg><span>Voice Assistant</span></button>
+
+        <div class="menu-divider"></div>
+        <div class="menu-section-label">Workspace</div>
+        <button class="menu-item" id="myTasksViewBtn" title="See every task assigned to you across all your models" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>My Tasks</span><span class="archive-count-badge" id="myTasksCountBadge" style="display:none;">0</span></button>
+        <button class="menu-item" id="analyticsViewBtn" title="Burndown, trends, and overdue analysis"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Analytics</span></button>
+        <button class="menu-item" id="activityLogMenuBtn" title="See every change across your workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg><span>Activity Log</span></button>
         <button class="menu-item" id="archiveViewBtn" title="View archived models"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg><span>Archived</span><span class="archive-count-badge" id="archiveCountBadge" style="display:none;">0</span></button>
         <button class="menu-item" id="recycleViewBtn" title="View deleted tasks (kept for 30 days)" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Recycle Bin</span><span class="archive-count-badge" id="recycleCountBadge" style="display:none;">0</span></button>
-        <button class="menu-item" id="analyticsViewBtn" title="Burndown, trends, and overdue analysis"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Analytics</span></button>
+        <button class="menu-item" id="teamMenuBtn" title="Invite teammates or manage your shared workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span><span class="archive-count-badge" id="teamCountBadge" style="display:none;">1</span></button>
+
+        <div class="menu-divider"></div>
+        <div class="menu-section-label">Utilities</div>
         <button class="menu-item" id="userManualBtn" title="Download the user manual (PDF)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg><span>User Manual</span></button>
-        <button class="menu-item" id="freshStartBtn" title="Clear everything and start fresh" style="color:var(--red);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg><span>Fresh Start</span></button>
         <button class="menu-item" id="undoBtn" title="Undo last change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span>Undo</span></button>
         <button class="menu-item" id="redoBtn" title="Redo last undone change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0-5.5 5.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg><span>Redo</span></button>
+
         <div class="menu-divider"></div>
+        <div class="menu-section-label">Danger Zone</div>
+        <button class="menu-item" id="freshStartBtn" title="Clear everything and start fresh" style="color:var(--red);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg><span>Fresh Start</span></button>
+
+        <div class="menu-divider"></div>
+        <div class="menu-section-label">Support</div>
         <a class="menu-item whatsapp-menu-item" href="https://wa.me/8801608985264?text=Hi%2C%20I%20need%20help%20with%20the%20Model%20Launch%20Dashboard." target="_blank" rel="noopener noreferrer" title="Chat with admin on WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.533 5.858L.057 23.184a.75.75 0 0 0 .916.919l5.453-1.43A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.726 9.726 0 0 1-4.964-1.357l-.355-.212-3.68.965.981-3.585-.232-.369A9.713 9.713 0 0 1 2.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg><span>Help (WhatsApp)</span></a>
+
+        <div class="menu-divider"></div>
+        <button class="logout-btn" id="logoutBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Sign Out</span></button>
       </div>
     </div>
     <button class="hdr-btn accent" id="loginOpenBtn">✦ <span>Login</span></button>
@@ -4311,6 +4342,40 @@ document.addEventListener('keydown', e => {
     <div class="modal-actions" style="margin-top:20px;flex-shrink:0;">
       <button class="modal-btn secondary" id="crossModelBulkCancelBtn">Cancel</button>
       <button class="modal-btn primary" id="crossModelBulkApplyBtn">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALL-MODELS DEADLINE MODAL — set or clear the model-level deadline (the
+     one shown on each model card) across many models in one action, rather
+     than opening each model card's deadline picker one at a time. Distinct
+     from #bulkDeadlineModal above, which sets task/subtask deadlines
+     within a single model. -->
+<div class="modal-overlay" id="allModelsDeadlineModal">
+  <div class="modal-box" style="width:min(480px, 92vw); max-height:88vh; display:flex; flex-direction:column; padding-bottom:24px;">
+    <div class="modal-title">Bulk Set Deadlines</div>
+    <div class="modal-subtitle">Choose which models to update, then set or clear their deadline in one go.</div>
+
+    <div class="crossmodal-scroll-body">
+      <div class="crossmodel-field-group" style="margin-top:0;">
+        <label class="crossmodel-field-label" for="allModelsDeadlineAction">Deadline</label>
+        <select class="crossmodel-select" id="allModelsDeadlineAction">
+          <option value="set">Set date…</option>
+          <option value="clear">Clear deadline</option>
+        </select>
+        <input type="date" class="deadline-input" id="allModelsDeadlineDate" style="margin-top:8px;">
+      </div>
+
+      <div class="crossmodel-select-all-row">
+        <label><input type="checkbox" class="task-checkbox" id="allModelsDeadlineSelectAllChk" checked>Select all models</label>
+        <span class="cm-dl" id="allModelsDeadlineCount"></span>
+      </div>
+      <div class="crossmodel-list" id="allModelsDeadlineList"></div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px;flex-shrink:0;">
+      <button class="modal-btn secondary" id="allModelsDeadlineCancelBtn">Cancel</button>
+      <button class="modal-btn primary" id="allModelsDeadlineApplyBtn">Apply</button>
     </div>
   </div>
 </div>
@@ -11346,6 +11411,65 @@ document.getElementById('crossModelBulkModal').onclick=e=>{
   if(e.target===document.getElementById('crossModelBulkModal'))
     document.getElementById('crossModelBulkModal').classList.remove('open');
 };
+
+// ── BULK SET DEADLINES ACROSS MODELS (model-level, not task-level) ───────────
+// Sets/clears deadlines[model] — the deadline shown on each model card —
+// for many models at once. Not to be confused with #bulkDeadlineModal
+// elsewhere in the file, which bulk-sets task/subtask deadlines within a
+// single model.
+document.getElementById('bulkModelDeadlineBtn').onclick=()=>{
+  if(!canEdit()){notifyViewOnly();return;}
+  if(!models.length){showAlert({title:'No models yet',message:'Add at least one model before setting deadlines.',tone:'warn'});return;}
+  document.getElementById('allModelsDeadlineAction').value='set';
+  document.getElementById('allModelsDeadlineDate').style.display='block';
+  document.getElementById('allModelsDeadlineDate').value='';
+  renderAllModelsDeadlineList();
+  document.getElementById('allModelsDeadlineModal').classList.add('open');
+};
+function renderAllModelsDeadlineList(){
+  const list=document.getElementById('allModelsDeadlineList');
+  document.getElementById('allModelsDeadlineCount').textContent=`${models.length} model${models.length===1?'':'s'}`;
+  list.innerHTML = models.map(m=>{
+    const dl = deadlines[m]
+      ? new Date(deadlines[m]+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})
+      : 'No deadline set';
+    return `
+      <label class="crossmodel-row">
+        <input type="checkbox" class="task-checkbox amd-row-chk" data-model="${escHtml(m)}" checked>
+        <span class="cm-name">${escHtml(m)}</span>
+        <span class="cm-meta"><span class="cm-dl">${dl}</span></span>
+      </label>`;
+  }).join('');
+  document.getElementById('allModelsDeadlineSelectAllChk').checked=true;
+}
+document.getElementById('allModelsDeadlineSelectAllChk').onchange=e=>{
+  document.querySelectorAll('#allModelsDeadlineList .amd-row-chk').forEach(chk=>{chk.checked=e.target.checked;});
+};
+document.getElementById('allModelsDeadlineAction').onchange=e=>{
+  document.getElementById('allModelsDeadlineDate').style.display = e.target.value==='set' ? 'block' : 'none';
+};
+document.getElementById('allModelsDeadlineCancelBtn').onclick=()=>document.getElementById('allModelsDeadlineModal').classList.remove('open');
+document.getElementById('allModelsDeadlineModal').onclick=e=>{
+  if(e.target===document.getElementById('allModelsDeadlineModal'))
+    document.getElementById('allModelsDeadlineModal').classList.remove('open');
+};
+document.getElementById('allModelsDeadlineApplyBtn').onclick=async()=>{
+  if(!canEdit()){notifyViewOnly();return;}
+  const action=document.getElementById('allModelsDeadlineAction').value;
+  const dateVal=document.getElementById('allModelsDeadlineDate').value;
+  if(action==='set' && !dateVal){ await showAlert({title:'Pick a date',message:'Choose a date before applying.',tone:'warn'}); return; }
+  const selected=[...document.querySelectorAll('#allModelsDeadlineList .amd-row-chk:checked')].map(chk=>chk.dataset.model);
+  if(!selected.length){ await showAlert({title:'No models selected',message:'Select at least one model to update.',tone:'warn'}); return; }
+  selected.forEach(m=>{
+    if(action==='set') deadlines[m]=dateVal;
+    else delete deadlines[m];
+  });
+  save();renderAll();
+  document.getElementById('allModelsDeadlineModal').classList.remove('open');
+  toast('📅', action==='set'
+    ? `Deadline set for ${selected.length} model${selected.length===1?'':'s'}`
+    : `Deadline cleared for ${selected.length} model${selected.length===1?'':'s'}`);
+};
 document.getElementById('crossModelBulkApplyBtn').onclick=()=>{
   const taskName=document.getElementById('crossTaskSelect').value;
   if(!taskName)return;
@@ -11725,28 +11849,30 @@ function excelSafeSheetName(name){
   return name.replace(/[\\/?*\[\]:]/g,' ').slice(0,31).trim()||'Model';
 }
 // Builds the multi-sheet "all models" workbook from the current state.
-// Shared by the manual "Export as Excel" button and the hourly auto-backup
-// below, so both always produce byte-identical output for the same state.
-function buildAllModelsWorkbook(){
+// Used by the manual "Export as Excel" button. Requires ExcelJS (see
+// loadExcelJS above) rather than SheetJS so each sheet's model photo can be
+// embedded — SheetJS's browser build can't write images into a workbook.
+async function buildAllModelsWorkbook(){
   const prioMap={high:'High',med:'Med',low:'Low'};
-  const wb=XLSX.utils.book_new();
+  const wb=new ExcelJS.Workbook();
   const usedNames=new Set();
   models.forEach(m=>{
     const tasks=state[m];
-    const rows=[['Task Name','Priority','Status','Notes','Deadline','Type','Parent Task']];
-    tasks.forEach(t=>{
-      rows.push([t.name,prioMap[t.priority||'med'],t.done?'Done':'Pending',t.notes||'',t.taskDeadline||'','Task','']);
-      (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>{
-        rows.push([s.name,prioMap[s.priority||'med'],s.done?'Done':'Pending',s.notes||'',s.taskDeadline||'','Subtask',t.name]);
-      });
-    });
-    const ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:40},{wch:10},{wch:10},{wch:35},{wch:14},{wch:9},{wch:28}];
     // Guard against two model names colliding once sanitized/truncated to 31 chars
     let sheetName=excelSafeSheetName(m), n=2;
     while(usedNames.has(sheetName)){ sheetName=excelSafeSheetName(m).slice(0,28)+'_'+n; n++; }
     usedNames.add(sheetName);
-    XLSX.utils.book_append_sheet(wb,ws,sheetName);
+    const ws=wb.addWorksheet(sheetName);
+    ws.addRow(['Model:',m,'Deadline:',deadlines[m]||'']).font={bold:true};
+    ws.addRow(['Task Name','Priority','Status','Notes','Deadline','Type','Parent Task']).font={bold:true};
+    tasks.forEach(t=>{
+      ws.addRow([t.name,prioMap[t.priority||'med'],t.done?'Done':'Pending',t.notes||'',t.taskDeadline||'','Task','']);
+      (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>{
+        ws.addRow([s.name,prioMap[s.priority||'med'],s.done?'Done':'Pending',s.notes||'',s.taskDeadline||'','Subtask',t.name]);
+      });
+    });
+    ws.columns=[{width:40},{width:10},{width:10},{width:35},{width:14},{width:9},{width:28}];
+    embedModelImage(wb,ws,modelImages[m],8);
   });
   return wb;
 }
@@ -11754,13 +11880,46 @@ function buildAllModelsWorkbook(){
 document.getElementById('exportAllExcelBtn').onclick=async()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
   if(!models.length){await showAlert({title:'Nothing to export',message:'Add at least one model before exporting.',tone:'warn'});return;}
-  try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
-  const wb=buildAllModelsWorkbook();
-  XLSX.writeFile(wb,'model_launch_dashboard.xlsx');
+  try{ await loadExcelJS(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
+  const wb=await buildAllModelsWorkbook();
+  const buf=await wb.xlsx.writeBuffer();
+  downloadWorkbookBuffer(buf,'model_launch_dashboard.xlsx');
   await saveLastBackup();
   const totalSubs=models.reduce((n,m)=>n+state[m].reduce((s,t)=>s+((Array.isArray(t.subtasks)?t.subtasks.length:0)),0),0);
   toast('📤',`Exported ${models.length} model${models.length===1?'':'s'}${totalSubs?` (incl. ${totalSubs} subtasks)`:''} to Excel`,false);
 };
+
+// Reads embedded images back out of an .xlsx file, keyed by sheet name.
+// SheetJS (used everywhere else for Excel import, since it's much lighter)
+// can't read images in its browser build, so this uses ExcelJS instead —
+// the same library the Excel export path already uses to embed each
+// model's photo in the first place. Best-effort: if anything goes wrong,
+// callers just get an empty map back and the rest of the import proceeds
+// as if there were no photos to restore.
+async function extractSheetImages(arrayBuffer){
+  const images={};
+  try{
+    await loadExcelJS();
+    const exwb=new ExcelJS.Workbook();
+    await exwb.xlsx.load(arrayBuffer);
+    exwb.eachSheet(sheet=>{
+      const imgs=sheet.getImages();
+      if(!imgs.length) return;
+      const media=exwb.getImage(imgs[0].imageId);
+      if(!media || !media.buffer) return;
+      let ext=(media.extension||'').toLowerCase();
+      if(ext==='jpg') ext='jpeg';
+      if(!['png','jpeg','gif'].includes(ext)) return;
+      const bytes=new Uint8Array(media.buffer);
+      let binary='';
+      for(let i=0;i<bytes.byteLength;i++) binary+=String.fromCharCode(bytes[i]);
+      images[sheet.name]=`data:image/${ext};base64,${btoa(binary)}`;
+    });
+  }catch(err){
+    console.warn('Could not extract embedded photos from workbook:',err);
+  }
+  return images;
+}
 
 // Merges a parsed workbook into the current dashboard state. Shared by the
 // file-based "Import" button and the "Restore Last Backup" button below —
@@ -11768,24 +11927,21 @@ document.getElementById('exportAllExcelBtn').onclick=async()=>{
 // its new (non-duplicate) tasks/subtasks; a sheet with an unrecognized name
 // becomes a new model. Never overwrites or deletes existing data, so it's
 // safe to use for recovering something that was accidentally removed.
-function mergeWorkbookIntoState(wb){
+// sheetImages (sheet name -> data: URL) is optional — pass the result of
+// extractSheetImages() to also restore each model's photo. A photo is only
+// ever filled in when the model doesn't already have one, same as every
+// other "restore" path in the app.
+function mergeWorkbookIntoState(wb,sheetImages={}){
   const sheetNames=wb.SheetNames.filter(n=>{
     const ws=wb.Sheets[n];
     const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     return rows.length>0;
   });
-  let modelsAdded=0, modelsUpdated=0, tasksAdded=0, tasksSkipped=0, subtasksAdded=0, subtasksSkipped=0;
+  let modelsAdded=0, modelsUpdated=0, tasksAdded=0, tasksSkipped=0, subtasksAdded=0, subtasksSkipped=0, photosRestored=0;
   sheetNames.forEach(sheetName=>{
     const ws=wb.Sheets[sheetName];
     const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-    let startIdx=0;
-    const firstRow=(rows[0]||[]).map(c=>String(c).trim().toLowerCase());
-    let typeIdx=-1, parentIdx=-1;
-    if(firstRow[0]&&(firstRow[0].includes('task')||firstRow[0].includes('name'))){
-      startIdx=1;
-      typeIdx=firstRow.indexOf('type');
-      parentIdx=firstRow.indexOf('parent task');
-    }
+    const {startIdx,typeIdx,parentIdx,metaDeadline}=parseSheetHeader(rows);
 
     const isExistingModel=Object.prototype.hasOwnProperty.call(state,sheetName);
     const targetTasks=isExistingModel?state[sheetName]:[];
@@ -11838,13 +11994,16 @@ function mergeWorkbookIntoState(wb){
 
     if(isExistingModel){
       if(addedHere){ renumber(targetTasks); modelsUpdated++; tasksAdded+=addedHere; }
+      if(sheetImages[sheetName] && !modelImages[sheetName]){ modelImages[sheetName]=sheetImages[sheetName]; photosRestored++; }
     } else if(targetTasks.length){
       state[sheetName]=targetTasks;
       deletedModelsSet.delete(sheetName);
+      if(metaDeadline) deadlines[sheetName]=metaDeadline;
+      if(sheetImages[sheetName]){ modelImages[sheetName]=sheetImages[sheetName]; photosRestored++; }
       modelsAdded++; tasksAdded+=addedHere;
     }
   });
-  return {modelsAdded,modelsUpdated,tasksAdded,tasksSkipped,subtasksAdded,subtasksSkipped};
+  return {modelsAdded,modelsUpdated,tasksAdded,tasksSkipped,subtasksAdded,subtasksSkipped,photosRestored};
 }
 
 function importStatsToMessage(stats){
@@ -11855,6 +12014,7 @@ function importStatsToMessage(stats){
   if(stats.tasksSkipped) parts.push(`${stats.tasksSkipped} duplicate task${stats.tasksSkipped===1?'':'s'} skipped`);
   if(stats.subtasksAdded) parts.push(`${stats.subtasksAdded} subtask${stats.subtasksAdded===1?'':'s'} added`);
   if(stats.subtasksSkipped) parts.push(`${stats.subtasksSkipped} duplicate subtask${stats.subtasksSkipped===1?'':'s'} skipped`);
+  if(stats.photosRestored) parts.push(`${stats.photosRestored} photo${stats.photosRestored===1?'':'s'} restored`);
   return parts;
 }
 
@@ -11879,15 +12039,24 @@ document.getElementById('importFile').onchange=async e=>{
       const wb=XLSX.read(ev.target.result,{type:'array'});
       if(!wb.SheetNames.length){await showAlert({title:'Empty workbook',message:'The workbook appears to be empty.',tone:'warn'});e.target.value='';return;}
 
+      // Also pull out any embedded model photos (SheetJS above only reads
+      // cell data, not images — see extractSheetImages for why). Best
+      // effort: if this fails for any reason, the task/subtask import above
+      // still goes ahead, it just won't restore photos this time.
+      let sheetImages={};
+      try{ sheetImages=await extractSheetImages(ev.target.result.slice(0)); }catch(err){}
+
       // Merge into the existing dashboard rather than replacing it:
       // - a sheet whose name matches an existing model appends only its
       //   new (non-duplicate) tasks to that model — existing tasks, notes,
       //   completion status, and the model's deadline are left untouched.
       // - a sheet with a name that doesn't match any model becomes a new
       //   model (and is un-deleted if it was a previously-removed built-in).
-      const stats=mergeWorkbookIntoState(wb);
+      // - either way, a model's photo is filled in from the sheet's
+      //   embedded image if the model doesn't already have one.
+      const stats=mergeWorkbookIntoState(wb,sheetImages);
 
-      if(!stats.modelsAdded && !stats.modelsUpdated && !stats.subtasksAdded){await showAlert({title:'Nothing to import',message:'No new models, tasks, or subtasks found — everything in the workbook already exists.',tone:'warn'});e.target.value='';return;}
+      if(!stats.modelsAdded && !stats.modelsUpdated && !stats.subtasksAdded && !stats.photosRestored){await showAlert({title:'Nothing to import',message:'No new models, tasks, subtasks, or photos found — everything in the workbook already exists.',tone:'warn'});e.target.value='';return;}
 
       refreshModelsList();
       if(!activeTab && models.length) activeTab=models[0];
@@ -12201,26 +12370,70 @@ function loadXLSX(){
   return xlsxLoadPromise;
 }
 
+// ── LAZY-LOAD EXCELJS LIBRARY (only needed for Excel export with embedded
+// model photos) ────────────────────────────────────────────────────────────
+// SheetJS (loaded above) can't write images into a workbook, so the Excel
+// *export* path uses ExcelJS instead — it's the only one of the two that can
+// embed the model photo and still supports everything the exports need
+// (multi-sheet, column widths, bold rows). Excel *import* stays on SheetJS
+// above; nothing about reading files needs to change.
+let exceljsLoadPromise=null;
+function loadExcelJS(){
+  if(window.ExcelJS) return Promise.resolve();
+  if(exceljsLoadPromise) return exceljsLoadPromise;
+  exceljsLoadPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+    s.onload=()=>resolve();
+    s.onerror=()=>{exceljsLoadPromise=null;reject(new Error('Failed to load Excel library'));};
+    document.head.appendChild(s);
+  });
+  return exceljsLoadPromise;
+}
+// Triggers a browser download for an in-memory workbook buffer (ExcelJS has
+// no writeFile-to-disk helper in the browser the way SheetJS does).
+function downloadWorkbookBuffer(buf,filename){
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+// Embeds a model's photo (stored as a data: URL) into a worksheet, anchored
+// just past the last data column so it never overlaps the task rows.
+function embedModelImage(wb,ws,dataUrl,anchorCol){
+  if(!dataUrl) return;
+  const m=/^data:image\/(\w+);base64,(.+)$/.exec(dataUrl);
+  if(!m) return;
+  let ext=m[1].toLowerCase();
+  if(ext==='jpg') ext='jpeg';
+  if(!['png','jpeg','gif'].includes(ext)) return;
+  const imageId=wb.addImage({base64:m[2],extension:ext});
+  ws.addImage(imageId,{tl:{col:anchorCol,row:0},ext:{width:180,height:135}});
+}
+
 // ── EXCEL EXPORT (current model's tasks) ──────────────────────────────────────
 document.getElementById('exportExcelBtn').onclick=async()=>{
   document.getElementById('exportModelDropdown').classList.remove('menu-open');
   if(activeTab==='Compare Models'){await showAlert({title:'Select a model first',message:'Switch to a model tab before exporting.',tone:'warn'});return;}
-  try{ await loadXLSX(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
+  try{ await loadExcelJS(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   const tasks=state[activeTab];
   const prioMap={high:'High',med:'Med',low:'Low'};
-  const rows=[['Task Name','Priority','Status','Notes','Deadline','Type','Parent Task']];
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet(activeTab.slice(0,31)||'Model');
+  ws.addRow(['Model:',activeTab,'Deadline:',deadlines[activeTab]||'']).font={bold:true};
+  ws.addRow(['Task Name','Priority','Status','Notes','Deadline','Type','Parent Task']).font={bold:true};
   tasks.forEach(t=>{
-    rows.push([t.name,prioMap[t.priority||'med'],t.done?'Done':'Pending',t.notes||'',t.taskDeadline||'','Task','']);
+    ws.addRow([t.name,prioMap[t.priority||'med'],t.done?'Done':'Pending',t.notes||'',t.taskDeadline||'','Task','']);
     (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>{
-      rows.push([s.name,prioMap[s.priority||'med'],s.done?'Done':'Pending',s.notes||'',s.taskDeadline||'','Subtask',t.name]);
+      ws.addRow([s.name,prioMap[s.priority||'med'],s.done?'Done':'Pending',s.notes||'',s.taskDeadline||'','Subtask',t.name]);
     });
   });
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:40},{wch:10},{wch:10},{wch:35},{wch:14},{wch:9},{wch:28}];
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,activeTab.slice(0,31));
+  ws.columns=[{width:40},{width:10},{width:10},{width:35},{width:14},{width:9},{width:28}];
+  embedModelImage(wb,ws,modelImages[activeTab],8);
   const fname=`${activeTab.replace(/[^a-z0-9]+/gi,'_')}_tasks.xlsx`;
-  XLSX.writeFile(wb,fname);
+  const buf=await wb.xlsx.writeBuffer();
+  downloadWorkbookBuffer(buf,fname);
   const subCount=tasks.reduce((n,t)=>n+((Array.isArray(t.subtasks)?t.subtasks.length:0)),0);
   toast('📤',`Exported ${tasks.length} tasks${subCount?` + ${subCount} subtasks`:''} to Excel`,false);
 };
@@ -12289,6 +12502,28 @@ function normDate(val){
   if(m2) return `${m2[3]}-${String(m2[1]).padStart(2,'0')}-${String(m2[2]).padStart(2,'0')}`;
   return '';
 }
+// Reads a sheet's header area, which may optionally begin with the
+// "Model:" / "Deadline:" metadata row written by the current Excel export
+// before the real column-header row. Returns where task rows actually
+// start, the Type/Parent Task column indices (if a header row was found),
+// and the model deadline from the metadata row (if present). Sheets from
+// older exports (no metadata row) still parse exactly as before.
+function parseSheetHeader(rows){
+  let metaDeadline=null, idx=0;
+  const row0=(rows[0]||[]).map(c=>String(c).trim());
+  if(row0[0] && row0[0].toLowerCase()==='model:'){
+    metaDeadline=row0[3]!==undefined?normDate(row0[3]):'';
+    idx=1;
+  }
+  const headerRow=(rows[idx]||[]).map(c=>String(c).trim().toLowerCase());
+  let startIdx=idx, typeIdx=-1, parentIdx=-1;
+  if(headerRow[0]&&(headerRow[0].includes('task')||headerRow[0].includes('name'))){
+    startIdx=idx+1;
+    typeIdx=headerRow.indexOf('type');
+    parentIdx=headerRow.indexOf('parent task');
+  }
+  return {startIdx,typeIdx,parentIdx,metaDeadline};
+}
 document.getElementById('importExcelFile').onchange=async e=>{
   if(!canEdit()){notifyViewOnly();e.target.value='';return;}
   const file=e.target.files[0];if(!file)return;
@@ -12305,14 +12540,16 @@ document.getElementById('importExcelFile').onchange=async e=>{
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
       if(!rows.length){await showAlert({title:'Empty file',message:'The file appears to be empty.',tone:'warn'});e.target.value='';return;}
-      let startIdx=0;
-      const firstRow=rows[0].map(c=>String(c).trim().toLowerCase());
-      let typeIdx=-1, parentIdx=-1;
-      if(firstRow[0]&&(firstRow[0].includes('task')||firstRow[0].includes('name'))){
-        startIdx=1;
-        typeIdx=firstRow.indexOf('type');
-        parentIdx=firstRow.indexOf('parent task');
-      }
+      // Restore the model's photo from the sheet's embedded image, if it
+      // has one and the current model doesn't already have one — SheetJS
+      // above only reads cell data, not images, see extractSheetImages.
+      let photoRestored=false;
+      try{
+        const sheetImages=await extractSheetImages(ev.target.result.slice(0));
+        const img=sheetImages[wb.SheetNames[0]];
+        if(img && !modelImages[activeTab]){ modelImages[activeTab]=img; photoRestored=true; }
+      }catch(err){}
+      const {startIdx,typeIdx,parentIdx}=parseSheetHeader(rows);
       const tasks=state[activeTab];
       const existingNames=new Set(tasks.map(t=>t.name.trim().toUpperCase()));
       let added=0,skipped=0,subAdded=0,subSkipped=0,lastTaskRef=null;
@@ -12362,6 +12599,7 @@ document.getElementById('importExcelFile').onchange=async e=>{
       const parts=[];
       if(added) parts.push(`${added} task${added===1?'':'s'}`);
       if(subAdded) parts.push(`${subAdded} subtask${subAdded===1?'':'s'}`);
+      if(photoRestored) parts.push('photo restored');
       if(!parts.length) parts.push('0 tasks');
       let msg=`Imported ${parts.join(', ')}`;
       const skipParts=[];
