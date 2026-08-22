@@ -1826,6 +1826,99 @@ footer {
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
 .modal-overlay.open { display: flex; }
+
+/* ── Welcome Overlay ─────────────────────────────────────────────── */
+#welcomeOverlay {
+  display: none; position: fixed; inset: 0; z-index: 10800;
+  align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 35%, rgba(212,175,55,0.08), rgba(0,0,0,0.86) 68%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  opacity: 0; transition: opacity .45s ease;
+  cursor: pointer;
+}
+#welcomeOverlay.open { display: flex; }
+#welcomeOverlay.show { opacity: 1; }
+.welcome-card {
+  position: relative; width: min(420px, 88vw);
+  padding: 48px 38px 38px; text-align: center;
+  border-radius: 22px; cursor: default;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface2) 100%);
+  border: 1px solid var(--accent1-dim);
+  box-shadow: 0 0 0 1px rgba(212,175,55,0.06), 0 30px 70px -20px rgba(0,0,0,0.7), 0 0 60px -10px rgba(212,175,55,0.08);
+  transform: translateY(18px) scale(.96); opacity: 0;
+  transition: transform .55s cubic-bezier(.16,1,.3,1), opacity .55s ease;
+  overflow: hidden;
+}
+#welcomeOverlay.show .welcome-card { transform: translateY(0) scale(1); opacity: 1; }
+.welcome-card::before {
+  content:''; position:absolute; inset:0; border-radius: 22px; padding: 1px;
+  background: linear-gradient(135deg, var(--accent1) 0%, transparent 30%, transparent 70%, var(--accent1) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: .35; pointer-events: none;
+}
+.welcome-shimmer {
+  position: absolute; top: -60%; left: -60%; width: 220%; height: 220%;
+  background: conic-gradient(from 0deg, transparent 0%, rgba(212,175,55,0.10) 8%, transparent 16%, transparent 100%);
+  animation: welcomeSpin 7s linear infinite; pointer-events: none;
+}
+@keyframes welcomeSpin { to { transform: rotate(360deg); } }
+.welcome-crest {
+  width: 56px; height: 56px; margin: 0 auto 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--accent1-dim), transparent);
+  border: 1px solid var(--accent1-dim);
+  font-size: 24px; color: var(--accent1);
+  position: relative; z-index: 1;
+  animation: welcomePulse 2.6s ease-in-out infinite;
+}
+@keyframes welcomePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.22); }
+  50% { box-shadow: 0 0 0 10px rgba(212,175,55,0); }
+}
+.welcome-eyebrow {
+  position: relative; z-index: 1;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--accent1); margin-bottom: 10px;
+}
+.welcome-title {
+  position: relative; z-index: 1;
+  font-family: 'Sora', sans-serif; font-size: 25px; font-weight: 700;
+  color: var(--text); letter-spacing: .2px; margin-bottom: 8px; line-height: 1.3;
+}
+.welcome-title span { color: var(--accent1); }
+.welcome-sub {
+  position: relative; z-index: 1;
+  font-size: 13.5px; color: var(--text-muted); line-height: 1.6; margin-bottom: 26px;
+}
+.welcome-stats {
+  position: relative; z-index: 1;
+  display: flex; gap: 10px; justify-content: center; margin-bottom: 24px;
+}
+.welcome-stat {
+  flex: 1; max-width: 110px; padding: 14px 8px; border-radius: 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.welcome-stat-num { font-size: 20px; font-weight: 700; color: var(--accent1); font-family: 'Sora', sans-serif; }
+.welcome-stat-label { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; margin-top: 4px; }
+.welcome-enter-btn {
+  position: relative; z-index: 1;
+  width: 100%; padding: 13px; border-radius: 12px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, var(--accent1), var(--accent1-hover));
+  color: var(--bg); font-family: inherit; font-size: 13.5px; font-weight: 700;
+  letter-spacing: .3px;
+  box-shadow: 0 8px 24px -6px rgba(212,175,55,0.4);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.welcome-enter-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 28px -6px rgba(212,175,55,0.55); }
+.welcome-dismiss-hint {
+  position: relative; z-index: 1;
+  font-size: 10.5px; color: var(--text-muted); opacity: .6; margin-top: 14px;
+}
+@media (max-width: 480px) {
+  .welcome-card { padding: 40px 26px 30px; }
+  .welcome-title { font-size: 21px; }
+}
 /* The shared confirm/alert modal (showConfirm/showAlert) can be triggered
    from inside other modals — e.g. deleting a template from the template
    chooser (z-index 9999) or editor (z-index 10000). It must always render
@@ -3567,6 +3660,24 @@ document.addEventListener('keydown', e => {
   </div>
 </div>
 
+<!-- Welcome Overlay (shown once per sign-in) -->
+<div id="welcomeOverlay">
+  <div class="welcome-card">
+    <div class="welcome-shimmer"></div>
+    <div class="welcome-crest">✦</div>
+    <div class="welcome-eyebrow" id="welcomeEyebrow">Welcome Back</div>
+    <div class="welcome-title" id="welcomeTitle">Good to see you, <span id="welcomeName">there</span></div>
+    <div class="welcome-sub" id="welcomeSub">Your workspace is synced and ready.</div>
+    <div class="welcome-stats" id="welcomeStats" style="display:none;">
+      <div class="welcome-stat"><div class="welcome-stat-num" id="welcomeStatModels">0</div><div class="welcome-stat-label">Models</div></div>
+      <div class="welcome-stat"><div class="welcome-stat-num" id="welcomeStatPending">0</div><div class="welcome-stat-label">Pending</div></div>
+      <div class="welcome-stat"><div class="welcome-stat-num" id="welcomeStatDone">0%</div><div class="welcome-stat-label">Complete</div></div>
+    </div>
+    <button class="welcome-enter-btn" id="welcomeEnterBtn">Enter Dashboard</button>
+    <div class="welcome-dismiss-hint">Click anywhere to continue</div>
+  </div>
+</div>
+
 <div class="wrap">
 
 <!-- HEADER -->
@@ -3654,6 +3765,7 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="userManualBtn" title="Download the user manual (PDF)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg><span>User Manual</span></button>
         <button class="menu-item" id="undoBtn" title="Undo last change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span>Undo</span></button>
         <button class="menu-item" id="redoBtn" title="Redo last undone change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0-5.5 5.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg><span>Redo</span></button>
+        <button class="menu-item" id="refreshDataBtn" title="Reload the latest data from the workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg><span>Refresh</span></button>
 
         <div class="menu-divider"></div>
         <div class="menu-section-label">Danger Zone</div>
@@ -4498,13 +4610,23 @@ async function doLogin(){
   const displayName=document.getElementById('loginDisplayName').value.trim();
   try{
     const cred=await auth.signInWithEmailAndPassword(email,pass);
+    justLoggedIn=true;
     if(displayName && cred.user){
       await cred.user.updateProfile({displayName});
       // updateProfile resolves after onAuthStateChanged fires, so refresh the badge manually
       const emailEl=document.getElementById('userEmail');
       const avatar=document.getElementById('userAvatar');
       if(emailEl) emailEl.textContent=displayName;
-      if(avatar) avatar.textContent=displayName[0].toUpperCase();
+      // Clear any stale background photo left over from a previous session
+      // before writing the fallback initial, or the letter renders stacked
+      // on top of the old photo instead of replacing it.
+      if(avatar){
+        avatar.style.backgroundImage='';
+        avatar.style.backgroundSize='';
+        avatar.style.backgroundPosition='';
+        avatar.style.backgroundRepeat='';
+        avatar.textContent=displayName[0].toUpperCase();
+      }
     }
   }catch(e){
     errEl.textContent=friendlyAuthError(e.code);
@@ -4523,6 +4645,7 @@ document.getElementById('googleBtn').onclick = async () => {
 
   try {
     await auth.signInWithPopup(provider);
+    justLoggedIn=true;
     // You do not need to write extra redirect logic here! 
     // Your existing auth.onAuthStateChanged listener will automatically 
     // detect the login, hide the gate, and load the dashboard.
@@ -4557,9 +4680,17 @@ async function doRegister(){
       const emailEl=document.getElementById('userEmail');
       const avatar=document.getElementById('userAvatar');
       if(emailEl) emailEl.textContent=regDisplayName;
-      if(avatar) avatar.textContent=regDisplayName[0].toUpperCase();
+      // Same stale-background guard as doLogin above.
+      if(avatar){
+        avatar.style.backgroundImage='';
+        avatar.style.backgroundSize='';
+        avatar.style.backgroundPosition='';
+        avatar.style.backgroundRepeat='';
+        avatar.textContent=regDisplayName[0].toUpperCase();
+      }
     }
     okEl.textContent='Account created! Signing you in…';
+    justLoggedIn=true;
   }catch(e){
     errEl.textContent=friendlyAuthError(e.code);
     btn.disabled=false;btn.textContent='Create Account';
@@ -5400,6 +5531,63 @@ function enterPreviewMode(){
   if (typeof refreshStickyBarOrigin === 'function') setTimeout(refreshStickyBarOrigin, 100);
 }
 
+// ── Welcome Overlay ──────────────────────────────────────────────────────
+// Shown once per page load, right after the FIRST time handleAuthState
+// sees a signed-in user — whether that's an explicit login/register
+// gesture (email/password, Google) or Firebase silently restoring a
+// persisted session on page load (the common case for returning users).
+// Defaults to true so that very first sign-in is covered; the explicit
+// login/register/Google handlers re-arm it to true afterwards so a
+// sign-out → sign-back-in within the same page load also shows it again.
+let justLoggedIn = true;
+function showWelcomeOverlay(user){
+  const overlay=document.getElementById('welcomeOverlay');
+  if(!overlay) return;
+  const name=(user&&(user.displayName||(user.email||'').split('@')[0]))||'there';
+  const hour=new Date().getHours();
+  const timeGreeting = hour<5?'Working late':hour<12?'Good morning':hour<17?'Good afternoon':hour<21?'Good evening':'Working late';
+  document.getElementById('welcomeEyebrow').textContent = timeGreeting;
+  document.getElementById('welcomeName').textContent = name;
+  const subEl=document.getElementById('welcomeSub');
+  const statsEl=document.getElementById('welcomeStats');
+  const modelCount = (models||[]).length;
+  if(modelCount>0){
+    let total=0, done=0;
+    (models||[]).forEach(m=>{
+      const tasks=state[m]||[];
+      total += tasks.length;
+      done += tasks.filter(t=>t.done).length;
+      tasks.forEach(t=>{
+        const subs=Array.isArray(t.subtasks)?t.subtasks:[];
+        total += subs.length;
+        done += subs.filter(s=>s.done).length;
+      });
+    });
+    const pending = total-done;
+    const pct = total>0 ? Math.round((done/total)*100) : 0;
+    document.getElementById('welcomeStatModels').textContent = modelCount;
+    document.getElementById('welcomeStatPending').textContent = pending;
+    document.getElementById('welcomeStatDone').textContent = pct+'%';
+    subEl.textContent = 'Your workspace is synced and ready.';
+    statsEl.style.display = 'flex';
+  } else {
+    subEl.textContent = 'Your workspace is ready — add your first model to get started.';
+    statsEl.style.display = 'none';
+  }
+  overlay.classList.add('open');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>overlay.classList.add('show')));
+  const dismiss=()=>{
+    overlay.classList.remove('show');
+    setTimeout(()=>overlay.classList.remove('open'),450);
+    overlay.removeEventListener('click',dismiss);
+    document.getElementById('welcomeEnterBtn').removeEventListener('click',dismiss);
+    clearTimeout(autoDismissTimer);
+  };
+  overlay.addEventListener('click',dismiss);
+  document.getElementById('welcomeEnterBtn').addEventListener('click',dismiss);
+  const autoDismissTimer=setTimeout(dismiss,5000);
+}
+
 async function handleAuthState(user){
   if(user){
     // Show loading while fetching data
@@ -5412,6 +5600,14 @@ async function handleAuthState(user){
     const emailEl=document.getElementById('userEmail');
     const badge=document.getElementById('userBadge');
     const loginOpenBtn=document.getElementById('loginOpenBtn');
+    // Clear any background photo left on this element from a previous
+    // session/account before writing the fallback initial — otherwise the
+    // letter renders stacked on top of the old photo instead of replacing
+    // it (visible as a dark shape over the picture).
+    avatar.style.backgroundImage='';
+    avatar.style.backgroundSize='';
+    avatar.style.backgroundPosition='';
+    avatar.style.backgroundRepeat='';
     avatar.textContent=(user.displayName||user.email||'?')[0].toUpperCase();
     emailEl.textContent=user.displayName||(user.email||'').split('@')[0];
     // Re-rendered with the real photo (if any) once workspaceMembers loads below.
@@ -5477,6 +5673,10 @@ async function handleAuthState(user){
     resetUndo();
     renderAll();
     hideLoading();
+    if(justLoggedIn){
+      justLoggedIn=false;
+      setTimeout(()=>showWelcomeOverlay(user),200);
+    }
     setTimeout(startDeadlineWatch,1200);
     setTimeout(startAutoBackup,1500);
     if(typeof refreshStickyBarOrigin==='function') setTimeout(refreshStickyBarOrigin,100);
@@ -5494,6 +5694,19 @@ async function handleAuthState(user){
     activityFeed=[]; updateNotifBadge();
     workspaceOwnerUid=null; workspaceMembers={};
     applyViewOnlyMode();
+    // Reset the avatar element to a clean slate on sign-out so the next
+    // account to sign in (on this same page load) doesn't inherit a stale
+    // background photo underneath its fallback initial.
+    {
+      const avatarEl=document.getElementById('userAvatar');
+      if(avatarEl){
+        avatarEl.style.backgroundImage='';
+        avatarEl.style.backgroundSize='';
+        avatarEl.style.backgroundPosition='';
+        avatarEl.style.backgroundRepeat='';
+        avatarEl.textContent='?';
+      }
+    }
     document.getElementById('userBadge').style.display='none';
     document.getElementById('userBadge').classList.remove('menu-open');
     document.getElementById('notifBellBtn').style.display='none';
@@ -13006,6 +13219,12 @@ async function freshStart(){
 document.getElementById('userManualBtn').onclick = ()=>{
   document.getElementById('userBadge').classList.remove('menu-open');
   downloadUserManual();
+};
+
+document.getElementById('refreshDataBtn').onclick = ()=>{
+  document.getElementById('userBadge').classList.remove('menu-open');
+  toast('🔄','Refreshing dashboard…',false);
+  setTimeout(()=>window.location.reload(),300);
 };
 
 document.getElementById('freshStartBtn').onclick = ()=>{
