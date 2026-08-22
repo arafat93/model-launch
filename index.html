@@ -1864,17 +1864,23 @@ footer {
 }
 @keyframes welcomeSpin { to { transform: rotate(360deg); } }
 .welcome-crest {
-  width: 56px; height: 56px; margin: 0 auto 20px; border-radius: 50%;
+  width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 18px;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, var(--accent1-dim), transparent);
-  border: 1px solid var(--accent1-dim);
-  font-size: 24px; color: var(--accent1);
-  position: relative; z-index: 1;
-  animation: welcomePulse 2.6s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--surface2), var(--surface3));
+  border: 1px solid var(--border);
+  position: relative; z-index: 1; overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
-@keyframes welcomePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.22); }
-  50% { box-shadow: 0 0 0 10px rgba(212,175,55,0); }
+.welcome-crest::before {
+  /* subtle diagonal sheen, matching header icon's glass feel */
+  content: ''; position: absolute; top: -30%; left: -35%; width: 70%; height: 220%;
+  background: linear-gradient(115deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 65%);
+  transform: rotate(18deg);
+  pointer-events: none;
+}
+.welcome-crest svg {
+  position: relative; z-index: 1;
+  color: var(--accent1);
 }
 .welcome-eyebrow {
   position: relative; z-index: 1;
@@ -3664,7 +3670,7 @@ document.addEventListener('keydown', e => {
 <div id="welcomeOverlay">
   <div class="welcome-card">
     <div class="welcome-shimmer"></div>
-    <div class="welcome-crest">✦</div>
+    <div class="welcome-crest"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(15deg);"><path d="M21 3L13.5 21l-2.2-7.3L4 11.5 21 3z"/></svg></div>
     <div class="welcome-eyebrow" id="welcomeEyebrow">Welcome Back</div>
     <div class="welcome-title" id="welcomeTitle">Good to see you, <span id="welcomeName">there</span></div>
     <div class="welcome-sub" id="welcomeSub">Your workspace is synced and ready.</div>
