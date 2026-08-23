@@ -535,6 +535,10 @@ footer {
 .model-card.theme-1::after { background: radial-gradient(circle, var(--card-glow2) 0%, transparent 70%); }
 .model-card.theme-2::after { background: radial-gradient(circle, rgba(167, 139, 250, 0.04) 0%, transparent 70%); }
 .model-card.theme-3::after { background: radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, transparent 70%); }
+.model-card.theme-4::after { background: radial-gradient(circle, rgba(251, 113, 133, 0.04) 0%, transparent 70%); }
+.model-card.theme-5::after { background: radial-gradient(circle, rgba(45, 212, 191, 0.04) 0%, transparent 70%); }
+.model-card.theme-6::after { background: radial-gradient(circle, rgba(245, 158, 11, 0.04) 0%, transparent 70%); }
+.model-card.theme-7::after { background: radial-gradient(circle, rgba(148, 163, 184, 0.04) 0%, transparent 70%); }
 
 .model-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
 .model-header-main { display: flex; align-items: flex-start; gap: 14px; min-width: 0; flex: 1; }
@@ -617,6 +621,10 @@ footer {
 .model-card.theme-1 .model-tag { background: rgba(96, 165, 250, 0.1); color: var(--accent2); }
 .model-card.theme-2 .model-tag { background: rgba(167, 139, 250, 0.1); color: var(--accent3); }
 .model-card.theme-3 .model-tag { background: rgba(16, 185, 129, 0.1); color: var(--green); }
+.model-card.theme-4 .model-tag { background: rgba(251, 113, 133, 0.1); color: #fb7185; }
+.model-card.theme-5 .model-tag { background: rgba(45, 212, 191, 0.1); color: #2dd4bf; }
+.model-card.theme-6 .model-tag { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.model-card.theme-7 .model-tag { background: rgba(148, 163, 184, 0.1); color: #94a3b8; }
 
 .progress-bar-wrap { background: var(--surface2); border-radius: 100px; height: 6px; overflow: hidden; margin-bottom: 20px; border: 1px solid var(--border); }
 .progress-bar-fill { height: 100%; border-radius: 100px; transition: width 1.2s cubic-bezier(0.2, 0.8, 0.2, 1); width: 0%; }
@@ -624,6 +632,10 @@ footer {
 .model-card.theme-1 .progress-bar-fill { background: linear-gradient(90deg, var(--accent2), #93c5fd); }
 .model-card.theme-2 .progress-bar-fill { background: linear-gradient(90deg, var(--accent3), #c4b5fd); }
 .model-card.theme-3 .progress-bar-fill { background: linear-gradient(90deg, var(--green), #34d399); }
+.model-card.theme-4 .progress-bar-fill { background: linear-gradient(90deg, #fb7185, #fda4af); }
+.model-card.theme-5 .progress-bar-fill { background: linear-gradient(90deg, #2dd4bf, #5eead4); }
+.model-card.theme-6 .progress-bar-fill { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.model-card.theme-7 .progress-bar-fill { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
 
 .model-stats { display: flex; gap: 24px; }
 .stat-item { text-align: center; }
@@ -633,8 +645,45 @@ footer {
 .model-card.theme-1 .stat-num.done-val { color: var(--accent2); }
 .model-card.theme-2 .stat-num.done-val { color: var(--accent3); }
 .model-card.theme-3 .stat-num.done-val { color: var(--green); }
+.model-card.theme-4 .stat-num.done-val { color: #fb7185; }
+.model-card.theme-5 .stat-num.done-val { color: #2dd4bf; }
+.model-card.theme-6 .stat-num.done-val { color: #f59e0b; }
+.model-card.theme-7 .stat-num.done-val { color: #94a3b8; }
 .stat-num.pend-val { color: var(--red); }
 .stat-num.pct-val { color: var(--text); }
+
+/* ── MODEL CARD COLOR THEME PICKER ── */
+.model-color-btn {
+  background: none; border: 1px solid transparent; border-radius: 8px;
+  width: 26px; height: 26px; padding: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); font-size: 13px; margin-left: 4px;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+.model-color-btn:hover { background: rgba(255,255,255,0.06); border-color: var(--border); color: var(--text); }
+.model-color-btn.picker-open { background: rgba(255,255,255,0.08); border-color: var(--border-hover); color: var(--text); }
+.model-color-swatches-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+  animation: fadeUp 0.2s ease both;
+}
+.model-color-swatch {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; padding: 0; flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.model-color-swatch:hover { transform: scale(1.15); }
+.model-color-swatch.selected { border-color: var(--text); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 0 0 2px var(--surface); }
+.model-color-swatch-auto {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  border: 2px dashed var(--border-hover); background: var(--surface2);
+  color: var(--text-muted); font-size: 11px; line-height: 1;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.model-color-swatch-auto:hover { transform: scale(1.15); color: var(--text); border-color: var(--text-muted); }
+.model-color-swatch-auto.selected { border-style: solid; border-color: var(--text); color: var(--text); }
 
 /* ── MODEL CARD DRAG & DROP ── */
 .model-card { cursor: pointer; }
@@ -661,6 +710,57 @@ footer {
   box-shadow: inset -3px 0 0 0 var(--accent1), var(--shadow-md) !important;
   transform: translateY(-4px);
 }
+
+/* ── MODEL VIEW TOGGLE (grid / list) ── */
+.view-toggle-group { display: flex; align-items: center; gap: 2px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; flex-shrink: 0; }
+.view-toggle-btn { display: flex; align-items: center; justify-content: center; width: 30px; height: 26px; border-radius: 7px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: background 0.18s ease, color 0.18s ease; }
+.view-toggle-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.view-toggle-btn.active-view-toggle { background: var(--surface); color: var(--accent1); box-shadow: var(--shadow-sm); }
+
+/* ── MODEL CARDS: LIST VIEW ── */
+.models-grid.list-view { display: flex; flex-direction: column; gap: 8px; }
+.models-grid.list-view .model-card {
+  padding: 12px 18px; border-radius: 12px;
+  display: flex; align-items: center; gap: 18px;
+  animation: none; flex-wrap: wrap;
+}
+.models-grid.list-view .model-card::after { display: none; }
+.models-grid.list-view .model-pin-btn {
+  position: static; opacity: 1; transform: none !important;
+  filter: grayscale(1) opacity(0.45); width: 26px; height: 26px; flex-shrink: 0;
+}
+.models-grid.list-view .model-pin-btn.pinned { filter: none; }
+.models-grid.list-view .model-header {
+  flex: 1 1 auto; min-width: 260px; margin-bottom: 0;
+  display: flex; align-items: center; gap: 16px;
+}
+.models-grid.list-view .model-header-main { align-items: center; }
+.models-grid.list-view .model-thumb-wrap,
+.models-grid.list-view .model-thumb { width: 38px; height: 38px; border-radius: 9px; }
+.models-grid.list-view .model-header-main > div:nth-child(2) {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-width: 0; flex: 1;
+}
+.models-grid.list-view .model-header-main > div:nth-child(2) > div {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.models-grid.list-view .model-name {
+  font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1 1 auto; min-width: 120px; max-width: 520px;
+}
+.models-grid.list-view .model-deadline-row,
+.models-grid.list-view .model-card-actions-row { margin-top: 0; }
+.models-grid.list-view .model-tag { flex-shrink: 0; }
+.models-grid.list-view .progress-bar-wrap { width: 130px; margin-bottom: 0; flex-shrink: 0; }
+.models-grid.list-view .model-stats { gap: 14px; flex-shrink: 0; }
+.models-grid.list-view .stat-item { min-width: 38px; }
+.models-grid.list-view .stat-num { font-size: 15px; }
+.models-grid.list-view .stat-lbl { font-size: 9px; }
+@media (max-width: 720px) {
+  .models-grid.list-view .model-card { flex-wrap: wrap; }
+  .models-grid.list-view .progress-bar-wrap { width: 100%; order: 5; }
+  .models-grid.list-view .model-stats { order: 6; }
+}
+.models-grid.list-view .model-color-swatches-row { flex-basis: 100%; margin-top: 8px; padding-top: 8px; }
 
 /* ── ARCHIVE CARD ── */
 .model-card.archived { cursor: default; opacity: 0.85; }
@@ -3852,6 +3952,14 @@ document.addEventListener('keydown', e => {
 <!-- MODEL PROGRESS CARDS -->
 <div class="models-section-hdr">
   <div class="section-label" style="margin-bottom:0;flex:1;">Models In Progress</div>
+  <div class="view-toggle-group" id="modelsViewToggle" role="group" aria-label="Model view">
+    <button class="view-toggle-btn" id="modelsGridViewBtn" title="Grid view" aria-pressed="true">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    </button>
+    <button class="view-toggle-btn" id="modelsListViewBtn" title="List view" aria-pressed="false">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+    </button>
+  </div>
   <div class="add-model-bar" id="addModelBar">
     <input class="add-task-input" type="text" id="newModelInput" placeholder="New model name…" style="width:220px;">
     <div class="date-field-wrap" style="width:160px;">
@@ -5028,6 +5136,7 @@ async function resolveWorkspace(user){
     tasks:(legacyData&&legacyData.tasks)||{},
     deadlines:(legacyData&&legacyData.deadlines)||{},
     modelImages:(legacyData&&legacyData.modelImages)||{},
+    modelColorThemes:(legacyData&&legacyData.modelColorThemes)||{},
     templates:(legacyData&&legacyData.templates)||{'Standard Checklist':buildDefaultStandardTemplate()},
     standardTemplateSeeded:true,
     deletedModels:(legacyData&&legacyData.deletedModels)||[],
@@ -5175,6 +5284,7 @@ function applyRemoteSnapshot(data){
   pinnedModelsSet=new Set(data.pinnedModels||[]);
   modelOrder=data.modelOrder||[];
   modelImages=data.modelImages||{};
+  modelColorThemes=data.modelColorThemes||{};
   recycleBin=data.recycleBin||{};
   templates=data.templates||{};
   standardTemplateSeeded=!!data.standardTemplateSeeded;
@@ -5279,6 +5389,7 @@ function snapshotNow(){
     state:JSON.parse(JSON.stringify(state)),
     deadlines:JSON.parse(JSON.stringify(deadlines)),
     modelImages:JSON.parse(JSON.stringify(modelImages)),
+    modelColorThemes:JSON.parse(JSON.stringify(modelColorThemes)),
     deletedModels:[...deletedModelsSet],
     archivedModels:[...archivedModelsSet],
     pinnedModels:[...pinnedModelsSet],
@@ -5322,6 +5433,7 @@ function undo(){
   state=prev.state;
   deadlines=prev.deadlines;
   modelImages=prev.modelImages||modelImages;
+  modelColorThemes=prev.modelColorThemes||modelColorThemes;
   deletedModelsSet=new Set(prev.deletedModels);
   archivedModelsSet=new Set(prev.archivedModels||[]);
   pinnedModelsSet=new Set(prev.pinnedModels||[]);
@@ -5362,6 +5474,7 @@ function redo(){
   state=next.state;
   deadlines=next.deadlines;
   modelImages=next.modelImages||modelImages;
+  modelColorThemes=next.modelColorThemes||modelColorThemes;
   deletedModelsSet=new Set(next.deletedModels);
   archivedModelsSet=new Set(next.archivedModels||[]);
   pinnedModelsSet=new Set(next.pinnedModels||[]);
@@ -5412,12 +5525,13 @@ const RECYCLE_RETENTION_DAYS=30;
 // back, making a "deleted" model card reappear. lastSavedKeys tracks which
 // keys were last known to exist on the server so save() can explicitly
 // FieldValue.delete() any that vanished locally, instead of leaving them.
-let lastSavedKeys={tasks:new Set(),deadlines:new Set(),modelImages:new Set(),recycleBin:new Set(),templates:new Set()};
+let lastSavedKeys={tasks:new Set(),deadlines:new Set(),modelImages:new Set(),modelColorThemes:new Set(),recycleBin:new Set(),templates:new Set()};
 function syncLastSavedKeysFromCurrent(){
   lastSavedKeys={
     tasks:new Set(Object.keys(state||{})),
     deadlines:new Set(Object.keys(deadlines||{})),
     modelImages:new Set(Object.keys(modelImages||{})),
+    modelColorThemes:new Set(Object.keys(modelColorThemes||{})),
     recycleBin:new Set(Object.keys(recycleBin||{})),
     templates:new Set(Object.keys(templates||{}))
   };
@@ -5434,6 +5548,7 @@ function buildWorkspaceSavePayload(){
     tasks:withDeletionSentinels(state,lastSavedKeys.tasks),
     deadlines:withDeletionSentinels(deadlines,lastSavedKeys.deadlines),
     modelImages:withDeletionSentinels(modelImages,lastSavedKeys.modelImages),
+    modelColorThemes:withDeletionSentinels(modelColorThemes,lastSavedKeys.modelColorThemes),
     recycleBin:withDeletionSentinels(recycleBin,lastSavedKeys.recycleBin),
     templates:withDeletionSentinels(templates,lastSavedKeys.templates),
     deletedModels:[...deletedModelsSet],
@@ -5486,6 +5601,7 @@ function recycleModel(name){
     tasks:JSON.parse(JSON.stringify(state[name]||[])),
     deadline:deadlines[name]||null,
     image:modelImages[name]||null,
+    colorTheme:modelColorThemes[name]||null,
     orderIdx:modelOrder.indexOf(name),
     wasArchived:archivedModelsSet.has(name),
     wasPinned:pinnedModelsSet.has(name),
@@ -5516,6 +5632,7 @@ function enterPreviewMode(){
   pinnedModelsSet = new Set();
   recycleBin = {};
   modelImages = {};
+  modelColorThemes = {};
   templates = {};
   standardTemplateSeeded = false;
   seedStandardTemplateIfNeeded();
@@ -5644,6 +5761,7 @@ async function handleAuthState(user){
     pinnedModelsSet=new Set(saved?.pinnedModels||[]);
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
+    modelColorThemes=saved?.modelColorThemes||{};
     recycleBin=saved?.recycleBin||{};
     templates=saved?.templates||{};
     standardTemplateSeeded=!!(saved&&saved.standardTemplateSeeded);
@@ -5655,6 +5773,7 @@ async function handleAuthState(user){
       tasks:new Set(Object.keys(saved&&saved.tasks||{})),
       deadlines:new Set(Object.keys(saved&&saved.deadlines||{})),
       modelImages:new Set(Object.keys(modelImages)),
+      modelColorThemes:new Set(Object.keys(modelColorThemes)),
       recycleBin:new Set(Object.keys(recycleBin)),
       templates:new Set(Object.keys(templates))
     };
@@ -5902,6 +6021,7 @@ function renumber(tasks){tasks.forEach((t,i)=>{t.sn=i+1;});}
 let state = {};
 let deadlines = {};
 let modelImages = {};
+let modelColorThemes = {}; // model name -> palette key (e.g. 'gold','blue','purple','green','rose','teal','orange','slate'); falls back to an auto-cycled theme when unset
 // Reusable checklist templates a person can save from any model and apply
 // when creating a new one. Structural only — no dates, assignees, done
 // status, or screenshots — see stripTaskForTemplate().
@@ -5961,6 +6081,21 @@ let dragSrcIdx = null;
 let dragSrcSubCtx = null;
 let modelOrder = []; // persisted drag-and-drop order for model cards
 let renamingModel = null; // model name currently being renamed inline
+let colorPickerModel = null; // model name whose color-theme swatch row is currently open
+
+// Named color palettes a model card can be pinned to. Index 0-3 double as the
+// auto-cycled defaults (theme-0..3) already styled elsewhere in the CSS;
+// 4-7 are extra hand-picked options only reachable by explicitly choosing one.
+const MODEL_THEME_PALETTES=[
+  {label:'Gold',   swatch:'#d4af37'},
+  {label:'Blue',   swatch:'#60a5fa'},
+  {label:'Purple', swatch:'#a78bfa'},
+  {label:'Green',  swatch:'#10b981'},
+  {label:'Rose',   swatch:'#fb7185'},
+  {label:'Teal',   swatch:'#2dd4bf'},
+  {label:'Orange', swatch:'#f59e0b'},
+  {label:'Slate',  swatch:'#94a3b8'}
+];
 // Tracks which models currently have their "Completed" section expanded.
 // Collapsed by default — clicking the divider toggles it per model.
 let expandedCompletedSet = new Set();
@@ -6875,6 +7010,7 @@ async function restoreToActivity(entryId){
   state=JSON.parse(JSON.stringify(snap.state));
   deadlines=JSON.parse(JSON.stringify(snap.deadlines));
   modelImages=JSON.parse(JSON.stringify(snap.modelImages||{}));
+  modelColorThemes=JSON.parse(JSON.stringify(snap.modelColorThemes||modelColorThemes||{}));
   deletedModelsSet=new Set(snap.deletedModels||[]);
   archivedModelsSet=new Set(snap.archivedModels||[]);
   pinnedModelsSet=new Set(snap.pinnedModels||[]);
@@ -7062,7 +7198,7 @@ function renderModelCards(){
     const s=stats(m);
     const[lbl]=statusLabel(s.pct);
     const card=document.createElement('div');
-    card.className='model-card theme-'+(idx%4)+(pinnedModelsSet.has(m)?' pinned-card':'');
+    card.className='model-card theme-'+(modelColorThemes[m]!==undefined?modelColorThemes[m]:(idx%4))+(pinnedModelsSet.has(m)?' pinned-card':'');
     card.draggable=true;
     card.dataset.model=m;
     const dl=deadlineLabel(m);
@@ -7073,7 +7209,14 @@ function renderModelCards(){
           <button class="row-action-btn edit model-card-action-btn model-save-template-btn" title="Save checklist as template" style="width:26px;height:26px;margin-left:4px;" data-model="${m}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></button>
           <button class="row-action-btn archive model-card-action-btn model-archive-btn" title="Archive model" style="width:26px;height:26px;font-size:13px;margin-left:4px;" data-model="${m}">🗄</button>
           <button class="row-action-btn delete model-card-action-btn model-delete-btn" title="Delete model" style="width:26px;height:26px;font-size:13px;margin-left:2px;" data-model="${m}">🗑</button>
-        </div>`;
+          <button class="model-color-btn model-card-action-btn${colorPickerModel===m?' picker-open':''}" title="Color theme" data-model="${m}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C22 6.012 17.461 2 12 2z"/></svg>
+          </button>
+        </div>${colorPickerModel===m?`
+        <div class="model-color-swatches-row">
+          ${MODEL_THEME_PALETTES.map((p,i)=>`<button class="model-color-swatch${modelColorThemes[m]===i?' selected':''}" style="background:${p.swatch}" title="${p.label}" data-model="${m}" data-theme-idx="${i}"></button>`).join('')}
+          <button class="model-color-swatch-auto${modelColorThemes[m]===undefined?' selected':''}" title="Auto (default rotation)" data-model="${m}">↺</button>
+        </div>`:''}`;
     const dlHtml=dl
       ?`<div>
           <div class="model-deadline-row">
@@ -7255,6 +7398,42 @@ function renderModelCards(){
       });
     }
 
+    // Color theme picker: toggle button click
+    const colorBtn=card.querySelector('.model-color-btn');
+    if(colorBtn){
+      colorBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        colorPickerModel=(colorPickerModel===m)?null:m;
+        renderModelCards();
+      });
+    }
+    // Color theme picker: swatch selection
+    card.querySelectorAll('.model-color-swatch').forEach(sw=>{
+      sw.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(!canEdit()){notifyViewOnly();return;}
+        const themeIdx=parseInt(sw.dataset.themeIdx,10);
+        modelColorThemes[m]=themeIdx;
+        colorPickerModel=null;
+        save();renderModelCards();
+        toast('🎨',`Color updated for ${m}`);
+        logActivity('🎨',`changed the color theme for model "${m}"`,m);
+      });
+    });
+    // Color theme picker: reset to auto rotation
+    const colorAutoBtn=card.querySelector('.model-color-swatch-auto');
+    if(colorAutoBtn){
+      colorAutoBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(!canEdit()){notifyViewOnly();return;}
+        delete modelColorThemes[m];
+        colorPickerModel=null;
+        save();renderModelCards();
+        toast('↺',`Color reset for ${m}`,false);
+        logActivity('↺',`reset the color theme for model "${m}"`,m);
+      });
+    }
+
     // Rename input handlers
     if(isRenaming){
       const input=card.querySelector('.model-rename-input');
@@ -7431,7 +7610,7 @@ function renderArchiveView(){
   archived.forEach((m,idx)=>{
     const s=stats(m);
     const card=document.createElement('div');
-    card.className='model-card archived theme-'+(idx%4);
+    card.className='model-card archived theme-'+(modelColorThemes[m]!==undefined?modelColorThemes[m]:(idx%4));
     const dl=deadlineLabel(m);
     const dlHtml=dl?`<button class="model-deadline model-deadline-btn ${dl.cls}" onclick="event.stopPropagation()">${CAL_ICON} ${dl.text}</button>`
       :`<div class="model-deadline">${CAL_ICON} No deadline</div>`;
@@ -8395,6 +8574,7 @@ function restoreRecycledItem(bucket,i){if(!canEdit()){notifyViewOnly();return;}
     state[name]=JSON.parse(JSON.stringify(entry.tasks||[]));
     if(entry.deadline) deadlines[name]=entry.deadline;
     if(entry.image) modelImages[name]=entry.image;
+    if(entry.colorTheme) modelColorThemes[name]=entry.colorTheme;
     // Re-insert into modelOrder at original position (clamped)
     const insertAt=Math.max(0,Math.min(typeof entry.orderIdx==='number'?entry.orderIdx:modelOrder.length,modelOrder.length));
     modelOrder.splice(insertAt,0,name);
@@ -10869,6 +11049,7 @@ async function duplicateModel(name){if(!canEdit()){notifyViewOnly();return;}
   state[copyName]=JSON.parse(JSON.stringify(state[name]||[]));
   if(deadlines[name]) deadlines[copyName]=deadlines[name];
   if(modelImages[name]) modelImages[copyName]=modelImages[name];
+  if(modelColorThemes[name]) modelColorThemes[copyName]=modelColorThemes[name];
   deletedModelsSet.delete(copyName);
   // Place the duplicate right after the source model in the order list.
   const srcIdx=modelOrder.indexOf(name);
@@ -10886,7 +11067,7 @@ async function deleteModel(name){if(!canEdit()){notifyViewOnly();return;}
   clearPendingTimersForModel(name);
   // Soft-delete: save the whole model into the recycle bin before wiping it
   recycleModel(name);
-  delete state[name];delete deadlines[name];delete modelImages[name];
+  delete state[name];delete deadlines[name];delete modelImages[name];delete modelColorThemes[name];
   archivedModelsSet.delete(name);
   pinnedModelsSet.delete(name);
   if(name in INITIAL_DATA) deletedModelsSet.add(name);
@@ -10910,6 +11091,7 @@ async function renameModel(oldName, newName){if(!canEdit()){notifyViewOnly();ret
   state[trimmed]=state[oldName]; delete state[oldName];
   if(deadlines[oldName]){ deadlines[trimmed]=deadlines[oldName]; delete deadlines[oldName]; }
   if(modelImages[oldName]){ modelImages[trimmed]=modelImages[oldName]; delete modelImages[oldName]; }
+  if(modelColorThemes[oldName]){ modelColorThemes[trimmed]=modelColorThemes[oldName]; delete modelColorThemes[oldName]; }
   if(archivedModelsSet.has(oldName)){ archivedModelsSet.delete(oldName); archivedModelsSet.add(trimmed); }
   if(pinnedModelsSet.has(oldName)){ pinnedModelsSet.delete(oldName); pinnedModelsSet.add(trimmed); }
   if(deletedModelsSet.has(oldName)){ deletedModelsSet.delete(oldName); }
@@ -12853,6 +13035,24 @@ document.querySelectorAll('.theme-menu-item').forEach(btn=>{
     document.getElementById('themeDropdown').classList.remove('menu-open');
   });
 });
+
+// ── MODELS VIEW MODE (grid / list) ──────────────────────────────────────────
+function applyModelsViewMode(mode){
+  const grid=document.getElementById('modelsGrid');
+  const gridBtn=document.getElementById('modelsGridViewBtn');
+  const listBtn=document.getElementById('modelsListViewBtn');
+  if(!grid) return;
+  grid.classList.toggle('list-view',mode==='list');
+  if(gridBtn){ gridBtn.classList.toggle('active-view-toggle',mode!=='list'); gridBtn.setAttribute('aria-pressed',mode!=='list'); }
+  if(listBtn){ listBtn.classList.toggle('active-view-toggle',mode==='list'); listBtn.setAttribute('aria-pressed',mode==='list'); }
+  localStorage.setItem('mlc_modelsViewMode',mode);
+}
+const savedModelsViewMode=localStorage.getItem('mlc_modelsViewMode')||'grid';
+applyModelsViewMode(savedModelsViewMode==='list'?'list':'grid');
+const modelsGridViewBtnEl=document.getElementById('modelsGridViewBtn');
+const modelsListViewBtnEl=document.getElementById('modelsListViewBtn');
+if(modelsGridViewBtnEl) modelsGridViewBtnEl.addEventListener('click',()=>applyModelsViewMode('grid'));
+if(modelsListViewBtnEl) modelsListViewBtnEl.addEventListener('click',()=>applyModelsViewMode('list'));
 // Theme dropdown: hover reveals the menu on desktop. On touch devices
 // (no real hover), tap the Theme button to toggle it instead — same
 // convention as the Export dropdowns above.
@@ -13190,6 +13390,7 @@ async function freshStart(){
   state = {};
   deadlines = {};
   modelImages = {};
+  modelColorThemes = {};
   deletedModelsSet = new Set();
   archivedModelsSet = new Set();
   pinnedModelsSet = new Set();
@@ -13957,6 +14158,7 @@ async function switchToWorkspace(workspaceId){
     pinnedModelsSet=new Set(saved?.pinnedModels||[]);
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
+    modelColorThemes=saved?.modelColorThemes||{};
     recycleBin=saved?.recycleBin||{};
     templates=saved?.templates||{};
     standardTemplateSeeded=!!(saved&&saved.standardTemplateSeeded);
@@ -13968,6 +14170,7 @@ async function switchToWorkspace(workspaceId){
       tasks:new Set(Object.keys(saved&&saved.tasks||{})),
       deadlines:new Set(Object.keys(saved&&saved.deadlines||{})),
       modelImages:new Set(Object.keys(modelImages)),
+      modelColorThemes:new Set(Object.keys(modelColorThemes)),
       recycleBin:new Set(Object.keys(recycleBin)),
       templates:new Set(Object.keys(templates))
     };
