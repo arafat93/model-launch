@@ -484,8 +484,10 @@ footer {
   border-radius: 20px; padding: 28px;
   position: relative; overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: default; box-shadow: var(--shadow-sm);
+}
+.model-card.model-card-first-render {
   animation: fadeUp 0.6s ease both; animation-delay: 0.25s;
-  cursor: pointer; box-shadow: var(--shadow-sm);
 }
 .model-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--border-hover); }
 .model-pin-btn {
@@ -686,8 +688,9 @@ footer {
 .model-color-swatch-auto.selected { border-style: solid; border-color: var(--text); color: var(--text); }
 
 /* ── MODEL CARD DRAG & DROP ── */
-.model-card { cursor: pointer; }
-.model-card:active { cursor: pointer; }
+.model-card { cursor: default; }
+.model-card .model-name { cursor: pointer; }
+.model-card .model-name:active { cursor: pointer; }
 .model-card.dragging {
   opacity: 0.35;
   cursor: pointer;
@@ -3780,6 +3783,10 @@ document.addEventListener('keydown', e => {
       <div class="welcome-stat"><div class="welcome-stat-num" id="welcomeStatDone">0%</div><div class="welcome-stat-label">Complete</div></div>
     </div>
     <button class="welcome-enter-btn" id="welcomeEnterBtn">Enter Dashboard</button>
+    <label style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:14px;cursor:pointer;font-size:12px;color:var(--text-muted);user-select:none;">
+      <input type="checkbox" id="welcomeDontShowChk" style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent1);margin:0;">
+      Don't show this again
+    </label>
     <div class="welcome-dismiss-hint">Click anywhere to continue</div>
   </div>
 </div>
@@ -3872,6 +3879,7 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="undoBtn" title="Undo last change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span>Undo</span></button>
         <button class="menu-item" id="redoBtn" title="Redo last undone change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0-5.5 5.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg><span>Redo</span></button>
         <button class="menu-item" id="refreshDataBtn" title="Reload the latest data from the workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg><span>Refresh</span></button>
+        <button class="menu-item" id="toggleWelcomeBtn" title="Show or hide the welcome screen on sign-in"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L13.5 21l-2.2-7.3L4 11.5 21 3z"/></svg><span id="toggleWelcomeLabel">Hide Welcome Screen</span></button>
 
         <div class="menu-divider"></div>
         <div class="menu-section-label">Danger Zone</div>
@@ -5664,6 +5672,7 @@ function enterPreviewMode(){
 // sign-out → sign-back-in within the same page load also shows it again.
 let justLoggedIn = true;
 function showWelcomeOverlay(user){
+  if(localStorage.getItem('mlc_hideWelcome')==='1') return;
   const overlay=document.getElementById('welcomeOverlay');
   if(!overlay) return;
   const name=(user&&(user.displayName||(user.email||'').split('@')[0]))||'there';
@@ -5700,6 +5709,10 @@ function showWelcomeOverlay(user){
   overlay.classList.add('open');
   requestAnimationFrame(()=>requestAnimationFrame(()=>overlay.classList.add('show')));
   const dismiss=()=>{
+    const dontShowChk=document.getElementById('welcomeDontShowChk');
+    if(dontShowChk&&dontShowChk.checked){
+      localStorage.setItem('mlc_hideWelcome','1');
+    }
     overlay.classList.remove('show');
     setTimeout(()=>overlay.classList.remove('open'),450);
     overlay.removeEventListener('click',dismiss);
@@ -7166,6 +7179,7 @@ let _cardDragSrc = null; // model name being dragged
 function renderModelCards(){
   const grid=document.getElementById('modelsGrid');
   grid.innerHTML='';
+  window._modelCardsRendered=window._modelCardsRendered||false;
 
   // No models at all — fresh start (pre-login) or a brand-new signed-in
   // account with everything deleted/never created. Show a clear prompt to
@@ -7198,7 +7212,7 @@ function renderModelCards(){
     const s=stats(m);
     const[lbl]=statusLabel(s.pct);
     const card=document.createElement('div');
-    card.className='model-card theme-'+(modelColorThemes[m]!==undefined?modelColorThemes[m]:(idx%4))+(pinnedModelsSet.has(m)?' pinned-card':'');
+    card.className='model-card'+(window._modelCardsRendered?'':' model-card-first-render')+' theme-'+(modelColorThemes[m]!==undefined?modelColorThemes[m]:(idx%4))+(pinnedModelsSet.has(m)?' pinned-card':'');
     card.draggable=true;
     card.dataset.model=m;
     const dl=deadlineLabel(m);
@@ -7215,7 +7229,7 @@ function renderModelCards(){
         </div>${colorPickerModel===m?`
         <div class="model-color-swatches-row">
           ${MODEL_THEME_PALETTES.map((p,i)=>`<button class="model-color-swatch${modelColorThemes[m]===i?' selected':''}" style="background:${p.swatch}" title="${p.label}" data-model="${m}" data-theme-idx="${i}"></button>`).join('')}
-          <button class="model-color-swatch-auto${modelColorThemes[m]===undefined?' selected':''}" title="Auto (default rotation)" data-model="${m}">↺</button>
+          <button class="model-color-swatch-auto${modelColorThemes[m]===undefined?' selected':''}" title="Reset to default" data-model="${m}">↺</button>
         </div>`:''}`;
     const dlHtml=dl
       ?`<div>
@@ -7449,15 +7463,20 @@ function renderModelCards(){
       setTimeout(()=>{input.focus();input.select();},50);
     }
 
-    // ── Click to navigate (only if not a drag and not renaming) ──
+    // ── Click to navigate (only on the model name title, not a drag, not renaming) ──
     let _didDrag=false;
     card.addEventListener('mousedown',()=>{ _didDrag=false; });
     card.addEventListener('dragstart',()=>{ _didDrag=true; });
-    card.addEventListener('click',()=>{
-      if(_didDrag||isRenaming){ _didDrag=false; return; }
-      activeTab=m;localStorage.setItem('mlc_activeTab',m);editingIdx=null;selectedTasks.clear();selectedSubtasks.clear();renderAll();
-      scrollToTaskChecklist();
-    });
+    const _nameEl=card.querySelector('.model-name');
+    if(_nameEl){
+      _nameEl.style.cursor='pointer';
+      _nameEl.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(_didDrag||isRenaming){ _didDrag=false; return; }
+        activeTab=m;localStorage.setItem('mlc_activeTab',m);editingIdx=null;selectedTasks.clear();selectedSubtasks.clear();renderAll();
+        scrollToTaskChecklist();
+      });
+    }
 
     // ── Drag & Drop ──
     card.addEventListener('dragstart',e=>{
@@ -7529,6 +7548,7 @@ function renderModelCards(){
     grid.appendChild(card);
     setTimeout(()=>{ card.querySelector('.progress-bar-fill').style.width=s.pct+'%'; },100+idx*80);
   });
+  window._modelCardsRendered=true;
 }
 
 // ── ARCHIVE VIEW ──────────────────────────────────────────────────────────────
@@ -13432,6 +13452,25 @@ document.getElementById('refreshDataBtn').onclick = ()=>{
   document.getElementById('userBadge').classList.remove('menu-open');
   toast('🔄','Refreshing dashboard…',false);
   setTimeout(()=>window.location.reload(),300);
+};
+
+function updateToggleWelcomeLabel(){
+  const lbl=document.getElementById('toggleWelcomeLabel');
+  if(!lbl) return;
+  lbl.textContent = localStorage.getItem('mlc_hideWelcome')==='1' ? 'Show Welcome Screen' : 'Hide Welcome Screen';
+}
+updateToggleWelcomeLabel();
+document.getElementById('toggleWelcomeBtn').onclick = ()=>{
+  const isHidden = localStorage.getItem('mlc_hideWelcome')==='1';
+  if(isHidden){
+    localStorage.removeItem('mlc_hideWelcome');
+    toast('✦','Welcome screen will show again on next sign-in',false);
+  }else{
+    localStorage.setItem('mlc_hideWelcome','1');
+    toast('✦','Welcome screen hidden',false);
+  }
+  updateToggleWelcomeLabel();
+  document.getElementById('userBadge').classList.remove('menu-open');
 };
 
 document.getElementById('freshStartBtn').onclick = ()=>{
