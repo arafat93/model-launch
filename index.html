@@ -769,6 +769,9 @@ footer {
 .model-card.archived { cursor: default; opacity: 0.85; }
 .model-card.archived::after { display: none; }
 .model-card.archived .model-tag { background: var(--surface3); color: var(--text-muted); }
+.model-card.waiting { cursor: default; opacity: 0.85; }
+.model-card.waiting::after { display: none; }
+.model-card.waiting .model-tag { background: rgba(245,158,11,0.15); color: #f59e0b; }
 .archive-card-actions { display: flex; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
 .archive-card-actions button { flex: 1; }
 
@@ -2114,6 +2117,11 @@ footer {
   100% { box-shadow: 0 0 0 0 rgba(212,175,55,0); }
 }
 .activity-body { max-height: 60vh; overflow-y: auto; }
+.shortcuts-list { max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.shortcut-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 4px; border-bottom: 1px solid var(--border); font-size: 13.5px; color: var(--text); }
+.shortcut-row:last-child { border-bottom: none; }
+.shortcut-keys { display: flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.shortcut-keys kbd { background: var(--surface2, var(--bg)); border: 1px solid var(--border-hover); border-radius: 6px; padding: 3px 7px; font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--text); box-shadow: 0 1px 0 var(--border-hover); }
 .activity-empty { padding: 32px 8px; text-align: center; color: var(--text-dim); font-size: 13px; }
 .activity-filter-row { display: flex; gap: 8px; margin: 12px 0 4px; flex-wrap: wrap; }
 .activity-filter-chip {
@@ -3527,6 +3535,7 @@ body.viewer-mode #modelsEmptyStateBtn,
 body.viewer-mode .model-card-action-btn,
 body.viewer-mode #duplicateModelBtn,
 body.viewer-mode #archiveModelBtn,
+body.viewer-mode #waitModelBtn,
 body.viewer-mode #deleteModelBtn {
   opacity: 0.45; pointer-events: none; filter: grayscale(0.3);
 }
@@ -3870,6 +3879,7 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="analyticsViewBtn" title="Burndown, trends, and overdue analysis"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Analytics</span></button>
         <button class="menu-item" id="activityLogMenuBtn" title="See every change across your workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg><span>Activity Log</span></button>
         <button class="menu-item" id="archiveViewBtn" title="View archived models"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg><span>Archived</span><span class="archive-count-badge" id="archiveCountBadge" style="display:none;">0</span></button>
+        <button class="menu-item" id="waitingViewBtn" title="View models waiting to start"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Waiting</span><span class="archive-count-badge" id="waitingCountBadge" style="display:none;">0</span></button>
         <button class="menu-item" id="recycleViewBtn" title="View deleted tasks (kept for 30 days)" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Recycle Bin</span><span class="archive-count-badge" id="recycleCountBadge" style="display:none;">0</span></button>
         <button class="menu-item" id="teamMenuBtn" title="Invite teammates or manage your shared workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span><span class="archive-count-badge" id="teamCountBadge" style="display:none;">1</span></button>
 
@@ -3880,6 +3890,7 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="redoBtn" title="Redo last undone change" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0-5.5 5.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg><span>Redo</span></button>
         <button class="menu-item" id="refreshDataBtn" title="Reload the latest data from the workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg><span>Refresh</span></button>
         <button class="menu-item" id="toggleWelcomeBtn" title="Show or hide the welcome screen on sign-in"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L13.5 21l-2.2-7.3L4 11.5 21 3z"/></svg><span id="toggleWelcomeLabel">Hide Welcome Screen</span></button>
+        <button class="menu-item" id="shortcutsMenuBtn" title="View keyboard shortcuts"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/></svg><span>Keyboard Shortcuts</span></button>
 
         <div class="menu-divider"></div>
         <div class="menu-section-label">Danger Zone</div>
@@ -4017,6 +4028,7 @@ document.addEventListener('keydown', e => {
     </label>
     <button class="row-action-btn edit" id="duplicateModelBtn" title="Duplicate current model" style="width:auto;padding:0 14px;height:36px;font-size:12px;font-weight:600;">⧉ Duplicate</button>
     <button class="row-action-btn archive" id="archiveModelBtn" title="Archive current model" style="width:auto;padding:0 14px;height:36px;font-size:12px;font-weight:600;">Archive</button>
+    <button class="row-action-btn archive" id="waitModelBtn" title="Move current model to Waiting" style="width:auto;padding:0 14px;height:36px;font-size:12px;font-weight:600;">⏳ Waiting</button>
     <button class="row-action-btn delete" id="deleteModelBtn" title="Delete current model" style="width:auto;padding:0 14px;height:36px;font-size:12px;font-weight:600;">Delete Model</button>
     <input class="search-box" type="text" id="searchBox" placeholder="Search tasks…">
   </div>
@@ -4156,6 +4168,19 @@ document.addEventListener('keydown', e => {
     <div class="empty-state-icon">🗄</div>
     <div class="empty-state-title">No archived models</div>
     <div class="empty-state-sub">Models you archive will show up here, tucked away from your active dashboard and KPIs.</div>
+  </div>
+</div>
+
+<!-- WAITING VIEW -->
+<div id="waitingView" style="display:none;">
+  <div class="models-section-hdr">
+    <div class="section-label" style="margin-bottom:0;flex:1;">Waiting Models</div>
+  </div>
+  <div class="models-grid" id="waitingGrid"></div>
+  <div class="empty-state" id="waitingEmptyState" style="display:none;">
+    <div class="empty-state-icon">⏳</div>
+    <div class="empty-state-title">No models waiting</div>
+    <div class="empty-state-sub">Upcoming models you're not ready to start yet can be parked here. Restoring puts them right back in their original position on the dashboard.</div>
   </div>
 </div>
 <!-- END ARCHIVE VIEW -->
@@ -4382,6 +4407,27 @@ document.addEventListener('keydown', e => {
     <div class="modal-actions" style="margin-top:16px;">
       <button class="modal-btn secondary" id="activityClearBtn" style="color:var(--red);border-color:rgba(244,63,94,0.25);" title="Permanently delete every entry in this workspace's activity log">Clear Log</button>
       <button class="modal-btn primary" id="activityCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- KEYBOARD SHORTCUTS MODAL -->
+<div class="modal-overlay" id="shortcutsModal">
+  <div class="modal-box" id="shortcutsModalBox" style="width:min(520px, 92vw);">
+    <div class="modal-title">⌨️ Keyboard Shortcuts</div>
+    <div class="modal-subtitle">Speed things up without reaching for the mouse.</div>
+    <div class="shortcuts-list" id="shortcutsList">
+      <div class="shortcut-row"><span>Open global search</span><span class="shortcut-keys"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd></span></div>
+      <div class="shortcut-row"><span>Focus the new task field</span><span class="shortcut-keys"><kbd>N</kbd></span></div>
+      <div class="shortcut-row"><span>Focus the task search box</span><span class="shortcut-keys"><kbd>/</kbd></span></div>
+      <div class="shortcut-row"><span>Undo last action</span><span class="shortcut-keys"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd></span></div>
+      <div class="shortcut-row"><span>Redo</span><span class="shortcut-keys"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Y</kbd></span></div>
+      <div class="shortcut-row"><span>Post a comment</span><span class="shortcut-keys"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></span></div>
+      <div class="shortcut-row"><span>Close modal / clear search / clear selection</span><span class="shortcut-keys"><kbd>Esc</kbd></span></div>
+      <div class="shortcut-row"><span>Show this shortcuts list</span><span class="shortcut-keys"><kbd>?</kbd></span></div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-btn primary" id="shortcutsCloseBtn">Close</button>
     </div>
   </div>
 </div>
@@ -5149,6 +5195,7 @@ async function resolveWorkspace(user){
     standardTemplateSeeded:true,
     deletedModels:(legacyData&&legacyData.deletedModels)||[],
     archivedModels:(legacyData&&legacyData.archivedModels)||[],
+    waitingModels:(legacyData&&legacyData.waitingModels)||[],
     pinnedModels:(legacyData&&legacyData.pinnedModels)||[],
     modelOrder:(legacyData&&legacyData.modelOrder)||[],
     recycleBin:(legacyData&&legacyData.recycleBin)||{},
@@ -5289,6 +5336,7 @@ function applyRemoteSnapshot(data){
 
   deletedModelsSet=new Set(data.deletedModels||[]);
   archivedModelsSet=new Set(data.archivedModels||[]);
+  waitingModelsSet=new Set(data.waitingModels||[]);
   pinnedModelsSet=new Set(data.pinnedModels||[]);
   modelOrder=data.modelOrder||[];
   modelImages=data.modelImages||{};
@@ -5400,6 +5448,7 @@ function snapshotNow(){
     modelColorThemes:JSON.parse(JSON.stringify(modelColorThemes)),
     deletedModels:[...deletedModelsSet],
     archivedModels:[...archivedModelsSet],
+    waitingModels:[...waitingModelsSet],
     pinnedModels:[...pinnedModelsSet],
     modelOrder:[...modelOrder],
     recycleBin:JSON.parse(JSON.stringify(recycleBin)),
@@ -5444,6 +5493,7 @@ function undo(){
   modelColorThemes=prev.modelColorThemes||modelColorThemes;
   deletedModelsSet=new Set(prev.deletedModels);
   archivedModelsSet=new Set(prev.archivedModels||[]);
+  waitingModelsSet=new Set(prev.waitingModels||[]);
   pinnedModelsSet=new Set(prev.pinnedModels||[]);
   recycleBin=prev.recycleBin||{};
   // Guard with `|| modelOrder` so undo steps taken before this field existed
@@ -5485,6 +5535,7 @@ function redo(){
   modelColorThemes=next.modelColorThemes||modelColorThemes;
   deletedModelsSet=new Set(next.deletedModels);
   archivedModelsSet=new Set(next.archivedModels||[]);
+  waitingModelsSet=new Set(next.waitingModels||[]);
   pinnedModelsSet=new Set(next.pinnedModels||[]);
   recycleBin=next.recycleBin||{};
   modelOrder=next.modelOrder||modelOrder;
@@ -5508,8 +5559,10 @@ function redo(){
 
 let deletedModelsSet=new Set();
 let archivedModelsSet=new Set();
+let waitingModelsSet=new Set();
 let pinnedModelsSet=new Set();
 let archiveViewActive=false;
+let waitingViewActive=false;
 
 // ── RECYCLE BIN ───────────────────────────────────────────────────────────────
 // Soft-delete store for individual tasks & subtasks (mirrors the Archive
@@ -5561,6 +5614,7 @@ function buildWorkspaceSavePayload(){
     templates:withDeletionSentinels(templates,lastSavedKeys.templates),
     deletedModels:[...deletedModelsSet],
     archivedModels:[...archivedModelsSet],
+    waitingModels:[...waitingModelsSet],
     pinnedModels:[...pinnedModelsSet],
     modelOrder:[...modelOrder],
     standardTemplateSeeded:!!standardTemplateSeeded,
@@ -5612,6 +5666,7 @@ function recycleModel(name){
     colorTheme:modelColorThemes[name]||null,
     orderIdx:modelOrder.indexOf(name),
     wasArchived:archivedModelsSet.has(name),
+    wasWaiting:waitingModelsSet.has(name),
     wasPinned:pinnedModelsSet.has(name),
     deletedAt:Date.now()
   });
@@ -5637,6 +5692,7 @@ function enterPreviewMode(){
   previewMode = true;
   deletedModelsSet = new Set();
   archivedModelsSet = new Set();
+  waitingModelsSet = new Set();
   pinnedModelsSet = new Set();
   recycleBin = {};
   modelImages = {};
@@ -5645,6 +5701,7 @@ function enterPreviewMode(){
   standardTemplateSeeded = false;
   seedStandardTemplateIfNeeded();
   setArchiveView(false);
+  setWaitingView(false);
   setRecycleView(false);
   setAnalyticsView(false);
   ({tasks: state, deadlines} = loadState(null));
@@ -5751,6 +5808,7 @@ async function handleAuthState(user){
     loginOpenBtn.style.display='none';
     document.getElementById('notifBellBtn').style.display='';
     document.getElementById('archiveViewBtn').style.display='';
+    document.getElementById('waitingViewBtn').style.display='';
     document.getElementById('recycleViewBtn').style.display='';
 
     // Resolve which workspace this account should load (auto-migrates any
@@ -5771,6 +5829,7 @@ async function handleAuthState(user){
     applyViewOnlyMode();
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
+    waitingModelsSet=new Set(saved?.waitingModels||[]);
     pinnedModelsSet=new Set(saved?.pinnedModels||[]);
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
@@ -5796,6 +5855,7 @@ async function handleAuthState(user){
     seedStandardTemplateIfNeeded();
     const expiredPurged=purgeExpiredRecycleItems();
     setArchiveView(false);
+    setWaitingView(false);
     setRecycleView(false);
     setAnalyticsView(false);
     ({tasks: state, deadlines}=loadState(saved));
@@ -5850,8 +5910,10 @@ async function handleAuthState(user){
     document.getElementById('notifBellBtn').style.display='none';
     document.getElementById('loginOpenBtn').style.display='';
     document.getElementById('archiveViewBtn').style.display='none';
+    document.getElementById('waitingViewBtn').style.display='none';
     document.getElementById('recycleViewBtn').style.display='none';
     setArchiveView(false);
+    setWaitingView(false);
     setRecycleView(false);
     setAnalyticsView(false);
     document.getElementById('loginBtn').disabled=false;
@@ -6116,18 +6178,36 @@ let expandedCompletedSet = new Set();
 // Toggle purely flips a CSS class — no re-render — so the CSS transition plays.
 let expandedSubtasksSet = new Set();
 
+// Merges a freshly-reordered active-model array back into the master
+// modelOrder list, replacing only the slots occupied by active models and
+// leaving every archived/waiting model's slot untouched. This is what lets
+// an archived/waiting model reappear in its original position once restored,
+// instead of always landing at the end.
+function mergeModelOrderWithNewActiveOrder(newActiveOrder){
+  const activeSet=new Set(newActiveOrder);
+  let ptr=0;
+  const result=modelOrder.map(m=>activeSet.has(m)?newActiveOrder[ptr++]:m);
+  while(ptr<newActiveOrder.length){ result.push(newActiveOrder[ptr++]); }
+  return result;
+}
+
 function refreshModelsList(){
   const active=refreshedActiveModelNames();
-  // Merge saved order with current active models
+  // Any brand-new active model not yet tracked in modelOrder gets appended
+  // once, permanently. We do NOT rebuild modelOrder from just the active
+  // list — that would silently forget the saved position of any archived
+  // or waiting model, which is exactly what lets restore put a model back
+  // where it was instead of at the end.
+  active.forEach(m=>{ if(!modelOrder.includes(m)) modelOrder.push(m); });
+  // Build the *display* order purely by filtering modelOrder down to active
+  // models — modelOrder itself stays untouched so archived/waiting models
+  // keep their remembered slot for whenever they're restored.
   const ordered=modelOrder.filter(m=>active.includes(m));
-  const unordered=active.filter(m=>!ordered.includes(m));
-  const combined=[...ordered,...unordered];
   // Pinned models float to the top, but keep their relative drag-order
   // among themselves (and unpinned models keep theirs too).
-  const pinned=combined.filter(m=>pinnedModelsSet.has(m));
-  const rest=combined.filter(m=>!pinnedModelsSet.has(m));
+  const pinned=ordered.filter(m=>pinnedModelsSet.has(m));
+  const rest=ordered.filter(m=>!pinnedModelsSet.has(m));
   models=[...pinned,...rest];
-  modelOrder=[...combined]; // keep drag order in sync (independent of pin state)
 }
 // save() is defined above in the Firebase section
 
@@ -7026,6 +7106,7 @@ async function restoreToActivity(entryId){
   modelColorThemes=JSON.parse(JSON.stringify(snap.modelColorThemes||modelColorThemes||{}));
   deletedModelsSet=new Set(snap.deletedModels||[]);
   archivedModelsSet=new Set(snap.archivedModels||[]);
+  waitingModelsSet=new Set(snap.waitingModels||[]);
   pinnedModelsSet=new Set(snap.pinnedModels||[]);
   modelOrder=snap.modelOrder?[...snap.modelOrder]:modelOrder;
   recycleBin=JSON.parse(JSON.stringify(snap.recycleBin||{}));
@@ -7222,6 +7303,7 @@ function renderModelCards(){
           <button class="row-action-btn edit model-card-action-btn model-duplicate-btn" title="Duplicate model" style="width:26px;height:26px;font-size:13px;margin-left:-2px;" data-model="${m}">⧉</button>
           <button class="row-action-btn edit model-card-action-btn model-save-template-btn" title="Save checklist as template" style="width:26px;height:26px;margin-left:4px;" data-model="${m}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></button>
           <button class="row-action-btn archive model-card-action-btn model-archive-btn" title="Archive model" style="width:26px;height:26px;font-size:13px;margin-left:4px;" data-model="${m}">🗄</button>
+          <button class="row-action-btn archive model-card-action-btn model-wait-btn" title="Move to Waiting" style="width:26px;height:26px;font-size:13px;margin-left:2px;" data-model="${m}">⏳</button>
           <button class="row-action-btn delete model-card-action-btn model-delete-btn" title="Delete model" style="width:26px;height:26px;font-size:13px;margin-left:2px;" data-model="${m}">🗑</button>
           <button class="model-color-btn model-card-action-btn${colorPickerModel===m?' picker-open':''}" title="Color theme" data-model="${m}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C22 6.012 17.461 2 12 2z"/></svg>
@@ -7403,6 +7485,15 @@ function renderModelCards(){
       });
     }
 
+    // Waiting button click
+    const waitBtn=card.querySelector('.model-wait-btn');
+    if(waitBtn){
+      waitBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        moveToWaiting(m);
+      });
+    }
+
     // Delete button click
     const delBtn=card.querySelector('.model-delete-btn');
     if(delBtn){
@@ -7533,7 +7624,7 @@ function renderModelCards(){
         // swap has no such blind spot in either direction.)
         [models[fromIdx],models[toIdx]]=[models[toIdx],models[fromIdx]];
       }
-      modelOrder=[...models];
+      modelOrder=mergeModelOrderWithNewActiveOrder(models);
       _cardDragSrc=null;
       save(); // persist the new card order
       renderModelCards(); // re-render cards in new order
@@ -7586,6 +7677,11 @@ function setArchiveView(active){
     myTasksViewActive=false;
     const myTasksBtn=document.getElementById('myTasksViewBtn');
     if(myTasksBtn) myTasksBtn.classList.remove('active-view');
+    const waitingViewEl=document.getElementById('waitingView');
+    if(waitingViewEl) waitingViewEl.style.display='none';
+    waitingViewActive=false;
+    const waitingBtn=document.getElementById('waitingViewBtn');
+    if(waitingBtn) waitingBtn.classList.remove('active-view');
   }
   const footerBarEl=document.getElementById('footerBar');
   if(footerBarEl) footerBarEl.style.display=active?'none':'';
@@ -7594,11 +7690,54 @@ function setArchiveView(active){
   if(active) renderArchiveView();
 }
 
+function updateWaitingBadge(){
+  const badge=document.getElementById('waitingCountBadge');
+  if(!badge) return;
+  const n=waitingModelsSet.size;
+  badge.textContent=n;
+  badge.style.display=n>0?'':'none';
+}
+
+function setWaitingView(active){
+  waitingViewActive=active;
+  document.getElementById('mainDashboardView').style.display=active?'none':'';
+  document.getElementById('waitingView').style.display=active?'':'none';
+  if(active){
+    const archiveViewEl=document.getElementById('archiveView');
+    if(archiveViewEl) archiveViewEl.style.display='none';
+    archiveViewActive=false;
+    document.getElementById('archiveViewBtn').classList.remove('active-view');
+    const recycleViewEl=document.getElementById('recycleView');
+    if(recycleViewEl) recycleViewEl.style.display='none';
+    recycleViewActive=false;
+    const recycleBtn=document.getElementById('recycleViewBtn');
+    if(recycleBtn) recycleBtn.classList.remove('active-view');
+    const analyticsViewEl=document.getElementById('analyticsView');
+    if(analyticsViewEl) analyticsViewEl.style.display='none';
+    analyticsViewActive=false;
+    setAnalyticsBtnActive(false);
+    const myTasksViewEl=document.getElementById('myTasksView');
+    if(myTasksViewEl) myTasksViewEl.style.display='none';
+    myTasksViewActive=false;
+    const myTasksBtn=document.getElementById('myTasksViewBtn');
+    if(myTasksBtn) myTasksBtn.classList.remove('active-view');
+  }
+  const footerBarEl=document.getElementById('footerBar');
+  if(footerBarEl) footerBarEl.style.display=active?'none':'';
+  document.getElementById('waitingViewBtn').classList.toggle('active-view',active);
+  window.scrollTo(0,0);
+  if(active) renderWaitingView();
+}
+
 document.getElementById('archiveViewBtn').onclick=()=>{
   document.getElementById('userBadge').classList.remove('menu-open');
   setArchiveView(!archiveViewActive);
 };
-document.getElementById('liveBadge').onclick=()=>{ setArchiveView(false); setRecycleView(false); setAnalyticsView(false); setMyTasksView(false); };
+document.getElementById('waitingViewBtn').onclick=()=>{
+  document.getElementById('userBadge').classList.remove('menu-open');
+  setWaitingView(!waitingViewActive);
+};
+document.getElementById('liveBadge').onclick=()=>{ setArchiveView(false); setWaitingView(false); setRecycleView(false); setAnalyticsView(false); setMyTasksView(false); };
 // ── LOGO EDIT ────────────────────────────────────────────────────────────────
 (function(){
   var modal  = document.getElementById('logoEditModal');
@@ -7689,6 +7828,84 @@ function restoreModel(name){
   save();renderAll();updateArchiveBadge();
   toast('↺',`Model restored: ${name}`);
   logActivity('↺',`restored model "${name}" from archive`,name);
+}
+
+// ── WAITING VIEW ─────────────────────────────────────────────────────────────
+// Mirrors the Archive feature exactly, but semantically for models that
+// haven't started yet rather than ones that are finished. Crucially,
+// moveToWaiting()/restoreFromWaiting() never touch modelOrder (same as
+// archive/restore) — so when a model is restored, refreshModelsList() slots
+// it right back into its original position among the active cards.
+function renderWaitingView(){
+  const grid=document.getElementById('waitingGrid');
+  const emptyState=document.getElementById('waitingEmptyState');
+  grid.innerHTML='';
+  const waiting=[...waitingModelsSet].filter(m=>m in state&&isModelVisibleToMe(m));
+  emptyState.style.display=waiting.length?'none':'';
+  grid.style.display=waiting.length?'':'none';
+  waiting.forEach((m,idx)=>{
+    const s=stats(m);
+    const card=document.createElement('div');
+    card.className='model-card waiting theme-'+(modelColorThemes[m]!==undefined?modelColorThemes[m]:(idx%4));
+    const dl=deadlineLabel(m);
+    const dlHtml=dl?`<button class="model-deadline model-deadline-btn ${dl.cls}" onclick="event.stopPropagation()">${CAL_ICON} ${dl.text}</button>`
+      :`<div class="model-deadline">${CAL_ICON} No deadline</div>`;
+    const waitImg=modelImages[m];
+    const waitThumbHtml=`<div class="model-thumb" style="cursor:default;">
+        ${waitImg?`<img src="${waitImg}" alt="">`:`<svg class="model-thumb-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10.5" r="2"/><path d="M21 15l-4.5-4.5a2 2 0 0 0-2.8 0L5 19"/></svg>`}
+      </div>`;
+    card.innerHTML=`
+      <div class="model-header">
+        <div class="model-header-main">
+          ${waitThumbHtml}
+          <div>
+            <div class="model-name">${escHtml(m)}</div>
+          </div>
+        </div>
+        <div class="model-tag">WAITING</div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" data-pct="${s.pct}" style="width:${s.pct}%"></div>
+      </div>
+      <div class="model-stats">
+        <div class="stat-item"><div class="stat-num pct-val">${s.pct}%</div><div class="stat-lbl">PROGRESS</div></div>
+        <div class="stat-item"><div class="stat-num done-val">${s.done}</div><div class="stat-lbl">DONE</div></div>
+        <div class="stat-item"><div class="stat-num pend-val">${s.pending}</div><div class="stat-lbl">PENDING</div></div>
+        <div class="stat-item"><div class="stat-num" style="color:var(--text-muted)">${s.total}</div><div class="stat-lbl">TOTAL</div></div>
+      </div>
+      <div class="archive-card-actions">
+        <button class="row-action-btn edit" data-action="restore" data-model="${m}" style="height:36px;font-size:12px;font-weight:600;">Restore</button>
+        <button class="row-action-btn delete" data-action="delete" data-model="${m}" style="height:36px;font-size:12px;font-weight:600;">Delete</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+  grid.querySelectorAll('[data-action="restore"]').forEach(btn=>{
+    btn.onclick=()=>restoreFromWaiting(btn.dataset.model);
+  });
+  grid.querySelectorAll('[data-action="delete"]').forEach(btn=>{
+    btn.onclick=()=>deleteModel(btn.dataset.model);
+  });
+}
+
+function moveToWaiting(name){
+  if(!canEdit()){notifyViewOnly();return;}
+  waitingModelsSet.add(name);
+  refreshModelsList();
+  if(activeTab===name){ activeTab=models[0]||''; localStorage.setItem('mlc_activeTab',activeTab); }
+  editingIdx=null;
+  save();renderAll();updateWaitingBadge();
+  toast('⏳',`Model moved to Waiting: ${name}`);
+  logActivity('⏳',`moved model "${name}" to Waiting`,name);
+}
+
+function restoreFromWaiting(name){
+  if(!canEdit()){notifyViewOnly();return;}
+  waitingModelsSet.delete(name);
+  refreshModelsList();
+  activeTab=name; localStorage.setItem('mlc_activeTab',name);
+  save();renderAll();updateWaitingBadge();
+  toast('↺',`Model restored: ${name}`);
+  logActivity('↺',`restored model "${name}" from Waiting`,name);
 }
 
 // ── RECYCLE BIN VIEW ──────────────────────────────────────────────────────────
@@ -8194,10 +8411,11 @@ function analyticsAllTasks(modelFilter){
   names.forEach(m=>{ if(state[m]) out=out.concat(state[m].map(t=>({...t,__model:m}))); });
   return out;
 }
-// Active (non-archived) model names, freshly filtered from current state —
-// small helper so analytics never accidentally includes archived models.
+// Active (non-archived, non-waiting) model names, freshly filtered from
+// current state — small helper so analytics never accidentally includes
+// archived or waiting models.
 function refreshedActiveModelNames(){
-  return Object.keys(state).filter(m=>!archivedModelsSet.has(m)&&isModelVisibleToMe(m));
+  return Object.keys(state).filter(m=>!archivedModelsSet.has(m)&&!waitingModelsSet.has(m)&&isModelVisibleToMe(m));
 }
 
 function fmtShortDate(d){ return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
@@ -8600,6 +8818,8 @@ function restoreRecycledItem(bucket,i){if(!canEdit()){notifyViewOnly();return;}
     modelOrder.splice(insertAt,0,name);
     // Restore archive status if it was archived when deleted
     if(entry.wasArchived) archivedModelsSet.add(name);
+    // Restore waiting status if it was waiting when deleted
+    if(entry.wasWaiting) waitingModelsSet.add(name);
     // Restore pin status if it was pinned when deleted
     if(entry.wasPinned) pinnedModelsSet.add(name);
     // Un-mark as deleted if it was a built-in model
@@ -9132,7 +9352,7 @@ function renderTabs(){
         // Same shift-after-removal correction as the model card drag handler.
         const insertIdx=toIdx>fromIdx?toIdx-1:toIdx;
         models.splice(insertIdx,0,_tabDragSrc);
-        modelOrder=[...models];
+        modelOrder=mergeModelOrderWithNewActiveOrder(models);
         _tabDragSrc=null;
         save();renderTabs();renderModelCards();
       });
@@ -9361,6 +9581,7 @@ function renderTaskList(){
   const addBar=document.getElementById('addTaskBar');
   const delBtn=document.getElementById('deleteModelBtn');
   const archBtn=document.getElementById('archiveModelBtn');
+  const waitBtn=document.getElementById('waitModelBtn');
   const dupBtn=document.getElementById('duplicateModelBtn');
   const exportBtn=document.getElementById('exportModelDropdown');
   const importLbl=document.getElementById('importExcelLabel');
@@ -9373,6 +9594,7 @@ function renderTaskList(){
   if(activeTab==='Compare Models'){
     table.style.display='none';addBar.style.display='none';
     delBtn.style.display='none';archBtn.style.display='none';
+    if(waitBtn) waitBtn.style.display='none';
     dupBtn.style.display='none';
     exportBtn.style.display='none';importLbl.style.display='none';
     searchBoxEl.style.display='none';filterBarEl.style.display='none';
@@ -9389,6 +9611,7 @@ function renderTaskList(){
   if(!activeTab || !state[activeTab]){
     table.style.display='none';addBar.style.display='none';
     delBtn.style.display='none';archBtn.style.display='none';
+    if(waitBtn) waitBtn.style.display='none';
     exportBtn.style.display='none';importLbl.style.display='none';
     searchBoxEl.style.display='none';filterBarEl.style.display='none';
     if(ganttEl) ganttEl.style.display='none';
@@ -9403,6 +9626,7 @@ function renderTaskList(){
   if(ganttViewActive){
     table.style.display='none';addBar.style.display='none';filterBarEl.style.display='none';
     delBtn.style.display='';archBtn.style.display='';dupBtn.style.display='';
+    if(waitBtn) waitBtn.style.display='';
     exportBtn.style.display='';importLbl.style.display='';searchBoxEl.style.display='none';
     if(ganttEl) ganttEl.style.display='';
     renderGantt();
@@ -9412,6 +9636,7 @@ function renderTaskList(){
     if(ganttEl) ganttEl.style.display='none';
     table.style.display='';addBar.style.display='';
     delBtn.style.display='';archBtn.style.display='';
+    if(waitBtn) waitBtn.style.display='';
     dupBtn.style.display='';
     exportBtn.style.display='';importLbl.style.display='';
     searchBoxEl.style.display='';filterBarEl.style.display='';
@@ -11081,7 +11306,7 @@ async function duplicateModel(name){if(!canEdit()){notifyViewOnly();return;}
   logActivity('⧉',`duplicated "${name}" → "${copyName}"`,copyName);
 }
 async function deleteModel(name){if(!canEdit()){notifyViewOnly();return;}
-  if(!archivedModelsSet.has(name)&&models.length<=1){await showAlert({title:"Can't delete this model",message:'You need at least one model on the dashboard.',tone:'warn'});return;}
+  if(!archivedModelsSet.has(name)&&!waitingModelsSet.has(name)&&models.length<=1){await showAlert({title:"Can't delete this model",message:'You need at least one model on the dashboard.',tone:'warn'});return;}
   const ok=await showConfirm({title:'Move model to Recycle Bin?',message:`"${name}" and all its tasks will be moved to the Recycle Bin (kept for 30 days). You can restore it any time before then.`,confirmText:'Move to Recycle Bin',danger:true,icon:'🗑'});
   if(!ok)return;
   clearPendingTimersForModel(name);
@@ -11089,11 +11314,13 @@ async function deleteModel(name){if(!canEdit()){notifyViewOnly();return;}
   recycleModel(name);
   delete state[name];delete deadlines[name];delete modelImages[name];delete modelColorThemes[name];
   archivedModelsSet.delete(name);
+  waitingModelsSet.delete(name);
   pinnedModelsSet.delete(name);
   if(name in INITIAL_DATA) deletedModelsSet.add(name);
   refreshModelsList();if(activeTab===name){ activeTab=models[0]||''; localStorage.setItem('mlc_activeTab',activeTab); }
   editingIdx=null;save();renderAll();updateRecycleBadge();
   if(archiveViewActive) renderArchiveView();
+  if(waitingViewActive) renderWaitingView();
   toast('🗑',`Moved to Recycle Bin: ${name}`);
   logActivity('🗑',`deleted model "${name}"`,name);
 }
@@ -11113,6 +11340,7 @@ async function renameModel(oldName, newName){if(!canEdit()){notifyViewOnly();ret
   if(modelImages[oldName]){ modelImages[trimmed]=modelImages[oldName]; delete modelImages[oldName]; }
   if(modelColorThemes[oldName]){ modelColorThemes[trimmed]=modelColorThemes[oldName]; delete modelColorThemes[oldName]; }
   if(archivedModelsSet.has(oldName)){ archivedModelsSet.delete(oldName); archivedModelsSet.add(trimmed); }
+  if(waitingModelsSet.has(oldName)){ waitingModelsSet.delete(oldName); waitingModelsSet.add(trimmed); }
   if(pinnedModelsSet.has(oldName)){ pinnedModelsSet.delete(oldName); pinnedModelsSet.add(trimmed); }
   if(deletedModelsSet.has(oldName)){ deletedModelsSet.delete(oldName); }
   const oi=modelOrder.indexOf(oldName); if(oi>=0) modelOrder[oi]=trimmed;
@@ -12508,6 +12736,7 @@ function buildFullBackupPayload(){
     modelImages:JSON.parse(JSON.stringify(modelImages)),
     deletedModels:[...deletedModelsSet],
     archivedModels:[...archivedModelsSet],
+    waitingModels:[...waitingModelsSet],
     pinnedModels:[...pinnedModelsSet],
     modelOrder:[...modelOrder],
     recycleBin:JSON.parse(JSON.stringify(recycleBin)),
@@ -12665,6 +12894,7 @@ function mergeFullBackupIntoState(payload){
       if(payload.deadlines && payload.deadlines[m]){ deadlines[m]=payload.deadlines[m]; }
       if(payload.modelImages && payload.modelImages[m]){ modelImages[m]=payload.modelImages[m]; }
       if(Array.isArray(payload.archivedModels) && payload.archivedModels.includes(m)) archivedModelsSet.add(m);
+      if(Array.isArray(payload.waitingModels) && payload.waitingModels.includes(m)) waitingModelsSet.add(m);
       if(Array.isArray(payload.pinnedModels) && payload.pinnedModels.includes(m)) pinnedModelsSet.add(m);
       if(Array.isArray(payload.modelOrder) && payload.modelOrder.includes(m) && !modelOrder.includes(m)) modelOrder.push(m);
     }
@@ -13172,6 +13402,9 @@ document.getElementById('duplicateModelBtn').onclick=()=>{
 document.getElementById('archiveModelBtn').onclick=()=>{
   if(activeTab==='Compare Models')return;archiveModel(activeTab);
 };
+document.getElementById('waitModelBtn').onclick=()=>{
+  if(activeTab==='Compare Models')return;moveToWaiting(activeTab);
+};
 document.getElementById('deleteModelBtn').onclick=()=>{
   if(activeTab==='Compare Models')return;deleteModel(activeTab);
 };
@@ -13202,6 +13435,7 @@ document.addEventListener('keydown',e=>{
     document.getElementById('overdueModal').classList.remove('open');
     document.getElementById('globalSearchModal').classList.remove('open');
     document.getElementById('activityModal').classList.remove('open');
+    document.getElementById('shortcutsModal').classList.remove('open');
     if(typeof closeVoiceModal==='function') closeVoiceModal();
     if(typeof closeModelAccessModal==='function') closeModelAccessModal();
     if(typeof closeProfileModal==='function') closeProfileModal();
@@ -13218,6 +13452,9 @@ document.addEventListener('keydown',e=>{
   }
   if(e.key==='/'){
     e.preventDefault(); document.getElementById('searchBox').focus();
+  }
+  if(e.key==='?'){
+    e.preventDefault(); openShortcutsModal();
   }
 });
 
@@ -13386,8 +13623,9 @@ function toast(icon,msg,showUndo){
 
 // ── RENDER ALL ────────────────────────────────────────────────────────────────
 function renderAll(){
-  renderKPIs();renderModelCards();renderTabs();renderTaskList();updateBulkBar();updateArchiveBadge();updateRecycleBadge();updateMyTasksBadge();
+  renderKPIs();renderModelCards();renderTabs();renderTaskList();updateBulkBar();updateArchiveBadge();updateWaitingBadge();updateRecycleBadge();updateMyTasksBadge();
   if(archiveViewActive) renderArchiveView();
+  if(waitingViewActive) renderWaitingView();
   if(recycleViewActive) renderRecycleView();
   if(analyticsViewActive) renderAnalyticsView();
   if(myTasksViewActive) renderMyTasksView();
@@ -13413,6 +13651,7 @@ async function freshStart(){
   modelColorThemes = {};
   deletedModelsSet = new Set();
   archivedModelsSet = new Set();
+  waitingModelsSet = new Set();
   pinnedModelsSet = new Set();
   recycleBin = {};
   modelOrder = [];
@@ -13423,6 +13662,7 @@ async function freshStart(){
   expandedSubtasksSet.clear();
   editingIdx = null;
   setArchiveView(false);
+  setWaitingView(false);
   setRecycleView(false);
   setAnalyticsView(false);
   refreshModelsList();
@@ -13472,6 +13712,19 @@ document.getElementById('toggleWelcomeBtn').onclick = ()=>{
   updateToggleWelcomeLabel();
   document.getElementById('userBadge').classList.remove('menu-open');
 };
+
+function openShortcutsModal(){
+  document.getElementById('userBadge').classList.remove('menu-open');
+  document.getElementById('shortcutsModal').classList.add('open');
+}
+function closeShortcutsModal(){
+  document.getElementById('shortcutsModal').classList.remove('open');
+}
+document.getElementById('shortcutsMenuBtn').onclick = openShortcutsModal;
+document.getElementById('shortcutsCloseBtn').onclick = closeShortcutsModal;
+document.getElementById('shortcutsModal').addEventListener('click',e=>{
+  if(e.target.id==='shortcutsModal') closeShortcutsModal();
+});
 
 document.getElementById('freshStartBtn').onclick = ()=>{
   document.getElementById('userBadge').classList.remove('menu-open');
@@ -14194,6 +14447,7 @@ async function switchToWorkspace(workspaceId){
     applyViewOnlyMode();
     deletedModelsSet=new Set(saved?.deletedModels||[]);
     archivedModelsSet=new Set(saved?.archivedModels||[]);
+    waitingModelsSet=new Set(saved?.waitingModels||[]);
     pinnedModelsSet=new Set(saved?.pinnedModels||[]);
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
@@ -14216,6 +14470,7 @@ async function switchToWorkspace(workspaceId){
     seedStandardTemplateIfNeeded();
     purgeExpiredRecycleItems();
     setArchiveView(false);
+    setWaitingView(false);
     setRecycleView(false);
     setAnalyticsView(false);
     ({tasks: state, deadlines}=loadState(saved));
