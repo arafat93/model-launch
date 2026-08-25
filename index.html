@@ -628,6 +628,34 @@ footer {
 .model-card.theme-6 .model-tag { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
 .model-card.theme-7 .model-tag { background: rgba(148, 163, 184, 0.1); color: #94a3b8; }
 
+/* ── MODEL STAGE TAG (Manufacturing / SKD / Upcoming / Launched) ── */
+.model-stage-tag { font-size: 10px; letter-spacing: 0.6px; padding: 4px 9px; border-radius: 100px; font-weight: 600; text-transform: uppercase; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.models-grid.list-view .model-stage-tag { flex-shrink: 0; }
+
+.model-stage-btn { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; border: none; background: var(--surface2); color: var(--text-muted); cursor: pointer; transition: background 0.18s ease, color 0.18s ease; margin-left: 4px; }
+.model-stage-btn:hover, .model-stage-btn.picker-open { background: var(--surface3); color: var(--text); }
+
+.model-stage-menu { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.model-stage-option { font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; padding: 5px 10px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+.model-stage-option:hover { background: var(--surface3); color: var(--text); }
+.model-stage-option.clear-option { color: var(--text-muted); }
+
+/* ── STAGE FILTER CHIPS (All / Manufacturing / SKD / Upcoming / Launched) ── */
+.stage-filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: -8px 0 20px; }
+.manage-stage-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.manage-stages-btn { background: transparent; border-style: dashed; }
+.manage-stage-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+.manage-stage-row:last-child { border-bottom: none; }
+.manage-stage-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-family: inherit; font-size: 13px; font-weight: 500; }
+.manage-stage-input:focus { outline: none; border-color: var(--accent1); }
+.manage-stage-usage { font-size: 11px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+.manage-stage-delete { width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 13px; transition: background 0.15s ease, color 0.15s ease; }
+.manage-stage-delete:hover { background: rgba(244,63,94,0.12); color: var(--red); }
+.manage-stage-empty { padding: 20px 4px; text-align: center; color: var(--text-muted); font-size: 13px; }
+.manage-stage-add-row { display: flex; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.manage-stage-add-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-family: inherit; font-size: 13px; }
+.manage-stage-add-row input:focus { outline: none; border-color: var(--accent1); }
+
 .progress-bar-wrap { background: var(--surface2); border-radius: 100px; height: 6px; overflow: hidden; margin-bottom: 20px; border: 1px solid var(--border); }
 .progress-bar-fill { height: 100%; border-radius: 100px; transition: width 1.2s cubic-bezier(0.2, 0.8, 0.2, 1); width: 0%; }
 .model-card     .progress-bar-fill { background: linear-gradient(90deg, var(--accent1), #ffe599); }
@@ -3989,7 +4017,9 @@ document.addEventListener('keydown', e => {
     <button class="add-task-btn" id="addModelBtn">Add Model</button>
   </div>
 </div>
+<div class="stage-filter-row" id="stageFilterRow"></div>
 <div class="models-grid" id="modelsGrid"></div>
+<div class="empty-state" id="modelsStageEmptyState" style="display:none;border:1px dashed var(--border);border-radius:16px;margin-bottom:24px;padding:32px;text-align:center;color:var(--text-muted);"></div>
 <div class="empty-state" id="modelsEmptyState" style="border:1px dashed var(--border);border-radius:16px;margin-bottom:24px;">
   <div class="empty-state-icon" id="modelsEmptyStateIcon">🚀</div>
   <div class="empty-state-title" id="modelsEmptyStateTitle">No models yet</div>
@@ -4520,6 +4550,22 @@ document.addEventListener('keydown', e => {
       <button class="modal-btn secondary" id="bulkDeadlineClearBtn">Clear Dates</button>
       <button class="modal-btn secondary" id="bulkDeadlineCancelBtn">Cancel</button>
       <button class="modal-btn primary" id="bulkDeadlineSaveBtn">Apply to Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE STAGES MODAL -->
+<div class="modal-overlay" id="manageStagesOverlay">
+  <div class="modal-box">
+    <div class="modal-title">Manage Stages</div>
+    <div class="modal-subtitle">Rename, remove, or add launch stages (Manufacturing, SKD, Upcoming, Launched, or your own).</div>
+    <div id="manageStagesList" style="margin-top:16px;max-height:320px;overflow-y:auto;"></div>
+    <div class="manage-stage-add-row">
+      <input type="text" id="newStageNameInput" placeholder="New stage name…" maxlength="40">
+      <button class="modal-btn primary" id="addStageBtn">Add</button>
+    </div>
+    <div class="modal-actions" style="margin-top:20px;">
+      <button class="modal-btn secondary" id="manageStagesCloseBtn">Done</button>
     </div>
   </div>
 </div>
@@ -5211,6 +5257,7 @@ async function resolveWorkspace(user){
     deadlines:(legacyData&&legacyData.deadlines)||{},
     modelImages:(legacyData&&legacyData.modelImages)||{},
     modelColorThemes:(legacyData&&legacyData.modelColorThemes)||{},
+    modelStages:(legacyData&&legacyData.modelStages)||{},
     templates:(legacyData&&legacyData.templates)||{'Standard Checklist':buildDefaultStandardTemplate()},
     standardTemplateSeeded:true,
     deletedModels:(legacyData&&legacyData.deletedModels)||[],
@@ -5361,6 +5408,7 @@ function applyRemoteSnapshot(data){
   modelOrder=data.modelOrder||[];
   modelImages=data.modelImages||{};
   modelColorThemes=data.modelColorThemes||{};
+  modelStages=data.modelStages||{};
   recycleBin=data.recycleBin||{};
   templates=data.templates||{};
   standardTemplateSeeded=!!data.standardTemplateSeeded;
@@ -5466,6 +5514,7 @@ function snapshotNow(){
     deadlines:JSON.parse(JSON.stringify(deadlines)),
     modelImages:JSON.parse(JSON.stringify(modelImages)),
     modelColorThemes:JSON.parse(JSON.stringify(modelColorThemes)),
+    modelStages:JSON.parse(JSON.stringify(modelStages)),
     deletedModels:[...deletedModelsSet],
     archivedModels:[...archivedModelsSet],
     waitingModels:[...waitingModelsSet],
@@ -5511,6 +5560,7 @@ function undo(){
   deadlines=prev.deadlines;
   modelImages=prev.modelImages||modelImages;
   modelColorThemes=prev.modelColorThemes||modelColorThemes;
+  modelStages=prev.modelStages||modelStages;
   deletedModelsSet=new Set(prev.deletedModels);
   archivedModelsSet=new Set(prev.archivedModels||[]);
   waitingModelsSet=new Set(prev.waitingModels||[]);
@@ -5553,6 +5603,7 @@ function redo(){
   deadlines=next.deadlines;
   modelImages=next.modelImages||modelImages;
   modelColorThemes=next.modelColorThemes||modelColorThemes;
+  modelStages=next.modelStages||modelStages;
   deletedModelsSet=new Set(next.deletedModels);
   archivedModelsSet=new Set(next.archivedModels||[]);
   waitingModelsSet=new Set(next.waitingModels||[]);
@@ -5606,13 +5657,14 @@ const RECYCLE_RETENTION_DAYS=30;
 // back, making a "deleted" model card reappear. lastSavedKeys tracks which
 // keys were last known to exist on the server so save() can explicitly
 // FieldValue.delete() any that vanished locally, instead of leaving them.
-let lastSavedKeys={tasks:new Set(),deadlines:new Set(),modelImages:new Set(),modelColorThemes:new Set(),recycleBin:new Set(),templates:new Set()};
+let lastSavedKeys={tasks:new Set(),deadlines:new Set(),modelImages:new Set(),modelColorThemes:new Set(),modelStages:new Set(),recycleBin:new Set(),templates:new Set()};
 function syncLastSavedKeysFromCurrent(){
   lastSavedKeys={
     tasks:new Set(Object.keys(state||{})),
     deadlines:new Set(Object.keys(deadlines||{})),
     modelImages:new Set(Object.keys(modelImages||{})),
     modelColorThemes:new Set(Object.keys(modelColorThemes||{})),
+    modelStages:new Set(Object.keys(modelStages||{})),
     recycleBin:new Set(Object.keys(recycleBin||{})),
     templates:new Set(Object.keys(templates||{}))
   };
@@ -5630,6 +5682,7 @@ function buildWorkspaceSavePayload(){
     deadlines:withDeletionSentinels(deadlines,lastSavedKeys.deadlines),
     modelImages:withDeletionSentinels(modelImages,lastSavedKeys.modelImages),
     modelColorThemes:withDeletionSentinels(modelColorThemes,lastSavedKeys.modelColorThemes),
+    modelStages:withDeletionSentinels(modelStages,lastSavedKeys.modelStages),
     recycleBin:withDeletionSentinels(recycleBin,lastSavedKeys.recycleBin),
     templates:withDeletionSentinels(templates,lastSavedKeys.templates),
     deletedModels:[...deletedModelsSet],
@@ -5684,6 +5737,7 @@ function recycleModel(name){
     deadline:deadlines[name]||null,
     image:modelImages[name]||null,
     colorTheme:modelColorThemes[name]||null,
+    stage:modelStages[name]||null,
     orderIdx:modelOrder.indexOf(name),
     wasArchived:archivedModelsSet.has(name),
     wasWaiting:waitingModelsSet.has(name),
@@ -5717,6 +5771,7 @@ function enterPreviewMode(){
   recycleBin = {};
   modelImages = {};
   modelColorThemes = {};
+  modelStages = {};
   templates = {};
   standardTemplateSeeded = false;
   seedStandardTemplateIfNeeded();
@@ -5854,6 +5909,7 @@ async function handleAuthState(user){
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
     modelColorThemes=saved?.modelColorThemes||{};
+    modelStages=saved?.modelStages||{};
     recycleBin=saved?.recycleBin||{};
     templates=saved?.templates||{};
     standardTemplateSeeded=!!(saved&&saved.standardTemplateSeeded);
@@ -5866,6 +5922,7 @@ async function handleAuthState(user){
       deadlines:new Set(Object.keys(saved&&saved.deadlines||{})),
       modelImages:new Set(Object.keys(modelImages)),
       modelColorThemes:new Set(Object.keys(modelColorThemes)),
+      modelStages:new Set(Object.keys(modelStages)),
       recycleBin:new Set(Object.keys(recycleBin)),
       templates:new Set(Object.keys(templates))
     };
@@ -6117,6 +6174,7 @@ let state = {};
 let deadlines = {};
 let modelImages = {};
 let modelColorThemes = {}; // model name -> palette key (e.g. 'gold','blue','purple','green','rose','teal','orange','slate'); falls back to an auto-cycled theme when unset
+let modelStages = {}; // model name -> 'manufacturing'|'skd'|'upcoming'|'launched'; unset = no stage tag (normal in-progress card)
 // Reusable checklist templates a person can save from any model and apply
 // when creating a new one. Structural only — no dates, assignees, done
 // status, or screenshots — see stripTaskForTemplate().
@@ -6177,6 +6235,34 @@ let dragSrcSubCtx = null;
 let modelOrder = []; // persisted drag-and-drop order for model cards
 let renamingModel = null; // model name currently being renamed inline
 let colorPickerModel = null; // model name whose color-theme swatch row is currently open
+let stagePickerModel = null; // model name whose stage-picker menu is currently open
+// Editable, persisted list of launch stages (e.g. Manufacturing/SKD/Upcoming/Launched).
+// Seeded with 4 defaults on first use, but fully user-editable: labels can be renamed,
+// new stages added, and unused ones removed via the "Manage stages" panel.
+let stageDefs = [];
+const STAGE_COLOR_PALETTE=['#f59e0b','#60a5fa','#a78bfa','#10b981','#fb7185','#2dd4bf','#f472b6','#94a3b8','#facc15','#38bdf8'];
+function seedStageDefsIfNeeded(){
+  if(!Array.isArray(stageDefs)||!stageDefs.length){
+    stageDefs=[
+      {key:'manufacturing',label:'Manufacturing'},
+      {key:'skd',label:'SKD'},
+      {key:'upcoming',label:'Upcoming'},
+      {key:'launched',label:'Launched'}
+    ];
+  }
+}
+function stageDef(key){ return stageDefs.find(sd=>sd.key===key)||null; }
+function stageColor(key){ const idx=stageDefs.findIndex(sd=>sd.key===key); return STAGE_COLOR_PALETTE[(idx<0?0:idx)%STAGE_COLOR_PALETTE.length]; }
+function slugifyStageKey(label){
+  let base=(label||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'stage';
+  let key=base, n=2;
+  while(stageDefs.some(sd=>sd.key===key)) key=`${base}-${n++}`;
+  return key;
+}
+let modelStageFilter=localStorage.getItem('mlc_modelStageFilter')||'all'; // 'all' | one of stageDefs keys
+try{ const _rawStageDefs=localStorage.getItem('mlc_stageDefs'); if(_rawStageDefs){ const parsed=JSON.parse(_rawStageDefs); if(Array.isArray(parsed)&&parsed.length) stageDefs=parsed; } }catch(e){}
+seedStageDefsIfNeeded();
+function saveStageDefs(){ try{ localStorage.setItem('mlc_stageDefs',JSON.stringify(stageDefs)); }catch(e){} }
 
 // Named color palettes a model card can be pinned to. Index 0-3 double as the
 // auto-cycled defaults (theme-0..3) already styled elsewhere in the CSS;
@@ -7124,6 +7210,7 @@ async function restoreToActivity(entryId){
   deadlines=JSON.parse(JSON.stringify(snap.deadlines));
   modelImages=JSON.parse(JSON.stringify(snap.modelImages||{}));
   modelColorThemes=JSON.parse(JSON.stringify(snap.modelColorThemes||modelColorThemes||{}));
+  modelStages=JSON.parse(JSON.stringify(snap.modelStages||modelStages||{}));
   deletedModelsSet=new Set(snap.deletedModels||[]);
   archivedModelsSet=new Set(snap.archivedModels||[]);
   waitingModelsSet=new Set(snap.waitingModels||[]);
@@ -7277,10 +7364,113 @@ function renderKPIs(){
 // ── MODEL CARDS ───────────────────────────────────────────────────────────────
 let _cardDragSrc = null; // model name being dragged
 
+function renderStageFilterRow(){
+  const row=document.getElementById('stageFilterRow');
+  if(!row) return;
+  const active=refreshedActiveModelNames();
+  const chips=[`<button class="filter-btn stage-filter-chip${modelStageFilter==='all'?' active':''}" data-stage="all">All<span class="filter-count">${active.length}</span></button>`]
+    .concat(stageDefs.map(sd=>{
+      const n=active.filter(m=>modelStages[m]===sd.key).length;
+      return `<button class="filter-btn stage-filter-chip${modelStageFilter===sd.key?' active':''}" data-stage="${sd.key}">${escHtml(sd.label)}<span class="filter-count">${n}</span></button>`;
+    }));
+  chips.push(`<button class="filter-btn manage-stages-btn" id="manageStagesBtn" title="Add, rename, or remove stages">⚙ Manage stages</button>`);
+  row.innerHTML=chips.join('');
+  row.querySelectorAll('.stage-filter-chip').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      modelStageFilter=btn.dataset.stage;
+      localStorage.setItem('mlc_modelStageFilter',modelStageFilter);
+      renderStageFilterRow();
+      renderModelCards();
+    });
+  });
+  const manageBtn=document.getElementById('manageStagesBtn');
+  if(manageBtn) manageBtn.addEventListener('click',openManageStagesModal);
+}
+
+function openManageStagesModal(){
+  renderManageStagesList();
+  document.getElementById('manageStagesOverlay').classList.add('open');
+}
+function closeManageStagesModal(){
+  document.getElementById('manageStagesOverlay').classList.remove('open');
+  renderStageFilterRow();
+  renderModelCards();
+}
+function renderManageStagesList(){
+  const list=document.getElementById('manageStagesList');
+  if(!list) return;
+  list.innerHTML=stageDefs.map(sd=>{
+    const n=Object.values(modelStages).filter(v=>v===sd.key).length;
+    return `<div class="manage-stage-row" data-stage-key="${sd.key}">
+      <span class="manage-stage-dot" style="background:${stageColor(sd.key)}"></span>
+      <input type="text" class="manage-stage-input" value="${escHtml(sd.label)}" maxlength="40" data-stage-key="${sd.key}">
+      <span class="manage-stage-usage">${n} model${n===1?'':'s'}</span>
+      <button class="manage-stage-delete" title="Delete stage" data-stage-key="${sd.key}">🗑</button>
+    </div>`;
+  }).join('') || `<div class="manage-stage-empty">No stages yet — add one below.</div>`;
+
+  list.querySelectorAll('.manage-stage-input').forEach(inp=>{
+    const commit=()=>{
+      const key=inp.dataset.stageKey;
+      const sd=stageDef(key);
+      if(!sd) return;
+      const val=inp.value.trim();
+      if(!val){ inp.value=sd.label; return; }
+      if(val!==sd.label){
+        sd.label=val;
+        saveStageDefs();
+        toast('✎',`Stage renamed to "${val}"`);
+        renderStageFilterRow();
+        renderModelCards();
+      }
+    };
+    inp.addEventListener('blur',commit);
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ inp.blur(); } else if(e.key==='Escape'){ const sd=stageDef(inp.dataset.stageKey); if(sd) inp.value=sd.label; inp.blur(); } });
+  });
+  list.querySelectorAll('.manage-stage-delete').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const key=btn.dataset.stageKey;
+      const sd=stageDef(key);
+      if(!sd) return;
+      const n=Object.values(modelStages).filter(v=>v===key).length;
+      const proceed=()=>{
+        stageDefs=stageDefs.filter(s=>s.key!==key);
+        Object.keys(modelStages).forEach(m=>{ if(modelStages[m]===key) delete modelStages[m]; });
+        if(modelStageFilter===key){ modelStageFilter='all'; localStorage.setItem('mlc_modelStageFilter','all'); }
+        saveStageDefs();
+        save();
+        renderManageStagesList();
+        toast('🗑',`Deleted stage "${sd.label}"`,false);
+      };
+      if(n>0){
+        if(confirm(`"${sd.label}" is currently applied to ${n} model${n===1?'':'s'}. Delete it anyway? Those models will lose this stage tag.`)) proceed();
+      }else{
+        proceed();
+      }
+    });
+  });
+}
+function addNewStage(){
+  const input=document.getElementById('newStageNameInput');
+  if(!input) return;
+  const label=input.value.trim();
+  if(!label){ input.focus(); return; }
+  if(stageDefs.some(sd=>sd.label.toLowerCase()===label.toLowerCase())){
+    toast('⚠',`A stage named "${label}" already exists`,false);
+    return;
+  }
+  stageDefs.push({key:slugifyStageKey(label),label});
+  saveStageDefs();
+  input.value='';
+  renderManageStagesList();
+  toast('✚',`Added stage "${label}"`);
+}
+
 function renderModelCards(){
   const grid=document.getElementById('modelsGrid');
   grid.innerHTML='';
   window._modelCardsRendered=window._modelCardsRendered||false;
+  renderStageFilterRow();
 
   // No models at all — fresh start (pre-login) or a brand-new signed-in
   // account with everything deleted/never created. Show a clear prompt to
@@ -7306,10 +7496,23 @@ function renderModelCards(){
     }
     return;
   }
-  grid.style.display='';
   emptyState.classList.remove('show');
 
-  models.forEach((m,idx)=>{
+  const stageEmptyState=document.getElementById('modelsStageEmptyState');
+  const visibleModels=modelStageFilter==='all' ? models : models.filter(m=>modelStages[m]===modelStageFilter);
+  if(!visibleModels.length){
+    grid.style.display='none';
+    if(stageEmptyState){
+      const sd=stageDef(modelStageFilter);
+      stageEmptyState.style.display='';
+      stageEmptyState.innerHTML=`No models currently marked <strong>${sd?sd.label:modelStageFilter}</strong>.`;
+    }
+    return;
+  }
+  grid.style.display='';
+  if(stageEmptyState) stageEmptyState.style.display='none';
+
+  visibleModels.forEach((m,idx)=>{
     const s=stats(m);
     const[lbl]=statusLabel(s.pct);
     const card=document.createElement('div');
@@ -7328,10 +7531,17 @@ function renderModelCards(){
           <button class="model-color-btn model-card-action-btn${colorPickerModel===m?' picker-open':''}" title="Color theme" data-model="${m}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C22 6.012 17.461 2 12 2z"/></svg>
           </button>
+          <button class="model-stage-btn model-card-action-btn${stagePickerModel===m?' picker-open':''}" title="Set stage (Manufacturing / SKD / Upcoming / Launched)" data-model="${m}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.5V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.5"/><path d="M2 8.5 12 3l10 5.5"/><path d="M12 3v18"/></svg>
+          </button>
         </div>${colorPickerModel===m?`
         <div class="model-color-swatches-row">
           ${MODEL_THEME_PALETTES.map((p,i)=>`<button class="model-color-swatch${modelColorThemes[m]===i?' selected':''}" style="background:${p.swatch}" title="${p.label}" data-model="${m}" data-theme-idx="${i}"></button>`).join('')}
           <button class="model-color-swatch-auto${modelColorThemes[m]===undefined?' selected':''}" title="Reset to default" data-model="${m}">↺</button>
+        </div>`:''}${stagePickerModel===m?`
+        <div class="model-stage-menu">
+          ${stageDefs.map(sd=>`<button class="model-stage-option${modelStages[m]===sd.key?' selected':''}" style="${modelStages[m]===sd.key?`background:${stageColor(sd.key)}22;color:${stageColor(sd.key)};border-color:${stageColor(sd.key)}66;`:''}" data-model="${m}" data-stage-val="${sd.key}"><span class="manage-stage-dot" style="background:${stageColor(sd.key)}"></span>${escHtml(sd.label)}</button>`).join('')}
+          <button class="model-stage-option clear-option" data-model="${m}" data-stage-val="">✕ None</button>
         </div>`:''}`;
     const dlHtml=dl
       ?`<div>
@@ -7380,7 +7590,9 @@ function renderModelCards(){
             ${dlHtml}
           </div>
         </div>
-        <div class="model-tag">${lbl}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+          <div class="model-tag">${lbl}</div>
+        </div>
       </div>
       <div class="progress-bar-wrap">
         <div class="progress-bar-fill" data-pct="${s.pct}" style="width:0%"></div>
@@ -7558,6 +7770,34 @@ function renderModelCards(){
         logActivity('↺',`reset the color theme for model "${m}"`,m);
       });
     }
+
+    // Stage picker: toggle menu button click
+    const stageBtn=card.querySelector('.model-stage-btn');
+    if(stageBtn){
+      stageBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        stagePickerModel=(stagePickerModel===m)?null:m;
+        renderModelCards();
+      });
+    }
+    // Stage picker: option selection (including "None" to clear)
+    card.querySelectorAll('.model-stage-option').forEach(opt=>{
+      opt.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(!canEdit()){notifyViewOnly();return;}
+        const val=opt.dataset.stageVal;
+        if(val){
+          modelStages[m]=val;
+        }else{
+          delete modelStages[m];
+        }
+        stagePickerModel=null;
+        save();renderModelCards();
+        const sd=stageDef(val);
+        toast(sd?'🏷':'✕', sd?`${m} marked as ${sd.label}`:`Stage cleared for ${m}`);
+        logActivity(sd?'🏷':'✕', sd?`marked model "${m}" as ${sd.label}`:`cleared the stage for model "${m}"`,m);
+      });
+    });
 
     // Rename input handlers
     if(isRenaming){
@@ -8833,6 +9073,7 @@ function restoreRecycledItem(bucket,i){if(!canEdit()){notifyViewOnly();return;}
     if(entry.deadline) deadlines[name]=entry.deadline;
     if(entry.image) modelImages[name]=entry.image;
     if(entry.colorTheme) modelColorThemes[name]=entry.colorTheme;
+    if(entry.stage) modelStages[name]=entry.stage;
     // Re-insert into modelOrder at original position (clamped)
     const insertAt=Math.max(0,Math.min(typeof entry.orderIdx==='number'?entry.orderIdx:modelOrder.length,modelOrder.length));
     modelOrder.splice(insertAt,0,name);
@@ -11340,6 +11581,7 @@ async function duplicateModel(name){if(!canEdit()){notifyViewOnly();return;}
   if(deadlines[name]) deadlines[copyName]=deadlines[name];
   if(modelImages[name]) modelImages[copyName]=modelImages[name];
   if(modelColorThemes[name]) modelColorThemes[copyName]=modelColorThemes[name];
+  if(modelStages[name]) modelStages[copyName]=modelStages[name];
   deletedModelsSet.delete(copyName);
   // Place the duplicate right after the source model in the order list.
   const srcIdx=modelOrder.indexOf(name);
@@ -11357,7 +11599,7 @@ async function deleteModel(name){if(!canEdit()){notifyViewOnly();return;}
   clearPendingTimersForModel(name);
   // Soft-delete: save the whole model into the recycle bin before wiping it
   recycleModel(name);
-  delete state[name];delete deadlines[name];delete modelImages[name];delete modelColorThemes[name];
+  delete state[name];delete deadlines[name];delete modelImages[name];delete modelColorThemes[name];delete modelStages[name];
   archivedModelsSet.delete(name);
   waitingModelsSet.delete(name);
   pinnedModelsSet.delete(name);
@@ -11384,6 +11626,7 @@ async function renameModel(oldName, newName){if(!canEdit()){notifyViewOnly();ret
   if(deadlines[oldName]){ deadlines[trimmed]=deadlines[oldName]; delete deadlines[oldName]; }
   if(modelImages[oldName]){ modelImages[trimmed]=modelImages[oldName]; delete modelImages[oldName]; }
   if(modelColorThemes[oldName]){ modelColorThemes[trimmed]=modelColorThemes[oldName]; delete modelColorThemes[oldName]; }
+  if(modelStages[oldName]){ modelStages[trimmed]=modelStages[oldName]; delete modelStages[oldName]; }
   if(archivedModelsSet.has(oldName)){ archivedModelsSet.delete(oldName); archivedModelsSet.add(trimmed); }
   if(waitingModelsSet.has(oldName)){ waitingModelsSet.delete(oldName); waitingModelsSet.add(trimmed); }
   if(pinnedModelsSet.has(oldName)){ pinnedModelsSet.delete(oldName); pinnedModelsSet.add(trimmed); }
@@ -12295,7 +12538,7 @@ document.getElementById('allModelsDeadlineApplyBtn').onclick=async()=>{
     selected.forEach(name=>{
       clearPendingTimersForModel(name);
       recycleModel(name);
-      delete state[name];delete deadlines[name];delete modelImages[name];delete modelColorThemes[name];
+      delete state[name];delete deadlines[name];delete modelImages[name];delete modelColorThemes[name];delete modelStages[name];
       archivedModelsSet.delete(name);
       waitingModelsSet.delete(name);
       pinnedModelsSet.delete(name);
@@ -12567,6 +12810,10 @@ document.getElementById('bulkPrioHigh').onclick=()=>applyBulkPriority('high');
 document.getElementById('bulkPrioMed').onclick=()=>applyBulkPriority('med');
 document.getElementById('bulkPrioLow').onclick=()=>applyBulkPriority('low');
 document.getElementById('bulkPriorityCancelBtn').onclick=()=>{bulkModalSubCtx=null;document.getElementById('bulkPriorityModal').classList.remove('open');};
+document.getElementById('manageStagesCloseBtn').onclick=closeManageStagesModal;
+document.getElementById('manageStagesOverlay').addEventListener('click',e=>{ if(e.target.id==='manageStagesOverlay') closeManageStagesModal(); });
+document.getElementById('addStageBtn').onclick=addNewStage;
+document.getElementById('newStageNameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') addNewStage(); });
 document.getElementById('bulkPriorityModal').onclick=e=>{
   if(e.target===document.getElementById('bulkPriorityModal')){
     bulkModalSubCtx=null;
@@ -14645,6 +14892,7 @@ async function switchToWorkspace(workspaceId){
     modelOrder=saved?.modelOrder||[];
     modelImages=saved?.modelImages||{};
     modelColorThemes=saved?.modelColorThemes||{};
+    modelStages=saved?.modelStages||{};
     recycleBin=saved?.recycleBin||{};
     templates=saved?.templates||{};
     standardTemplateSeeded=!!(saved&&saved.standardTemplateSeeded);
@@ -14657,6 +14905,7 @@ async function switchToWorkspace(workspaceId){
       deadlines:new Set(Object.keys(saved&&saved.deadlines||{})),
       modelImages:new Set(Object.keys(modelImages)),
       modelColorThemes:new Set(Object.keys(modelColorThemes)),
+      modelStages:new Set(Object.keys(modelStages)),
       recycleBin:new Set(Object.keys(recycleBin)),
       templates:new Set(Object.keys(templates))
     };
