@@ -3870,7 +3870,7 @@ document.addEventListener('keydown', e => {
         <div class="menu-section-label">Find &amp; Bulk Edit</div>
         <button class="menu-item" id="globalSearchBtn" title="Search tasks &amp; models across your entire workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Global Search</span><span class="menu-item-kbd">Ctrl K</span></button>
         <button class="menu-item" id="crossModelBulkBtn" title="Update the same task across all your models at once"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Bulk Update by Task</span></button>
-        <button class="menu-item" id="bulkModelDeadlineBtn" title="Set or clear the deadline for several models at once"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Bulk Set Deadlines</span></button>
+        <button class="menu-item" id="bulkModelDeadlineBtn" title="Apply an action — deadline, waiting, archive, color, duplicate, template, delete — to several models at once"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Bulk Model Actions</span></button>
         <button class="menu-item" id="voiceAssistantBtn" title="Add or update tasks in bulk by voice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg><span>Voice Assistant</span></button>
 
         <div class="menu-divider"></div>
@@ -4626,24 +4626,44 @@ document.addEventListener('keydown', e => {
   </div>
 </div>
 
-<!-- ALL-MODELS DEADLINE MODAL — set or clear the model-level deadline (the
-     one shown on each model card) across many models in one action, rather
-     than opening each model card's deadline picker one at a time. Distinct
-     from #bulkDeadlineModal above, which sets task/subtask deadlines
-     within a single model. -->
+<!-- BULK MODEL ACTIONS MODAL — apply one action (deadline, waiting, archive,
+     color theme, duplicate, save as template, delete) across many models in
+     one go, rather than opening each model card's menu one at a time.
+     Distinct from #bulkDeadlineModal above, which bulk-sets task/subtask
+     deadlines within a single model. -->
 <div class="modal-overlay" id="allModelsDeadlineModal">
   <div class="modal-box" style="width:min(480px, 92vw); max-height:88vh; display:flex; flex-direction:column; padding-bottom:24px;">
-    <div class="modal-title">Bulk Set Deadlines</div>
-    <div class="modal-subtitle">Choose which models to update, then set or clear their deadline in one go.</div>
+    <div class="modal-title" id="allModelsActionTitle">Bulk Model Actions</div>
+    <div class="modal-subtitle" id="allModelsActionSubtitle">Choose which models to update, then apply an action to all of them at once.</div>
 
     <div class="crossmodal-scroll-body">
       <div class="crossmodel-field-group" style="margin-top:0;">
+        <label class="crossmodel-field-label" for="allModelsActionSelect">Action</label>
+        <select class="crossmodel-select" id="allModelsActionSelect">
+          <option value="deadline">📅 Set / Clear Deadline</option>
+          <option value="waiting">⏳ Move to Waiting</option>
+          <option value="archive">🗄 Archive</option>
+          <option value="colortheme">🎨 Set Color Theme</option>
+          <option value="duplicate">⧉ Duplicate</option>
+          <option value="template">📑 Save as Template</option>
+          <option value="delete">🗑 Delete</option>
+        </select>
+      </div>
+
+      <!-- Deadline action fields -->
+      <div class="crossmodel-field-group" id="allModelsDeadlineFields">
         <label class="crossmodel-field-label" for="allModelsDeadlineAction">Deadline</label>
         <select class="crossmodel-select" id="allModelsDeadlineAction">
           <option value="set">Set date…</option>
           <option value="clear">Clear deadline</option>
         </select>
         <input type="date" class="deadline-input" id="allModelsDeadlineDate" style="margin-top:8px;">
+      </div>
+
+      <!-- Color theme action fields -->
+      <div class="crossmodel-field-group" id="allModelsColorFields" style="display:none;">
+        <label class="crossmodel-field-label">Color Theme</label>
+        <div id="allModelsColorSwatches" style="display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;"></div>
       </div>
 
       <div class="crossmodel-select-all-row">
@@ -12086,20 +12106,58 @@ document.getElementById('crossModelBulkModal').onclick=e=>{
     document.getElementById('crossModelBulkModal').classList.remove('open');
 };
 
-// ── BULK SET DEADLINES ACROSS MODELS (model-level, not task-level) ───────────
-// Sets/clears deadlines[model] — the deadline shown on each model card —
-// for many models at once. Not to be confused with #bulkDeadlineModal
-// elsewhere in the file, which bulk-sets task/subtask deadlines within a
-// single model.
+// ── BULK MODEL ACTIONS (model-level, not task-level) ─────────────────────────
+// One modal, many actions: set/clear deadline, move to waiting, archive,
+// set color theme, duplicate, save as template, delete — applied across many
+// models at once instead of opening each model card's menu one at a time.
+// Not to be confused with #bulkDeadlineModal elsewhere in the file, which
+// bulk-sets task/subtask deadlines within a single model.
+let bulkModelColorIdx=null; // null = "Auto" (reset to default cycling theme)
+const BULK_MODEL_ACTION_META={
+  deadline:{title:'Bulk Set Deadlines',subtitle:'Choose which models to update, then set or clear their deadline in one go.',applyText:'Apply',danger:false},
+  waiting:{title:'Bulk Move to Waiting',subtitle:'Choose which models to move to the Waiting view.',applyText:'Move to Waiting',danger:false},
+  archive:{title:'Bulk Archive',subtitle:'Choose which models to archive.',applyText:'Archive',danger:false},
+  colortheme:{title:'Bulk Set Color Theme',subtitle:'Choose which models to update, then pick a color theme for all of them.',applyText:'Apply Theme',danger:false},
+  duplicate:{title:'Bulk Duplicate',subtitle:'Choose which models to duplicate. Each gets its own "(Copy)" model.',applyText:'Duplicate',danger:false},
+  template:{title:'Bulk Save as Template',subtitle:'Choose which models to save. Each checklist is saved as a template named after its model.',applyText:'Save Templates',danger:false},
+  delete:{title:'Bulk Delete',subtitle:'Choose which models to delete. They\'ll be moved to the Recycle Bin (kept for 30 days).',applyText:'Delete Selected',danger:true}
+};
 document.getElementById('bulkModelDeadlineBtn').onclick=()=>{
   if(!canEdit()){notifyViewOnly();return;}
-  if(!models.length){showAlert({title:'No models yet',message:'Add at least one model before setting deadlines.',tone:'warn'});return;}
+  if(!models.length){showAlert({title:'No models yet',message:'Add at least one model before using bulk actions.',tone:'warn'});return;}
+  document.getElementById('allModelsActionSelect').value='deadline';
   document.getElementById('allModelsDeadlineAction').value='set';
   document.getElementById('allModelsDeadlineDate').style.display='block';
   document.getElementById('allModelsDeadlineDate').value='';
+  bulkModelColorIdx=null;
+  renderAllModelsActionFields();
   renderAllModelsDeadlineList();
   document.getElementById('allModelsDeadlineModal').classList.add('open');
 };
+function renderAllModelsColorSwatches(){
+  const wrap=document.getElementById('allModelsColorSwatches');
+  wrap.innerHTML = MODEL_THEME_PALETTES.map((p,i)=>
+    `<button class="model-color-swatch${bulkModelColorIdx===i?' selected':''}" style="background:${p.swatch}" title="${p.label}" data-theme-idx="${i}"></button>`
+  ).join('') + `<button class="model-color-swatch-auto${bulkModelColorIdx===null?' selected':''}" title="Reset to default">↺</button>`;
+  wrap.querySelectorAll('.model-color-swatch').forEach(sw=>{
+    sw.onclick=()=>{ bulkModelColorIdx=Number(sw.dataset.themeIdx); renderAllModelsColorSwatches(); };
+  });
+  wrap.querySelector('.model-color-swatch-auto').onclick=()=>{ bulkModelColorIdx=null; renderAllModelsColorSwatches(); };
+}
+function renderAllModelsActionFields(){
+  const action=document.getElementById('allModelsActionSelect').value;
+  const meta=BULK_MODEL_ACTION_META[action];
+  document.getElementById('allModelsActionTitle').textContent=meta.title;
+  document.getElementById('allModelsActionSubtitle').textContent=meta.subtitle;
+  document.getElementById('allModelsDeadlineFields').style.display = action==='deadline' ? '' : 'none';
+  document.getElementById('allModelsColorFields').style.display = action==='colortheme' ? '' : 'none';
+  if(action==='colortheme') renderAllModelsColorSwatches();
+  const applyBtn=document.getElementById('allModelsDeadlineApplyBtn');
+  applyBtn.textContent=meta.applyText;
+  applyBtn.classList.toggle('danger',meta.danger);
+  applyBtn.classList.toggle('primary',!meta.danger);
+}
+document.getElementById('allModelsActionSelect').onchange=renderAllModelsActionFields;
 function renderAllModelsDeadlineList(){
   const list=document.getElementById('allModelsDeadlineList');
   document.getElementById('allModelsDeadlineCount').textContent=`${models.length} model${models.length===1?'':'s'}`;
@@ -12129,20 +12187,130 @@ document.getElementById('allModelsDeadlineModal').onclick=e=>{
 };
 document.getElementById('allModelsDeadlineApplyBtn').onclick=async()=>{
   if(!canEdit()){notifyViewOnly();return;}
-  const action=document.getElementById('allModelsDeadlineAction').value;
-  const dateVal=document.getElementById('allModelsDeadlineDate').value;
-  if(action==='set' && !dateVal){ await showAlert({title:'Pick a date',message:'Choose a date before applying.',tone:'warn'}); return; }
+  const action=document.getElementById('allModelsActionSelect').value;
   const selected=[...document.querySelectorAll('#allModelsDeadlineList .amd-row-chk:checked')].map(chk=>chk.dataset.model);
   if(!selected.length){ await showAlert({title:'No models selected',message:'Select at least one model to update.',tone:'warn'}); return; }
-  selected.forEach(m=>{
-    if(action==='set') deadlines[m]=dateVal;
-    else delete deadlines[m];
-  });
-  save();renderAll();
-  document.getElementById('allModelsDeadlineModal').classList.remove('open');
-  toast('📅', action==='set'
-    ? `Deadline set for ${selected.length} model${selected.length===1?'':'s'}`
-    : `Deadline cleared for ${selected.length} model${selected.length===1?'':'s'}`);
+
+  if(action==='deadline'){
+    const dlAction=document.getElementById('allModelsDeadlineAction').value;
+    const dateVal=document.getElementById('allModelsDeadlineDate').value;
+    if(dlAction==='set' && !dateVal){ await showAlert({title:'Pick a date',message:'Choose a date before applying.',tone:'warn'}); return; }
+    selected.forEach(m=>{
+      if(dlAction==='set') deadlines[m]=dateVal;
+      else delete deadlines[m];
+    });
+    save();renderAll();
+    document.getElementById('allModelsDeadlineModal').classList.remove('open');
+    toast('📅', dlAction==='set'
+      ? `Deadline set for ${selected.length} model${selected.length===1?'':'s'}`
+      : `Deadline cleared for ${selected.length} model${selected.length===1?'':'s'}`);
+    return;
+  }
+
+  if(action==='waiting'){
+    selected.forEach(m=>{
+      waitingModelsSet.add(m);
+      logActivity('⏳',`moved model "${m}" to Waiting`,m);
+    });
+    refreshModelsList();
+    if(selected.includes(activeTab)){ activeTab=models[0]||''; localStorage.setItem('mlc_activeTab',activeTab); }
+    editingIdx=null;save();renderAll();updateWaitingBadge();
+    document.getElementById('allModelsDeadlineModal').classList.remove('open');
+    toast('⏳',`Moved ${selected.length} model${selected.length===1?'':'s'} to Waiting`);
+    return;
+  }
+
+  if(action==='archive'){
+    selected.forEach(m=>{
+      archivedModelsSet.add(m);
+      logActivity('🗄',`archived model "${m}"`,m);
+    });
+    refreshModelsList();
+    if(selected.includes(activeTab)){ activeTab=models[0]||''; localStorage.setItem('mlc_activeTab',activeTab); }
+    editingIdx=null;save();renderAll();updateArchiveBadge();
+    document.getElementById('allModelsDeadlineModal').classList.remove('open');
+    toast('🗄',`Archived ${selected.length} model${selected.length===1?'':'s'}`);
+    return;
+  }
+
+  if(action==='colortheme'){
+    selected.forEach(m=>{
+      if(bulkModelColorIdx===null) delete modelColorThemes[m];
+      else modelColorThemes[m]=bulkModelColorIdx;
+    });
+    save();renderAll();
+    document.getElementById('allModelsDeadlineModal').classList.remove('open');
+    toast('🎨',`Color theme updated for ${selected.length} model${selected.length===1?'':'s'}`);
+    return;
+  }
+
+  if(action==='duplicate'){
+    const existingKeys=new Set(Object.keys(state).map(m=>m.toUpperCase()));
+    let created=0;
+    selected.forEach(name=>{
+      if(!(name in state))return;
+      let copyName=`${name} (Copy)`; let n=2;
+      while(existingKeys.has(copyName.toUpperCase())){ copyName=`${name} (Copy ${n})`; n++; }
+      state[copyName]=JSON.parse(JSON.stringify(state[name]||[]));
+      if(deadlines[name]) deadlines[copyName]=deadlines[name];
+      if(modelImages[name]) modelImages[copyName]=modelImages[name];
+      if(modelColorThemes[name]!==undefined) modelColorThemes[copyName]=modelColorThemes[name];
+      deletedModelsSet.delete(copyName);
+      existingKeys.add(copyName.toUpperCase());
+      const srcIdx=modelOrder.indexOf(name);
+      if(srcIdx>=0) modelOrder.splice(srcIdx+1,0,copyName); else modelOrder.push(copyName);
+      created++;
+      logActivity('⧉',`duplicated "${name}" → "${copyName}"`,copyName);
+    });
+    refreshModelsList();editingIdx=null;save();renderAll();
+    document.getElementById('allModelsDeadlineModal').classList.remove('open');
+    toast('⧉',`Duplicated ${created} model${created===1?'':'s'}`);
+    return;
+  }
+
+  if(action==='template'){
+    let savedCount=0, skipped=0;
+    selected.forEach(name=>{
+      const tasks=state[name]||[];
+      if(!tasks.length){ skipped++; return; }
+      let key=name, n=2;
+      while(templates[key]){ key=`${name} (${n})`; n++; }
+      templates[key]={createdAt:Date.now(),tasks:tasks.map(stripTaskForTemplate)};
+      savedCount++;
+      logActivity('📑',`saved model "${name}" as template "${key}"`,name);
+    });
+    save();
+    document.getElementById('allModelsDeadlineModal').classList.remove('open');
+    toast('📑',`Saved ${savedCount} template${savedCount===1?'':'s'}${skipped?` (${skipped} skipped — no tasks)`:''}`);
+    return;
+  }
+
+  if(action==='delete'){
+    if(selected.length>=models.length){
+      await showAlert({title:"Can't delete all models",message:'You need at least one model on the dashboard.',tone:'warn'});
+      return;
+    }
+    const ok=await showConfirm({title:'Move models to Recycle Bin?',message:`${selected.length} model${selected.length===1?'':'s'} and all their tasks will be moved to the Recycle Bin (kept for 30 days). You can restore them any time before then.`,confirmText:'Move to Recycle Bin',danger:true,icon:'🗑'});
+    if(!ok) return;
+    selected.forEach(name=>{
+      clearPendingTimersForModel(name);
+      recycleModel(name);
+      delete state[name];delete deadlines[name];delete modelImages[name];delete modelColorThemes[name];
+      archivedModelsSet.delete(name);
+      waitingModelsSet.delete(name);
+      pinnedModelsSet.delete(name);
+      if(name in INITIAL_DATA) deletedModelsSet.add(name);
+      logActivity('🗑',`deleted model "${name}"`,name);
+    });
+    refreshModelsList();
+    if(selected.includes(activeTab)){ activeTab=models[0]||''; localStorage.setItem('mlc_activeTab',activeTab); }
+    editingIdx=null;save();renderAll();updateRecycleBadge();
+    if(archiveViewActive) renderArchiveView();
+    if(waitingViewActive) renderWaitingView();
+    document.getElementById('allModelsDeadlineModal').classList.remove('open');
+    toast('🗑',`Moved ${selected.length} model${selected.length===1?'':'s'} to Recycle Bin`);
+    return;
+  }
 };
 document.getElementById('crossModelBulkApplyBtn').onclick=()=>{
   const taskName=document.getElementById('crossTaskSelect').value;
