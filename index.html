@@ -9403,6 +9403,8 @@ function closeAssigneeDropdown(){
   const dd=document.getElementById('assigneeDropdown');
   if(dd) dd.classList.remove('open');
 }
+// Timestamp of the last open() call — see the scroll listener below for why.
+let _assigneeDropdownOpenedAt=0;
 function openAssigneeDropdown(triggerEl, idx, subIdx){
   const dd=document.getElementById('assigneeDropdown');
   const parentTask=(state[activeTab]||[])[idx];
@@ -9442,6 +9444,7 @@ function openAssigneeDropdown(triggerEl, idx, subIdx){
   // Position under the clicked avatar, flipping left if it would overflow.
   const rect=triggerEl.getBoundingClientRect();
   dd.classList.add('open'); // needs to be visible to measure its width
+  _assigneeDropdownOpenedAt=Date.now();
   const ddWidth=dd.offsetWidth||180;
   let left=rect.left;
   if(left+ddWidth>window.innerWidth-8) left=window.innerWidth-ddWidth-8;
@@ -9454,7 +9457,13 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#assigneeDropdown')||e.target.closest('.assignee-picker')) return;
   closeAssigneeDropdown();
 });
-document.addEventListener('scroll',closeAssigneeDropdown,true);
+// The click that opens this popover can itself trigger a scroll (e.g. the
+// browser auto-scrolling the trigger into view, or a touchpad/mobile fling
+// still settling) — that scroll event can land a few ms AFTER 'open' fires,
+// which would immediately close the popover before anyone can click it. A
+// short grace window after opening tells a genuine "user scrolled away"
+// apart from that same-gesture noise.
+document.addEventListener('scroll',()=>{ if(Date.now()-_assigneeDropdownOpenedAt>250) closeAssigneeDropdown(); },true);
 window.addEventListener('resize',closeAssigneeDropdown);
 
 // Status chip dropdown — same floating-menu pattern as the assignee picker,
@@ -9470,6 +9479,8 @@ function closeStatusDropdown(){
   const dd=document.getElementById('statusDropdown');
   if(dd) dd.classList.remove('open');
 }
+// Timestamp of the last open() call — see the scroll listener below for why.
+let _statusDropdownOpenedAt=0;
 function openStatusDropdown(triggerEl, idx, subIdx){
   const dd=document.getElementById('statusDropdown');
   const model=activeTab;
@@ -9495,6 +9506,7 @@ function openStatusDropdown(triggerEl, idx, subIdx){
 
   const rect=triggerEl.getBoundingClientRect();
   dd.classList.add('open'); // needs to be visible to measure its width
+  _statusDropdownOpenedAt=Date.now();
   const ddWidth=dd.offsetWidth||168;
   let left=rect.left;
   if(left+ddWidth>window.innerWidth-8) left=window.innerWidth-ddWidth-8;
@@ -9507,7 +9519,9 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#statusDropdown')||e.target.closest('.status-chip')) return;
   closeStatusDropdown();
 });
-document.addEventListener('scroll',closeStatusDropdown,true);
+// See the matching comment on the assignee-popover scroll listener above —
+// same same-gesture scroll-vs-open race, same short grace window fix.
+document.addEventListener('scroll',()=>{ if(Date.now()-_statusDropdownOpenedAt>250) closeStatusDropdown(); },true);
 window.addEventListener('resize',closeStatusDropdown);
 
 // Combined Notes / Comments / Deadline dropdown — replaces the three
@@ -9518,6 +9532,8 @@ function closeRowMenuDropdown(){
   const dd=document.getElementById('rowMenuDropdown');
   if(dd) dd.classList.remove('open');
 }
+// Timestamp of the last open() call — see the scroll listener below for why.
+let _rowMenuDropdownOpenedAt=0;
 function openRowMenuDropdown(triggerEl, model, idx, subIdx){
   const dd=document.getElementById('rowMenuDropdown');
   const task=(state[model]||[])[idx];
@@ -9551,6 +9567,7 @@ function openRowMenuDropdown(triggerEl, model, idx, subIdx){
 
   const rect=triggerEl.getBoundingClientRect();
   dd.classList.add('open'); // needs to be visible to measure its width
+  _rowMenuDropdownOpenedAt=Date.now();
   const ddWidth=dd.offsetWidth||210;
   let left=rect.left;
   if(left+ddWidth>window.innerWidth-8) left=window.innerWidth-ddWidth-8;
@@ -9572,7 +9589,15 @@ function rowMenuDropdownHasFocus(){
   const dd=document.getElementById('rowMenuDropdown');
   return !!(dd && document.activeElement && dd.contains(document.activeElement));
 }
-document.addEventListener('scroll',e=>{ if(!rowMenuDropdownHasFocus()) closeRowMenuDropdown(); },true);
+// The notes/comments menu items above aren't natively focusable, so
+// rowMenuDropdownHasFocus() alone can't tell "the open() call's own click
+// just nudged the page" apart from "the user actually scrolled away" — the
+// click that opens this menu can itself trigger a scroll (browser
+// auto-scrolling the trigger into view, or a touchpad/mobile fling still
+// settling), which was closing the menu within milliseconds of it opening,
+// before it could ever be clicked. A short grace window fixes that without
+// weakening the genuine "user scrolled the page" close.
+document.addEventListener('scroll',e=>{ if(Date.now()-_rowMenuDropdownOpenedAt>250 && !rowMenuDropdownHasFocus()) closeRowMenuDropdown(); },true);
 window.addEventListener('resize',()=>{ if(!rowMenuDropdownHasFocus()) closeRowMenuDropdown(); });
 
 function renderTaskList(){
