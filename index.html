@@ -490,6 +490,16 @@ footer {
   animation: fadeUp 0.6s ease both; animation-delay: 0.25s;
 }
 .model-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--border-hover); }
+/* Let the card's own clipping (overflow:hidden, used for its rounded corners)
+   get out of the way while a color-theme or stage picker inside it is open,
+   otherwise the popup panel is silently clipped by the card's own edges.
+   Also raise the card above its neighbors so the escaped panel isn't
+   overlapped by the next card in the grid. */
+.model-card:has(.model-picker-group.picker-open),
+.model-card:has(.model-picker-group:hover) {
+  overflow: visible;
+  z-index: 50;
+}
 .model-pin-btn {
   position: absolute; top: 14px; right: 14px; z-index: 3;
   width: 32px; height: 32px; border-radius: 50%;
@@ -632,13 +642,40 @@ footer {
 .model-stage-tag { font-size: 10px; letter-spacing: 0.6px; padding: 4px 9px; border-radius: 100px; font-weight: 600; text-transform: uppercase; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
 .models-grid.list-view .model-stage-tag { flex-shrink: 0; }
 
-.model-stage-btn { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; border: none; background: var(--surface2); color: var(--text-muted); cursor: pointer; transition: background 0.18s ease, color 0.18s ease; margin-left: 4px; }
-.model-stage-btn:hover, .model-stage-btn.picker-open { background: var(--surface3); color: var(--text); }
+.model-stage-btn { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; border: none; background: var(--surface2); color: var(--text-muted); cursor: pointer; transition: background 0.18s ease, color 0.18s ease; }
+.model-stage-btn:hover, .model-picker-group.picker-open .model-stage-btn { background: var(--surface3); color: var(--text); }
 
-.model-stage-menu { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
-.model-stage-option { font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; padding: 5px 10px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+.model-stage-menu { flex-direction: column; gap: 6px; min-width: 150px; max-height: 260px; overflow-y: auto; }
+.model-stage-menu::-webkit-scrollbar { width: 6px; }
+.model-stage-menu::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
+.model-stage-option { font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; padding: 6px 10px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
 .model-stage-option:hover { background: var(--surface3); color: var(--text); }
 .model-stage-option.clear-option { color: var(--text-muted); }
+
+/* ── HOVER-TO-OPEN PICKER GROUPS (color theme / stage) ── */
+/* Opens UPWARD from the button (not downward) because .model-card has
+   overflow:hidden for its rounded corners/cover art, and these buttons sit
+   near the bottom of the card — a downward panel would get clipped. */
+.model-picker-group { position: relative; display: inline-flex; margin-left: 4px; }
+.model-picker-group .picker-panel {
+  display: none; position: absolute; bottom: calc(100% + 8px); top: auto; right: 0; z-index: 60;
+  background: var(--surface1, var(--surface2)); border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.4); animation: fadeDown 0.15s ease both;
+}
+.model-picker-group .picker-panel::before {
+  content: ''; position: absolute; top: 100%; right: 10px; width: 10px; height: 10px;
+  background: var(--surface1, var(--surface2)); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  transform: rotate(45deg); border-radius: 0 0 2px 0; margin-top: -5px;
+}
+.model-picker-group:hover .picker-panel,
+.model-picker-group.picker-open .picker-panel,
+.model-picker-group .picker-panel:hover { display: flex; }
+/* small invisible bridge so the cursor can travel from button up into the panel without the gap closing it */
+.model-picker-group::after {
+  content: ''; position: absolute; bottom: 100%; right: 0; left: 0; height: 8px;
+}
+.models-grid.list-view .model-picker-group .picker-panel { right: auto; left: 0; }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ── STAGE FILTER CHIPS (All / Manufacturing / SKD / Upcoming / Launched) ── */
 .stage-filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: -8px 0 20px; }
@@ -687,15 +724,12 @@ footer {
   background: none; border: 1px solid transparent; border-radius: 8px;
   width: 26px; height: 26px; padding: 0; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: var(--text-muted); font-size: 13px; margin-left: 4px;
+  color: var(--text-muted); font-size: 13px;
   transition: background 0.18s, border-color 0.18s, color 0.18s;
 }
-.model-color-btn:hover { background: rgba(255,255,255,0.06); border-color: var(--border); color: var(--text); }
-.model-color-btn.picker-open { background: rgba(255,255,255,0.08); border-color: var(--border-hover); color: var(--text); }
+.model-color-btn:hover, .model-picker-group.picker-open .model-color-btn { background: rgba(255,255,255,0.06); border-color: var(--border); color: var(--text); }
 .model-color-swatches-row {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
-  animation: fadeUp 0.2s ease both;
+  align-items: center; gap: 8px; flex-wrap: wrap; width: 160px;
 }
 .model-color-swatch {
   width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent;
@@ -791,7 +825,7 @@ footer {
   .models-grid.list-view .progress-bar-wrap { width: 100%; order: 5; }
   .models-grid.list-view .model-stats { order: 6; }
 }
-.models-grid.list-view .model-color-swatches-row { flex-basis: 100%; margin-top: 8px; padding-top: 8px; }
+
 
 /* ── ARCHIVE CARD ── */
 .model-card.archived { cursor: default; opacity: 0.85; }
@@ -4690,6 +4724,7 @@ document.addEventListener('keydown', e => {
           <option value="waiting">⏳ Move to Waiting</option>
           <option value="archive">🗄 Archive</option>
           <option value="colortheme">🎨 Set Color Theme</option>
+          <option value="stage">🏷 Set Stage</option>
           <option value="duplicate">⧉ Duplicate</option>
           <option value="template">📑 Save as Template</option>
           <option value="delete">🗑 Delete</option>
@@ -4710,6 +4745,12 @@ document.addEventListener('keydown', e => {
       <div class="crossmodel-field-group" id="allModelsColorFields" style="display:none;">
         <label class="crossmodel-field-label">Color Theme</label>
         <div id="allModelsColorSwatches" style="display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;"></div>
+      </div>
+
+      <!-- Stage action fields -->
+      <div class="crossmodel-field-group" id="allModelsStageFields" style="display:none;">
+        <label class="crossmodel-field-label">Stage</label>
+        <div id="allModelsStageOptions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:200px;overflow-y:auto;"></div>
       </div>
 
       <div class="crossmodel-select-all-row">
@@ -7528,21 +7569,25 @@ function renderModelCards(){
           <button class="row-action-btn archive model-card-action-btn model-archive-btn" title="Archive model" style="width:26px;height:26px;font-size:13px;margin-left:4px;" data-model="${m}">🗄</button>
           <button class="row-action-btn archive model-card-action-btn model-wait-btn" title="Move to Waiting" style="width:26px;height:26px;font-size:13px;margin-left:2px;" data-model="${m}">⏳</button>
           <button class="row-action-btn delete model-card-action-btn model-delete-btn" title="Delete model" style="width:26px;height:26px;font-size:13px;margin-left:2px;" data-model="${m}">🗑</button>
-          <button class="model-color-btn model-card-action-btn${colorPickerModel===m?' picker-open':''}" title="Color theme" data-model="${m}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C22 6.012 17.461 2 12 2z"/></svg>
-          </button>
-          <button class="model-stage-btn model-card-action-btn${stagePickerModel===m?' picker-open':''}" title="Set stage (Manufacturing / SKD / Upcoming / Launched)" data-model="${m}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.5V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.5"/><path d="M2 8.5 12 3l10 5.5"/><path d="M12 3v18"/></svg>
-          </button>
-        </div>${colorPickerModel===m?`
-        <div class="model-color-swatches-row">
-          ${MODEL_THEME_PALETTES.map((p,i)=>`<button class="model-color-swatch${modelColorThemes[m]===i?' selected':''}" style="background:${p.swatch}" title="${p.label}" data-model="${m}" data-theme-idx="${i}"></button>`).join('')}
-          <button class="model-color-swatch-auto${modelColorThemes[m]===undefined?' selected':''}" title="Reset to default" data-model="${m}">↺</button>
-        </div>`:''}${stagePickerModel===m?`
-        <div class="model-stage-menu">
-          ${stageDefs.map(sd=>`<button class="model-stage-option${modelStages[m]===sd.key?' selected':''}" style="${modelStages[m]===sd.key?`background:${stageColor(sd.key)}22;color:${stageColor(sd.key)};border-color:${stageColor(sd.key)}66;`:''}" data-model="${m}" data-stage-val="${sd.key}"><span class="manage-stage-dot" style="background:${stageColor(sd.key)}"></span>${escHtml(sd.label)}</button>`).join('')}
-          <button class="model-stage-option clear-option" data-model="${m}" data-stage-val="">✕ None</button>
-        </div>`:''}`;
+          <div class="model-picker-group${colorPickerModel===m?' picker-open':''}">
+            <button class="model-color-btn model-card-action-btn" title="Color theme" data-model="${m}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C22 6.012 17.461 2 12 2z"/></svg>
+            </button>
+            <div class="model-color-swatches-row picker-panel">
+              ${MODEL_THEME_PALETTES.map((p,i)=>`<button class="model-color-swatch${modelColorThemes[m]===i?' selected':''}" style="background:${p.swatch}" title="${p.label}" data-model="${m}" data-theme-idx="${i}"></button>`).join('')}
+              <button class="model-color-swatch-auto${modelColorThemes[m]===undefined?' selected':''}" title="Reset to default" data-model="${m}">↺</button>
+            </div>
+          </div>
+          <div class="model-picker-group${stagePickerModel===m?' picker-open':''}">
+            <button class="model-stage-btn model-card-action-btn" title="Set stage" data-model="${m}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.5V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.5"/><path d="M2 8.5 12 3l10 5.5"/><path d="M12 3v18"/></svg>
+            </button>
+            <div class="model-stage-menu picker-panel">
+              ${stageDefs.map(sd=>`<button class="model-stage-option${modelStages[m]===sd.key?' selected':''}" style="${modelStages[m]===sd.key?`background:${stageColor(sd.key)}22;color:${stageColor(sd.key)};border-color:${stageColor(sd.key)}66;`:''}" data-model="${m}" data-stage-val="${sd.key}"><span class="manage-stage-dot" style="background:${stageColor(sd.key)}"></span>${escHtml(sd.label)}</button>`).join('')}
+              <button class="model-stage-option clear-option" data-model="${m}" data-stage-val="">✕ None</button>
+            </div>
+          </div>
+        </div>`;
     const dlHtml=dl
       ?`<div>
           <div class="model-deadline-row">
@@ -12356,11 +12401,13 @@ document.getElementById('crossModelBulkModal').onclick=e=>{
 // Not to be confused with #bulkDeadlineModal elsewhere in the file, which
 // bulk-sets task/subtask deadlines within a single model.
 let bulkModelColorIdx=null; // null = "Auto" (reset to default cycling theme)
+let bulkModelStageVal=undefined; // undefined = nothing picked yet (must choose before applying); '' = None/clear
 const BULK_MODEL_ACTION_META={
   deadline:{title:'Bulk Set Deadlines',subtitle:'Choose which models to update, then set or clear their deadline in one go.',applyText:'Apply',danger:false},
   waiting:{title:'Bulk Move to Waiting',subtitle:'Choose which models to move to the Waiting view.',applyText:'Move to Waiting',danger:false},
   archive:{title:'Bulk Archive',subtitle:'Choose which models to archive.',applyText:'Archive',danger:false},
   colortheme:{title:'Bulk Set Color Theme',subtitle:'Choose which models to update, then pick a color theme for all of them.',applyText:'Apply Theme',danger:false},
+  stage:{title:'Bulk Set Stage',subtitle:'Choose which models to update, then pick a stage for all of them.',applyText:'Apply Stage',danger:false},
   duplicate:{title:'Bulk Duplicate',subtitle:'Choose which models to duplicate. Each gets its own "(Copy)" model.',applyText:'Duplicate',danger:false},
   template:{title:'Bulk Save as Template',subtitle:'Choose which models to save. Each checklist is saved as a template named after its model.',applyText:'Save Templates',danger:false},
   delete:{title:'Bulk Delete',subtitle:'Choose which models to delete. They\'ll be moved to the Recycle Bin (kept for 30 days).',applyText:'Delete Selected',danger:true}
@@ -12373,6 +12420,7 @@ document.getElementById('bulkModelDeadlineBtn').onclick=()=>{
   document.getElementById('allModelsDeadlineDate').style.display='block';
   document.getElementById('allModelsDeadlineDate').value='';
   bulkModelColorIdx=null;
+  bulkModelStageVal=undefined;
   renderAllModelsActionFields();
   renderAllModelsDeadlineList();
   document.getElementById('allModelsDeadlineModal').classList.add('open');
@@ -12387,6 +12435,15 @@ function renderAllModelsColorSwatches(){
   });
   wrap.querySelector('.model-color-swatch-auto').onclick=()=>{ bulkModelColorIdx=null; renderAllModelsColorSwatches(); };
 }
+function renderAllModelsStageOptions(){
+  const wrap=document.getElementById('allModelsStageOptions');
+  wrap.innerHTML = stageDefs.map(sd=>
+    `<button class="model-stage-option${bulkModelStageVal===sd.key?' selected':''}" style="${bulkModelStageVal===sd.key?`background:${stageColor(sd.key)}22;color:${stageColor(sd.key)};border-color:${stageColor(sd.key)}66;`:''}" data-stage-val="${sd.key}"><span class="manage-stage-dot" style="background:${stageColor(sd.key)}"></span>${escHtml(sd.label)}</button>`
+  ).join('') + `<button class="model-stage-option clear-option${bulkModelStageVal===''?' selected':''}" data-stage-val="">✕ None</button>`;
+  wrap.querySelectorAll('.model-stage-option').forEach(opt=>{
+    opt.onclick=()=>{ bulkModelStageVal=opt.dataset.stageVal; renderAllModelsStageOptions(); };
+  });
+}
 function renderAllModelsActionFields(){
   const action=document.getElementById('allModelsActionSelect').value;
   const meta=BULK_MODEL_ACTION_META[action];
@@ -12394,7 +12451,9 @@ function renderAllModelsActionFields(){
   document.getElementById('allModelsActionSubtitle').textContent=meta.subtitle;
   document.getElementById('allModelsDeadlineFields').style.display = action==='deadline' ? '' : 'none';
   document.getElementById('allModelsColorFields').style.display = action==='colortheme' ? '' : 'none';
+  document.getElementById('allModelsStageFields').style.display = action==='stage' ? '' : 'none';
   if(action==='colortheme') renderAllModelsColorSwatches();
+  if(action==='stage') renderAllModelsStageOptions();
   const applyBtn=document.getElementById('allModelsDeadlineApplyBtn');
   applyBtn.textContent=meta.applyText;
   applyBtn.classList.toggle('danger',meta.danger);
@@ -12484,6 +12543,19 @@ document.getElementById('allModelsDeadlineApplyBtn').onclick=async()=>{
     save();renderAll();
     document.getElementById('allModelsDeadlineModal').classList.remove('open');
     toast('🎨',`Color theme updated for ${selected.length} model${selected.length===1?'':'s'}`);
+    return;
+  }
+
+  if(action==='stage'){
+    if(bulkModelStageVal===undefined){ await showAlert({title:'Pick a stage',message:'Choose a stage (or None) before applying.',tone:'warn'}); return; }
+    selected.forEach(m=>{
+      if(bulkModelStageVal==='') delete modelStages[m];
+      else modelStages[m]=bulkModelStageVal;
+    });
+    save();renderAll();
+    document.getElementById('allModelsDeadlineModal').classList.remove('open');
+    const sd=stageDef(bulkModelStageVal);
+    toast(sd?'🏷':'✕', sd?`Stage set to ${sd.label} for ${selected.length} model${selected.length===1?'':'s'}`:`Stage cleared for ${selected.length} model${selected.length===1?'':'s'}`);
     return;
   }
 
