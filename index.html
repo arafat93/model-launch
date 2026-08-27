@@ -681,6 +681,35 @@ footer {
 .stage-filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: -8px 0 20px; }
 .manage-stage-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
 .manage-stages-btn { background: transparent; border-style: dashed; }
+
+/* Hover-to-reveal group for the stage filter row: only "All" (plus whichever
+   stage is currently selected, if any) sits in the row itself — the full set
+   of stage options lives in a flyout panel that opens on hovering "All",
+   same hover-to-open pattern as the per-model stage picker on model cards.
+   The panel opens to the right of "All" (not below it) so it reads as a
+   continuation of the same row, matching how the stage chips used to sit
+   inline before they were tucked behind this hover trigger. */
+.stage-filter-group { position: relative; display: inline-flex; align-items: center; gap: 10px; }
+.stage-filter-chip.all-chip { display: inline-flex; align-items: center; gap: 6px; }
+.stage-filter-caret { display: inline-flex; opacity: 0.6; transition: transform 0.18s ease; transform: rotate(-90deg); }
+.stage-filter-group:hover .stage-filter-caret,
+.stage-filter-group.panel-open .stage-filter-caret { opacity: 1; }
+.stage-filter-panel {
+  display: none; position: absolute; top: 50%; left: calc(100% + 8px); transform: translateY(-50%); z-index: 60;
+  flex-wrap: wrap; gap: 8px; max-width: 560px; width: max-content;
+  background: var(--surface1, var(--surface2)); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  animation: fadeRight 0.15s ease both;
+}
+.stage-filter-group:hover .stage-filter-panel,
+.stage-filter-group.panel-open .stage-filter-panel,
+.stage-filter-panel:hover { display: flex; }
+/* Small invisible bridge so the cursor can travel from the "All" chip
+   sideways into the panel without the gap between them closing it early. */
+.stage-filter-group::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 100%; width: 8px;
+}
+@keyframes fadeRight { from { opacity: 0; transform: translateY(-50%) translateX(-6px); } to { opacity: 1; transform: translateY(-50%) translateX(0); } }
 .manage-stage-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--border); }
 .manage-stage-row:last-child { border-bottom: none; }
 .manage-stage-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-family: inherit; font-size: 13px; font-weight: 500; }
@@ -4401,6 +4430,7 @@ document.addEventListener('keydown', e => {
 <!-- ASSIGNEE PICKER DROPDOWN (single shared instance, positioned per-click) -->
 <div class="assignee-dropdown" id="assigneeDropdown"></div>
 <div class="status-dropdown" id="statusDropdown"></div>
+<div class="status-dropdown" id="priorityDropdown"></div>
 <div class="row-menu-dropdown" id="rowMenuDropdown"></div>
 <div class="select-all-menu" id="selectAllMenu"></div>
 
@@ -6300,7 +6330,7 @@ function slugifyStageKey(label){
   while(stageDefs.some(sd=>sd.key===key)) key=`${base}-${n++}`;
   return key;
 }
-let modelStageFilter=localStorage.getItem('mlc_modelStageFilter')||'all'; // 'all' | one of stageDefs keys
+let modelStageFilter=localStorage.getItem('mlc_modelStageFilter')||'all'; // 'all' | '__unassigned__' | one of stageDefs keys
 try{ const _rawStageDefs=localStorage.getItem('mlc_stageDefs'); if(_rawStageDefs){ const parsed=JSON.parse(_rawStageDefs); if(Array.isArray(parsed)&&parsed.length) stageDefs=parsed; } }catch(e){}
 seedStageDefsIfNeeded();
 function saveStageDefs(){ try{ localStorage.setItem('mlc_stageDefs',JSON.stringify(stageDefs)); }catch(e){} }
@@ -6643,6 +6673,7 @@ function moveSubtask(model,idx,sIdx,dir){if(!canEdit()){notifyViewOnly();return;
   save(); renderAll();
 }
 function setSubPriority(model,idx,sIdx,p){if(!canEdit()){notifyViewOnly();return;}
+  closePriorityDropdown();
   getSubtasks(model,idx)[sIdx].priority=p; save(); renderAll();
 }
 
@@ -6818,6 +6849,7 @@ function jumpToOverdueTask(model,idx,subIdx){
   if(isSubtaskJump && task) expandedSubtasksSet.add(subKey(model,idx));
   renderTabs();
   renderTaskList();
+  renderKPIs();
   scrollToTaskChecklist();
   // The search box was only filled in to pinpoint this one task — clear it
   // again on the next click elsewhere, but not if that click lands inside
@@ -6958,6 +6990,7 @@ function jumpToSearchResult(it){
   }
   renderTabs();
   renderTaskList();
+  renderKPIs();
   scrollToTaskChecklist();
   if(it.type!=='model'){
     if(_pinpointClearHandler) document.removeEventListener('click',_pinpointClearHandler);
@@ -7409,13 +7442,37 @@ function renderStageFilterRow(){
   const row=document.getElementById('stageFilterRow');
   if(!row) return;
   const active=refreshedActiveModelNames();
-  const chips=[`<button class="filter-btn stage-filter-chip${modelStageFilter==='all'?' active':''}" data-stage="all">All<span class="filter-count">${active.length}</span></button>`]
-    .concat(stageDefs.map(sd=>{
-      const n=active.filter(m=>modelStages[m]===sd.key).length;
-      return `<button class="filter-btn stage-filter-chip${modelStageFilter===sd.key?' active':''}" data-stage="${sd.key}">${escHtml(sd.label)}<span class="filter-count">${n}</span></button>`;
-    }));
-  chips.push(`<button class="filter-btn manage-stages-btn" id="manageStagesBtn" title="Add, rename, or remove stages">⚙ Manage stages</button>`);
-  row.innerHTML=chips.join('');
+  const unassignedCount=active.filter(m=>!modelStages[m]).length;
+
+  const unassignedChipHtml=`<button class="filter-btn stage-filter-chip${modelStageFilter==='__unassigned__'?' active':''}" data-stage="__unassigned__">Unassigned<span class="filter-count">${unassignedCount}</span></button>`;
+  const stageChipsHtml=stageDefs.map(sd=>{
+    const n=active.filter(m=>modelStages[m]===sd.key).length;
+    return `<button class="filter-btn stage-filter-chip${modelStageFilter===sd.key?' active':''}" data-stage="${sd.key}">${escHtml(sd.label)}<span class="filter-count">${n}</span></button>`;
+  }).join('');
+
+  // The currently-selected stage (if any) stays visible in the row itself
+  // alongside "All", so the applied filter is clear without needing to
+  // hover — only the *other*, non-selected options live in the flyout.
+  let currentChipOutsidePanel='';
+  if(modelStageFilter==='__unassigned__') currentChipOutsidePanel=unassignedChipHtml;
+  else if(modelStageFilter!=='all'){
+    const sd=stageDef(modelStageFilter);
+    if(sd) currentChipOutsidePanel=`<button class="filter-btn stage-filter-chip active" data-stage="${sd.key}">${escHtml(sd.label)}<span class="filter-count">${active.filter(m=>modelStages[m]===sd.key).length}</span></button>`;
+  }
+
+  row.innerHTML=`
+    <div class="stage-filter-group" id="stageFilterGroup">
+      <button class="filter-btn stage-filter-chip all-chip${modelStageFilter==='all'?' active':''}" data-stage="all">All<span class="filter-count">${active.length}</span>
+        <span class="stage-filter-caret" id="stageFilterCaretBtn" title="Show all stages"><svg width="9" height="6" viewBox="0 0 8 6"><path d="M4 6L0 0H8Z" fill="currentColor"/></svg></span>
+      </button>
+      ${currentChipOutsidePanel}
+      <div class="stage-filter-panel">
+        ${unassignedChipHtml}
+        ${stageChipsHtml}
+      </div>
+    </div>
+    <button class="filter-btn manage-stages-btn" id="manageStagesBtn" title="Add, rename, or remove stages">⚙ Manage stages</button>`;
+
   row.querySelectorAll('.stage-filter-chip').forEach(btn=>{
     btn.addEventListener('click',()=>{
       modelStageFilter=btn.dataset.stage;
@@ -7426,7 +7483,27 @@ function renderStageFilterRow(){
   });
   const manageBtn=document.getElementById('manageStagesBtn');
   if(manageBtn) manageBtn.addEventListener('click',openManageStagesModal);
+
+  // Tap-to-toggle for touch devices, where CSS :hover never fires — tapping
+  // the little caret opens/closes the flyout without changing the filter
+  // itself (stopPropagation keeps it from also triggering the "All" chip's
+  // own click handler above, since the caret sits nested inside that button).
+  const caretBtn=document.getElementById('stageFilterCaretBtn');
+  if(caretBtn){
+    caretBtn.addEventListener('click',e=>{
+      e.stopPropagation();
+      document.getElementById('stageFilterGroup')?.classList.toggle('panel-open');
+    });
+  }
 }
+// Closes the tap-opened stage filter flyout when clicking anywhere outside
+// it. Attached once here rather than inside renderStageFilterRow (which
+// reruns on every filter click) so repeated re-renders don't stack up
+// duplicate document-level listeners over a long session.
+document.addEventListener('click',e=>{
+  if(e.target.closest('#stageFilterGroup')) return;
+  document.getElementById('stageFilterGroup')?.classList.remove('panel-open');
+});
 
 function openManageStagesModal(){
   renderManageStagesList();
@@ -7540,13 +7617,17 @@ function renderModelCards(){
   emptyState.classList.remove('show');
 
   const stageEmptyState=document.getElementById('modelsStageEmptyState');
-  const visibleModels=modelStageFilter==='all' ? models : models.filter(m=>modelStages[m]===modelStageFilter);
+  const visibleModels=modelStageFilter==='all' ? models
+    : modelStageFilter==='__unassigned__' ? models.filter(m=>!modelStages[m])
+    : models.filter(m=>modelStages[m]===modelStageFilter);
   if(!visibleModels.length){
     grid.style.display='none';
     if(stageEmptyState){
       const sd=stageDef(modelStageFilter);
       stageEmptyState.style.display='';
-      stageEmptyState.innerHTML=`No models currently marked <strong>${sd?sd.label:modelStageFilter}</strong>.`;
+      stageEmptyState.innerHTML=modelStageFilter==='__unassigned__'
+        ? `No unassigned models — every model has a stage set.`
+        : `No models currently marked <strong>${sd?sd.label:modelStageFilter}</strong>.`;
     }
     return;
   }
@@ -8048,6 +8129,20 @@ document.getElementById('liveBadge').onclick=()=>{ setArchiveView(false); setWai
   var modal  = document.getElementById('logoEditModal');
   var titleEl= document.getElementById('logoTitle');
 
+  // Restore a previously saved custom title — otherwise a refresh would
+  // silently reset the header back to the "Model Launch Control" default,
+  // since the Save button below only ever touched the DOM, never storage.
+  try{
+    var savedLogo=localStorage.getItem('mlc_logoTitle');
+    if(savedLogo){
+      var lw=JSON.parse(savedLogo);
+      if(lw&&lw.w1&&lw.w2&&lw.w3){
+        titleEl.innerHTML=lw.w1+' <span id="logoAccent" style="color:var(--accent1);font-weight:400;">'+lw.w2+'</span> '+lw.w3;
+        document.title=lw.w1+' '+lw.w2+' '+lw.w3;
+      }
+    }
+  }catch(e){}
+
   document.getElementById('logoHomeBtn').onclick=()=>{ window.location.reload(); };
 
   document.getElementById('logoEditSave').onclick=function(){
@@ -8056,6 +8151,7 @@ document.getElementById('liveBadge').onclick=()=>{ setArchiveView(false); setWai
     var w3=document.getElementById('editWord3').value.trim()||'Control';
     titleEl.innerHTML=w1+' <span id="logoAccent" style="color:var(--accent1);font-weight:400;">'+w2+'</span> '+w3;
     document.title=w1+' '+w2+' '+w3;
+    try{ localStorage.setItem('mlc_logoTitle', JSON.stringify({w1:w1,w2:w2,w3:w3})); }catch(e){}
     modal.style.display='none';
   };
 
@@ -9625,7 +9721,7 @@ function renderTabs(){
       if(_didDrag){ _didDrag=false; return; }
       activeTab=m;localStorage.setItem('mlc_activeTab',m);editingIdx=null;selectedTasks.clear();selectedSubtasks.clear();
       const gScroll=document.getElementById('ganttTimelineScroll'); if(gScroll) gScroll.dataset.scrolledOnce='';
-      renderTabs();renderTaskList();scrollToTaskChecklist();
+      renderTabs();renderTaskList();renderKPIs();scrollToTaskChecklist();
     };
     if(!isCompare){
       btn.draggable=true;
@@ -9789,6 +9885,7 @@ function closeStatusDropdown(){
 let _statusDropdownOpenedAt=0;
 function openStatusDropdown(triggerEl, idx, subIdx){
   const dd=document.getElementById('statusDropdown');
+  closePriorityDropdown();
   const model=activeTab;
   const task=(state[model]||[])[idx];
   if(!dd||!task) return;
@@ -9829,6 +9926,94 @@ document.addEventListener('click',e=>{
 // same same-gesture scroll-vs-open race, same short grace window fix.
 document.addEventListener('scroll',()=>{ if(Date.now()-_statusDropdownOpenedAt>250) closeStatusDropdown(); },true);
 window.addEventListener('resize',closeStatusDropdown);
+
+// Priority mini-dropdown — same floating-menu pattern as the status dropdown
+// above, just listing High / Med / Low instead of the status options.
+const PRIORITY_OPTIONS=[
+  {key:'high', label:'High', color:'var(--red)'},
+  {key:'med',  label:'Med',  color:'var(--yellow)'},
+  {key:'low',  label:'Low',  color:'var(--green)'}
+];
+function closePriorityDropdown(){
+  const dd=document.getElementById('priorityDropdown');
+  if(dd) dd.classList.remove('open');
+}
+let _priorityDropdownOpenedAt=0;
+function openPriorityDropdown(triggerEl, idx, subIdx){
+  const dd=document.getElementById('priorityDropdown');
+  closeStatusDropdown();
+  const model=activeTab;
+  const task=(state[model]||[])[idx];
+  if(!dd||!task) return;
+  const target=subIdx==null?task:(getSubtasks(model,idx)[subIdx]);
+  if(!target) return;
+  const current=target.priority||'med';
+
+  dd.innerHTML=PRIORITY_OPTIONS.map(opt=>`
+    <div class="status-dropdown-item${opt.key===current?' selected':''}" data-priority="${opt.key}">
+      <span class="status-dropdown-dot" style="background:${opt.color};"></span>
+      <span>${opt.label}</span>
+    </div>`).join('');
+
+  dd.querySelectorAll('.status-dropdown-item').forEach(item=>{
+    item.onclick=()=>{
+      const newPriority=item.dataset.priority;
+      if(subIdx==null) setTaskPriority(model,idx,newPriority);
+      else setSubPriority(model,idx,subIdx,newPriority);
+    };
+  });
+
+  const rect=triggerEl.getBoundingClientRect();
+  dd.classList.add('open'); // needs to be visible to measure its width
+  _priorityDropdownOpenedAt=Date.now();
+  const ddWidth=dd.offsetWidth||168;
+  let left=rect.left;
+  if(left+ddWidth>window.innerWidth-8) left=window.innerWidth-ddWidth-8;
+  dd.style.left=Math.max(8,left)+'px';
+  dd.style.top=(rect.bottom+6)+'px';
+}
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('priorityDropdown');
+  if(!dd||!dd.classList.contains('open')) return;
+  if(e.target.closest('#priorityDropdown')||e.target.closest('.priority-badge')) return;
+  closePriorityDropdown();
+});
+document.addEventListener('scroll',()=>{ if(Date.now()-_priorityDropdownOpenedAt>250) closePriorityDropdown(); },true);
+window.addEventListener('resize',closePriorityDropdown);
+
+// ── HOVER-TO-OPEN support for the status & priority mini-dropdowns ──
+// Mirrors the hover-to-open picker used for the model stage selector on
+// model cards: hovering the badge/chip previews the options immediately,
+// same as clicking it. A short close delay lets the cursor travel from the
+// trigger up into the floating panel without it snapping shut mid-move.
+// Each dropdown gets its OWN close timer — sharing one timer between status
+// and priority meant hovering from one chip straight into the other cancelled
+// the first dropdown's pending close instead of actually closing it, leaving
+// both open on screen at once.
+const _miniDropdownCloseTimers={status:null,priority:null};
+function cancelMiniDropdownClose(which){ if(_miniDropdownCloseTimers[which]){clearTimeout(_miniDropdownCloseTimers[which]);_miniDropdownCloseTimers[which]=null;} }
+function scheduleMiniDropdownClose(which,closeFn){ cancelMiniDropdownClose(which); _miniDropdownCloseTimers[which]=setTimeout(closeFn,220); }
+function attachMiniDropdownTrigger(el,which,openFn,closeFn){
+  if(!el) return;
+  el.addEventListener('mouseenter',()=>{
+    cancelMiniDropdownClose(which);
+    // Opening one always closes the other — belt-and-suspenders on top of
+    // the per-dropdown timers above, so the two panels can never both be
+    // visible at the same time even if a hover event is missed.
+    if(which==='status') closePriorityDropdown(); else closeStatusDropdown();
+    openFn();
+  });
+  el.addEventListener('mouseleave',()=>{ scheduleMiniDropdownClose(which,closeFn); });
+}
+['statusDropdown','priorityDropdown'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(!el) return;
+  const which=id==='statusDropdown'?'status':'priority';
+  const closeFn=id==='statusDropdown'?closeStatusDropdown:closePriorityDropdown;
+  el.addEventListener('mouseenter',()=>cancelMiniDropdownClose(which));
+  el.addEventListener('mouseleave',()=>scheduleMiniDropdownClose(which,closeFn));
+});
+
 
 // Combined Notes / Comments / Deadline dropdown — replaces the three
 // separate per-row icons with a single trigger + floating menu, following
@@ -10192,13 +10377,9 @@ function renderTaskList(){
       updateBulkBar();renderTaskList();
     };
 
-    row.querySelector('.priority-badge').onclick=e=>{
-      e.stopPropagation();
-      if(!canEdit()){notifyViewOnly();return;}
-      const cycle={high:'low',med:'high',low:'med'};
-      task.priority=cycle[task.priority||'med'];
-      save();renderAll();
-    };
+    const prioBtnEl=row.querySelector('.priority-badge');
+    prioBtnEl.onclick=e=>{e.stopPropagation();openPriorityDropdown(e.currentTarget,idx,null);};
+    attachMiniDropdownTrigger(prioBtnEl, 'priority', ()=>openPriorityDropdown(prioBtnEl,idx,null), closePriorityDropdown);
 
     const assigneePickerEl=row.querySelector('.assignee-picker');
     if(assigneePickerEl){
@@ -10234,7 +10415,9 @@ function renderTaskList(){
       input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commit();}if(e.key==='Escape'){e.preventDefault();cancel();}});
       input.onclick=e=>e.stopPropagation();
     } else {
-      row.querySelector('.status-chip').onclick=e=>{e.stopPropagation();openStatusDropdown(e.currentTarget,idx,null);};
+      const statusChipEl=row.querySelector('.status-chip');
+      statusChipEl.onclick=e=>{e.stopPropagation();openStatusDropdown(e.currentTarget,idx,null);};
+      attachMiniDropdownTrigger(statusChipEl, 'status', ()=>openStatusDropdown(statusChipEl,idx,null), closeStatusDropdown);
       row.querySelector('.edit').onclick=e=>{e.stopPropagation();editingIdx=idx;renderTaskList();};
       row.querySelector('.move-up').onclick=e=>{e.stopPropagation();moveTask(activeTab,idx,-1);};
       row.querySelector('.move-down').onclick=e=>{e.stopPropagation();moveTask(activeTab,idx,1);};
@@ -10430,7 +10613,7 @@ function renderTaskList(){
         <div class="subtask-name-cell">
           <span class="subtask-name${sub.done?' done':''}">${escHtml(sub.name)}</span>
         </div>
-        <div><button class="priority-badge ${prioClass2[sub.priority||'med']}" title="Click to cycle priority">${prioMap2[sub.priority||'med']}</button></div>
+        <div><button class="priority-badge ${prioClass2[sub.priority||'med']}" title="Set priority">${prioMap2[sub.priority||'med']}</button></div>
         <div style="display:flex;align-items:center;justify-content:center;"><button class="status-chip ${sub.done?'done':(sub.status==='inprogress'?'inprogress':'pending')}"><span class="chip-dot"></span>${sub.done?'Done':(sub.status==='inprogress'?'In Progress':'Pending')}</button></div>
         ${subDueHtml}
         <div class="task-icons-cell">
@@ -10493,12 +10676,12 @@ function renderTaskList(){
         clearSubSelectionsForTask(activeTab,idx);
         save();renderAll();
       });
-      sRow.querySelector('.status-chip').onclick=e=>{e.stopPropagation();openStatusDropdown(e.currentTarget,idx,sIdx);};
-      sRow.querySelector('.priority-badge').onclick=e=>{
-        e.stopPropagation();
-        const cyc={high:'low',med:'high',low:'med'};
-        setSubPriority(activeTab,idx,sIdx,cyc[sub.priority||'med']);
-      };
+      const subStatusChipEl=sRow.querySelector('.status-chip');
+      subStatusChipEl.onclick=e=>{e.stopPropagation();openStatusDropdown(e.currentTarget,idx,sIdx);};
+      attachMiniDropdownTrigger(subStatusChipEl, 'status', ()=>openStatusDropdown(subStatusChipEl,idx,sIdx), closeStatusDropdown);
+      const subPrioBtnEl=sRow.querySelector('.priority-badge');
+      subPrioBtnEl.onclick=e=>{e.stopPropagation();openPriorityDropdown(e.currentTarget,idx,sIdx);};
+      attachMiniDropdownTrigger(subPrioBtnEl, 'priority', ()=>openPriorityDropdown(subPrioBtnEl,idx,sIdx), closePriorityDropdown);
       sRow.querySelector('.row-menu-trigger').onclick=e=>{
         e.stopPropagation();
         openRowMenuDropdown(e.currentTarget,activeTab,idx,sIdx);
@@ -11159,6 +11342,16 @@ let sortDir='asc'; // 'asc'|'desc'
 // stable until the user explicitly re-clicks the Priority header.
 let prioritySortSnapshot=null; // Map<task, rank> | null
 
+function setTaskPriority(model,idx,newPriority){if(!canEdit()){notifyViewOnly();return;}
+  const task=state[model][idx]; if(!task) return;
+  closePriorityDropdown();
+  if((task.priority||'med')===newPriority) return;
+  task.priority=newPriority;
+  save(); renderAll();
+  const lbl={high:'High',med:'Med',low:'Low'}[newPriority];
+  toast('⚑',`Priority set to ${lbl}: ${task.name.slice(0,28)}`);
+  logActivity('⚑',`set priority to ${lbl} for "${task.name}"`,model);
+}
 function setTaskStatus(model,idx,newStatus){if(!canEdit()){notifyViewOnly();return;}
   const task=state[model][idx];
   if(!task) return;
