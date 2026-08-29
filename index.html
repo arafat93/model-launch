@@ -3574,26 +3574,25 @@ img { -webkit-user-drag: none; }
   margin-left: auto; font-size: 10.5px; color: var(--accent1);
   background: var(--accent1-dim); padding: 2px 8px; border-radius: 20px; font-weight: 600;
 }
-.team-member-role-tag {
-  margin-left: auto; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
-  width: 24px; height: 24px; border-radius: 50%; color: var(--green);
-  background: rgba(16,185,129,0.12);
-}
-.team-member-role-tag.is-viewer { color: var(--text-muted); background: var(--surface3); }
-.team-member-role-toggle-btn {
-  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
-  background: var(--surface3); border: 1px solid var(--border); color: var(--text);
+/* Tri-state role pill (Viewer / Editor / Admin). Interactive rows are a
+   clickable button that cycles Viewer → Editor → Admin → Viewer; read-only
+   rows (e.g. an Admin viewed by another Admin) render the same look as a
+   static, non-interactive span. Color signals rank: muted for Viewer,
+   neutral for Editor, gold/accent for Admin. */
+.team-member-role-pill {
+  margin-left: auto; flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  padding: 4px 10px 4px 8px; border-radius: 20px; cursor: pointer;
+  background: var(--surface3); border: 1px solid var(--border); color: var(--text-muted);
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.team-member-role-toggle-btn:hover { border-color: var(--border-hover); background: var(--accent1-dim); }
-/* Pencil (grant edit) reads as a positive/green action; eye (revoke, make
-   view-only) reads as a neutral/muted one — so the button's own color
-   signals its effect the same way the role tag next to it does. */
-.team-member-role-toggle-btn.is-viewer { color: var(--green); background: rgba(16,185,129,0.12); border-color: transparent; }
-.team-member-role-toggle-btn.is-viewer:hover { background: rgba(16,185,129,0.22); }
-.team-member-role-toggle-btn.is-editor { color: var(--text-muted); background: var(--surface3); }
-.team-member-role-toggle-btn.is-editor:hover { color: var(--text); background: var(--accent1-dim); }
+.team-member-role-pill.static { cursor: default; }
+.team-member-role-pill:not(.static):hover { border-color: var(--border-hover); background: var(--accent1-dim); color: var(--text); }
+.team-member-role-pill.is-viewer { color: var(--text-muted); background: var(--surface3); }
+.team-member-role-pill.is-editor { color: var(--green); background: rgba(16,185,129,0.12); border-color: transparent; }
+.team-member-role-pill.is-editor:not(.static):hover { background: rgba(16,185,129,0.22); }
+.team-member-role-pill.is-admin { color: var(--accent1); background: var(--accent1-dim); border-color: transparent; }
+.team-member-role-pill.is-admin:not(.static):hover { background: var(--accent1-dim); filter: brightness(1.15); }
 .team-member-access-btn {
   flex-shrink: 0; margin-left: auto; font-size: 11px; font-weight: 600; white-space: nowrap;
   padding: 4px 10px; border-radius: 20px; cursor: pointer;
@@ -3612,6 +3611,12 @@ img { -webkit-user-drag: none; }
 .model-access-row input[type="checkbox"] { accent-color: var(--accent1); flex-shrink: 0; }
 .model-access-row label { font-size: 13px; color: var(--text); cursor: pointer; flex: 1; }
 .model-access-all-row { font-weight: 600; border-color: var(--accent1); background: var(--accent1-dim); }
+.model-access-quick-actions { display: flex; gap: 14px; padding: 0 2px; margin-top: -2px; }
+.model-access-quick-actions button {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 11.5px; font-weight: 600; color: var(--accent1);
+}
+.model-access-quick-actions button:hover { text-decoration: underline; }
 .model-access-empty-hint { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
 /* ── VIEW-ONLY MODE ── */
 #viewOnlyBanner {
@@ -3630,7 +3635,7 @@ body.viewer-mode #waitModelBtn,
 body.viewer-mode #deleteModelBtn {
   opacity: 0.45; pointer-events: none; filter: grayscale(0.3);
 }
-body.viewer-mode .row-action-btn:not(.team-member-role-toggle-btn),
+body.viewer-mode .row-action-btn:not(.team-member-role-pill),
 body.viewer-mode .assignee-picker,
 body.viewer-mode .task-checkbox {
   opacity: 0.55; cursor: not-allowed !important;
@@ -5196,31 +5201,40 @@ function renderMemberAvatar(el,uid,fallbackNameOrEmail){
 }
 function isCurrentWorkspaceOwner(){ return !!auth&&!!auth.currentUser&&workspaceOwnerUid===auth.currentUser.uid; }
 
-// ── VIEW-ONLY / EDIT PERMISSIONS ──────────────────────────────────────────
-// Every member of a shared workspace has a role of 'editor' or 'viewer',
-// stored per-member at members.{uid}.role. The owner is always an editor.
-// Anyone who joins via an invite code starts out as a 'viewer' (can see
-// everything, can't change anything) until the owner grants them edit
-// access — teammates who were added before this feature existed have no
+// ── VIEW-ONLY / EDIT / TEAM-MANAGEMENT PERMISSIONS ────────────────────────
+// Every member of a shared workspace has a role of 'admin', 'editor', or
+// 'viewer', stored per-member at members.{uid}.role. The workspace owner is
+// always treated as an admin regardless of what's stored for them. Anyone
+// who joins via an invite code starts out as a 'viewer' (can see everything,
+// can't change anything) until someone with team-management rights grants
+// them more — teammates who were added before this feature existed have no
 // role field at all, so we default a missing role to 'editor' to avoid
 // silently locking out people who already had full access.
+// Rank: viewer < editor < admin. Admins can do everything editors can, plus
+// manage the team (invite, remove members, change roles, set per-model
+// access) — except they can't touch the Owner's row or another Admin's row;
+// only the true Owner can demote/remove a fellow Admin, so admins can't lock
+// each other out.
 function myMemberRole(){
   if(!auth||!auth.currentUser) return 'editor';
   const uid=auth.currentUser.uid;
-  if(workspaceOwnerUid===uid) return 'editor';
+  if(workspaceOwnerUid===uid) return 'admin';
   const info=workspaceMembers[uid];
   if(!info) return 'editor';
-  return info.role==='viewer'?'viewer':'editor';
+  if(info.role==='admin') return 'admin';
+  if(info.role==='viewer') return 'viewer';
+  return 'editor';
 }
-function canEdit(){ return myMemberRole()==='editor'; }
+function canEdit(){ const r=myMemberRole(); return r==='admin'||r==='editor'; }
+function canManageTeam(){ return myMemberRole()==='admin'; }
 function notifyViewOnly(){ toast('👁','View-only access — ask the workspace owner for edit permission',false); }
 
 // ── PER-MODEL ACCESS RESTRICTION ──────────────────────────────────────────────
-// On top of the editor/viewer role above, the workspace owner can restrict a
-// member to a subset of models via members.{uid}.modelAccess (an array of
-// model names). Missing/null means unrestricted (full access) — this keeps
-// every existing member unaffected until the owner deliberately narrows
-// someone down. The owner themself is never restricted.
+// On top of the role above, an Admin can restrict a non-admin member to a
+// subset of models via members.{uid}.modelAccess (an array of model names).
+// Missing/null means unrestricted (full access) — this keeps every existing
+// member unaffected until an admin deliberately narrows someone down. The
+// Owner and any Admin are never restricted.
 // NOTE: this is a UI-level restriction only. Because every model in a shared
 // workspace currently lives in the same Firestore document/listener, a
 // restricted member's browser still receives the full dataset — this hides
@@ -5228,7 +5242,7 @@ function notifyViewOnly(){ toast('👁','View-only access — ask the workspace 
 // someone deliberately inspecting network traffic or the JS console.
 function myModelAccess(){
   if(!auth||!auth.currentUser) return null;
-  if(isCurrentWorkspaceOwner()) return null;
+  if(canManageTeam()) return null;
   const info=workspaceMembers[auth.currentUser.uid];
   if(!info||!Array.isArray(info.modelAccess)) return null;
   return info.modelAccess;
@@ -14752,26 +14766,37 @@ function renderTeamModal(){
 
   const listEl=document.getElementById('teamMembersList');
   const iAmOwner=isCurrentWorkspaceOwner();
-  const EYE_SVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
-  const PENCIL_SVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  const iAmManager=canManageTeam();
+  const EYE_SVG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const PENCIL_SVG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  const SHIELD_SVG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>';
+  // Rank of the three roles, used to decide who's allowed to touch whose row.
+  const ROLE_META={
+    viewer:{label:'Viewer',icon:EYE_SVG,next:'editor'},
+    editor:{label:'Editor',icon:PENCIL_SVG,next:'admin'},
+    admin:{label:'Admin',icon:SHIELD_SVG,next:'viewer'}
+  };
   listEl.innerHTML=Object.entries(workspaceMembers).map(([uid,info])=>{
     const initial=((info.displayName||info.email||'?')[0]||'?').toUpperCase();
     const isOwner=uid===workspaceOwnerUid;
-    const showRemove=iAmOwner&&!isOwner;
-    const role=isOwner?'editor':(info.role==='viewer'?'viewer':'editor');
-    const showRoleToggle=iAmOwner&&!isOwner;
-    // One icon per member reflects their CURRENT role — green pencil for
-    // edit access, muted eye for view-only — and that same icon is the
-    // control the owner clicks to flip it, so state and color always
-    // move together instead of swapping between two separate elements.
+    const role=isOwner?'admin':(info.role==='admin'?'admin':(info.role==='viewer'?'viewer':'editor'));
+    // Only the true Owner can touch another Admin's row — this stops admins
+    // from demoting/removing each other. Admins can freely manage anyone
+    // who's currently an Editor or Viewer.
+    const canManageThisRow=!isOwner&&(iAmOwner||(iAmManager&&role!=='admin'));
+    const showRemove=canManageThisRow;
+    const showRoleControl=canManageThisRow;
+    const meta=ROLE_META[role];
     const roleIndicator=isOwner
       ?'<span class="team-member-owner-tag">Owner</span>'
-      :(showRoleToggle
-        ?`<button class="team-member-role-toggle-btn${role==='viewer'?' is-viewer':' is-editor'}" data-uid="${escHtml(uid)}" data-role="${role}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="${role==='viewer'?'View only — click to grant edit access':'Can edit — click to make view-only'}">${role==='viewer'?EYE_SVG:PENCIL_SVG}</button>`
-        :`<span class="team-member-role-tag${role==='viewer'?' is-viewer':''}" title="${role==='viewer'?'View only':'Can edit'}">${role==='viewer'?EYE_SVG:PENCIL_SVG}</span>`);
+      :(showRoleControl
+        ?`<button class="team-member-role-pill is-${role}" data-uid="${escHtml(uid)}" data-role="${role}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="${meta.label} — click to make ${ROLE_META[meta.next].label}">${meta.icon}<span>${meta.label}</span></button>`
+        :`<span class="team-member-role-pill is-${role} static" title="${meta.label}">${meta.icon}<span>${meta.label}</span></span>`);
     const accessArr=Array.isArray(info.modelAccess)?info.modelAccess:null;
     const accessLabel=!accessArr?'All models':`${accessArr.length} model${accessArr.length===1?'':'s'}`;
-    const modelAccessBtn=(!isOwner&&iAmOwner)
+    // Admins (like the Owner) always see every model, so restricting their
+    // access is meaningless — only show the button for Editors/Viewers.
+    const modelAccessBtn=(!isOwner&&role!=='admin'&&iAmManager)
       ?`<button class="team-member-access-btn${accessArr?' is-restricted':''}" data-uid="${escHtml(uid)}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="Choose which models ${escHtml(info.displayName||info.email||'this person')} can see">${accessLabel}</button>`
       :'';
     return `<div class="team-member-row">
@@ -14801,16 +14826,17 @@ function renderTeamModal(){
       }
     };
   });
-  listEl.querySelectorAll('.team-member-role-toggle-btn').forEach(btn=>{
+  listEl.querySelectorAll('.team-member-role-pill').forEach(btn=>{
+    if(btn.classList.contains('static')) return;
     btn.onclick=()=>{
       const uid=btn.dataset.uid;
-      const nextRole=btn.dataset.role==='viewer'?'editor':'viewer';
+      const nextRole=ROLE_META[btn.dataset.role].next;
       setMemberRole(uid,nextRole,btn.dataset.name);
     };
   });
 
-  // Only the workspace owner can generate/share an invite code.
-  document.getElementById('teamInviteSection').style.display = isCurrentWorkspaceOwner()?'':'none';
+  // Owner and Admins can generate/share an invite code and manage the team.
+  document.getElementById('teamInviteSection').style.display = iAmManager?'':'none';
   document.getElementById('teamBackToPersonalRow').style.display = isPersonal?'none':'';
 
   document.getElementById('teamInviteCodeDisplay').textContent='— — — — — —';
@@ -14845,14 +14871,16 @@ function updateTeamUI(){
   }
 }
 
-// Removes a teammate from the current workspace. Restricted to the owner
-// at the UI level; note the underlying Firestore rule allows any existing
-// member to write to the workspace doc (see the "trusted team" tradeoff
-// mentioned when these rules were set up), so this button is a UI-level
-// safeguard, not the only thing stopping a non-owner from doing this via
-// the API directly.
+// Removes a teammate from the current workspace. Restricted to the Owner
+// and Admins at the UI level (and an Admin can't remove another Admin —
+// only the Owner can); note the underlying Firestore rule allows any
+// existing member to write to the workspace doc (see the "trusted team"
+// tradeoff mentioned when these rules were set up), so this button is a
+// UI-level safeguard, not the only thing stopping this via the API directly.
 async function removeMemberFromWorkspace(uid){
-  if(!isCurrentWorkspaceOwner()||!currentWorkspaceId) return;
+  if(!currentWorkspaceId||!workspaceMembers[uid]||uid===workspaceOwnerUid) return;
+  const targetRole=workspaceMembers[uid].role==='admin'?'admin':(workspaceMembers[uid].role==='viewer'?'viewer':'editor');
+  if(!(isCurrentWorkspaceOwner()||(canManageTeam()&&targetRole!=='admin'))) return;
   try{
     const removedLabel=(workspaceMembers[uid]&&(workspaceMembers[uid].displayName||workspaceMembers[uid].email))||'a teammate';
     await getWorkspaceDoc().update({
@@ -14870,21 +14898,26 @@ async function removeMemberFromWorkspace(uid){
   }
 }
 
-// Grants or revokes edit access for a teammate. Owner-only at the UI
-// level (same trust model as removeMemberFromWorkspace above).
+// Changes a teammate's role between Admin/Editor/Viewer. Owner and Admins
+// can do this at the UI level, except an Admin can't touch another Admin's
+// role — only the Owner can (same trust model as removeMemberFromWorkspace
+// above, so admins can't lock each other out).
+const ROLE_LABEL={admin:'Admin',editor:'Editor',viewer:'Viewer'};
+const ROLE_TOAST_ICON={admin:'🛡',editor:'✎',viewer:'👁'};
 async function setMemberRole(uid,role,name){
-  if(!isCurrentWorkspaceOwner()||!currentWorkspaceId) return;
-  if(!workspaceMembers[uid]) return;
+  if(!currentWorkspaceId||!workspaceMembers[uid]||uid===workspaceOwnerUid) return;
+  const targetCurrentRole=workspaceMembers[uid].role==='admin'?'admin':(workspaceMembers[uid].role==='viewer'?'viewer':'editor');
+  if(!(isCurrentWorkspaceOwner()||(canManageTeam()&&targetCurrentRole!=='admin'))) return;
   const previousRole=workspaceMembers[uid].role;
-  // Optimistic update: flip the icon instantly instead of waiting on the
+  // Optimistic update: flip the pill instantly instead of waiting on the
   // round-trip to Firestore, so the click always feels responsive. Roll
   // back and explain if the write actually fails.
   workspaceMembers[uid].role=role;
   renderTeamModal();
   try{
     await getWorkspaceDoc().update({['members.'+uid+'.role']: role});
-    toast(role==='editor'?'✎':'👁',`${name||'Member'} can now ${role==='editor'?'edit':'only view'} this workspace`,false);
-    logActivity(role==='editor'?'✎':'👁',`gave ${name||'a teammate'} ${role==='editor'?'edit access':'view-only access'}`);
+    toast(ROLE_TOAST_ICON[role],`${name||'Member'} is now ${ROLE_LABEL[role]}`,false);
+    logActivity(ROLE_TOAST_ICON[role],`made ${name||'a teammate'} ${ROLE_LABEL[role]}`);
   }catch(e){
     console.error('Set member role failed:',e);
     if(workspaceMembers[uid]) workspaceMembers[uid].role=previousRole;
@@ -14901,7 +14934,7 @@ async function setMemberRole(uid,role,name){
 let modelAccessCtx={uid:null,name:null};
 
 function openModelAccessModal(uid,name){
-  if(!isCurrentWorkspaceOwner()) return;
+  if(!canManageTeam()) return;
   modelAccessCtx={uid,name};
   document.getElementById('modelAccessModalDesc').textContent=`Choose which models ${name||'this person'} can see.`;
   renderModelAccessModal();
@@ -14915,12 +14948,16 @@ function renderModelAccessModal(){
   const {uid}=modelAccessCtx;
   const info=workspaceMembers[uid]||{};
   const currentAccess=Array.isArray(info.modelAccess)?info.modelAccess:null; // null = all models
-  const allModels=refreshedActiveModelNames(); // the owner's own view is always unrestricted
+  const allModels=refreshedActiveModelNames(); // the current manager's own view is always unrestricted
   const isAll=!currentAccess;
   list.innerHTML = `
     <div class="model-access-row model-access-all-row">
       <input type="checkbox" id="modelAccessAllCb" ${isAll?'checked':''}>
       <label for="modelAccessAllCb">All models (including future ones)</label>
+    </div>
+    <div class="model-access-quick-actions">
+      <button type="button" id="modelAccessSelectAllBtn">Select all</button>
+      <button type="button" id="modelAccessClearAllBtn">Clear all</button>
     </div>
     ${allModels.map((m,i)=>`
       <div class="model-access-row">
@@ -14931,12 +14968,24 @@ function renderModelAccessModal(){
   const allCb=document.getElementById('modelAccessAllCb');
   const itemCbs=()=>list.querySelectorAll('.model-access-item-cb');
   allCb.onchange=()=>{
-    itemCbs().forEach(cb=>{ cb.disabled=allCb.checked; if(allCb.checked) cb.checked=true; });
+    // Checking "All models" locks every item on (they're implied). Unchecking
+    // it means "I want to restrict this person" — so start from an empty
+    // selection instead of leaving everything checked, which used to force
+    // deselecting each model one by one to actually narrow anything down.
+    itemCbs().forEach(cb=>{ cb.disabled=allCb.checked; cb.checked=allCb.checked; });
+  };
+  document.getElementById('modelAccessSelectAllBtn').onclick=()=>{
+    allCb.checked=false; allCb.dispatchEvent(new Event('change'));
+    itemCbs().forEach(cb=>{ cb.disabled=false; cb.checked=true; });
+  };
+  document.getElementById('modelAccessClearAllBtn').onclick=()=>{
+    allCb.checked=false;
+    itemCbs().forEach(cb=>{ cb.disabled=false; cb.checked=false; });
   };
 }
 async function saveModelAccess(){
   const {uid,name}=modelAccessCtx;
-  if(!uid||!isCurrentWorkspaceOwner()||!currentWorkspaceId) return;
+  if(!uid||!canManageTeam()||!currentWorkspaceId) return;
   const list=document.getElementById('modelAccessList');
   const allCb=document.getElementById('modelAccessAllCb');
   const isAll=allCb.checked;
@@ -15097,12 +15146,14 @@ document.getElementById('profileOverlay').onclick=e=>{
   if(e.target===document.getElementById('profileOverlay')) closeProfileModal();
 };
 
-// If the owner renames a model, propagate that rename into any restricted
+// If anyone renames a model, propagate that rename into any restricted
 // member's modelAccess list — otherwise the old name silently falls out of
 // their list and they lose access to what is, from their point of view, the
-// same model.
+// same model. (Previously this only ran when the Owner did the renaming, so
+// an Editor renaming a model would silently break restricted members'
+// access — fixed since renaming isn't Owner/Admin-exclusive.)
 async function propagateModelRenameToAccess(oldName,newName){
-  if(!isCurrentWorkspaceOwner()||!currentWorkspaceId) return;
+  if(!currentWorkspaceId) return;
   const updates={};
   Object.entries(workspaceMembers).forEach(([uid,info])=>{
     if(Array.isArray(info.modelAccess)&&info.modelAccess.includes(oldName)){
