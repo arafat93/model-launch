@@ -710,6 +710,19 @@ footer {
   content: ''; position: absolute; top: 0; bottom: 0; left: 100%; width: 8px;
 }
 @keyframes fadeRight { from { opacity: 0; transform: translateY(-50%) translateX(-6px); } to { opacity: 1; transform: translateY(-50%) translateX(0); } }
+/* On narrow screens the flyout used to open to the RIGHT of the "All" chip
+   (left: calc(100% + 8px)), which pushed it past the edge of the viewport
+   and left some stage names unreachable/cut off. Below this width, open the
+   panel downward and clamp its width to the viewport instead. */
+@media (max-width: 640px) {
+  .stage-filter-panel {
+    left: 0; right: auto; top: calc(100% + 8px); bottom: auto;
+    transform: none; max-width: calc(100vw - 48px); width: max-content;
+    animation: fadeDown 0.15s ease both;
+  }
+  .stage-filter-group::after { left: 0; right: 0; top: 100%; bottom: auto; height: 8px; width: auto; }
+}
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 .manage-stage-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--border); }
 .manage-stage-row:last-child { border-bottom: none; }
 .manage-stage-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-family: inherit; font-size: 13px; font-weight: 500; }
