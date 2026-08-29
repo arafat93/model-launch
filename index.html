@@ -1377,7 +1377,7 @@ footer {
   border: 1.5px solid var(--border-hover);
   opacity: 0.7;
   pointer-events: none; /* clicks pass through to the select below */
-  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), opacity 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), opacity 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
 }
 .assignee-avatar-icon.is-assigned {
   opacity: 1;
@@ -1391,8 +1391,11 @@ footer {
   position: absolute; inset: 0; width: 24px; height: 24px;
   opacity: 0; cursor: pointer; appearance: none; -webkit-appearance: none; border: none;
 }
+/* Same hover behavior as .priority-badge:hover — brighten + lift, rather than
+   scaling up — so the two row-level icon controls feel consistent. */
 .assignee-picker:hover .assignee-avatar-icon {
-  transform: scale(1.12);
+  filter: brightness(1.15);
+  transform: translateY(-1px);
   opacity: 1;
   border-color: var(--accent1);
 }
@@ -9995,35 +9998,35 @@ document.addEventListener('click',e=>{
 document.addEventListener('scroll',()=>{ if(Date.now()-_priorityDropdownOpenedAt>250) closePriorityDropdown(); },true);
 window.addEventListener('resize',closePriorityDropdown);
 
-// ── HOVER-TO-OPEN support for the status & priority mini-dropdowns ──
+// ── HOVER-TO-OPEN support for the status, priority, assignee & notes mini-dropdowns ──
 // Mirrors the hover-to-open picker used for the model stage selector on
-// model cards: hovering the badge/chip previews the options immediately,
-// same as clicking it. A short close delay lets the cursor travel from the
-// trigger up into the floating panel without it snapping shut mid-move.
-// Each dropdown gets its OWN close timer — sharing one timer between status
-// and priority meant hovering from one chip straight into the other cancelled
-// the first dropdown's pending close instead of actually closing it, leaving
-// both open on screen at once.
-const _miniDropdownCloseTimers={status:null,priority:null};
+// model cards: hovering the badge/chip/avatar/icon previews the options
+// immediately, same as clicking it. A short close delay lets the cursor
+// travel from the trigger up into the floating panel without it snapping
+// shut mid-move.
+// Each dropdown gets its OWN close timer and its own registered close
+// function — sharing one timer between them meant hovering from one chip
+// straight into another cancelled the first dropdown's pending close
+// instead of actually closing it, leaving more than one open on screen at
+// once. Opening any one of them closes all the others.
+const _miniDropdownCloseTimers={status:null,priority:null,assignee:null,notes:null};
+const _miniDropdownCloseFns={};
 function cancelMiniDropdownClose(which){ if(_miniDropdownCloseTimers[which]){clearTimeout(_miniDropdownCloseTimers[which]);_miniDropdownCloseTimers[which]=null;} }
 function scheduleMiniDropdownClose(which,closeFn){ cancelMiniDropdownClose(which); _miniDropdownCloseTimers[which]=setTimeout(closeFn,220); }
 function attachMiniDropdownTrigger(el,which,openFn,closeFn){
   if(!el) return;
+  _miniDropdownCloseFns[which]=closeFn;
   el.addEventListener('mouseenter',()=>{
     cancelMiniDropdownClose(which);
-    // Opening one always closes the other — belt-and-suspenders on top of
-    // the per-dropdown timers above, so the two panels can never both be
-    // visible at the same time even if a hover event is missed.
-    if(which==='status') closePriorityDropdown(); else closeStatusDropdown();
+    Object.keys(_miniDropdownCloseFns).forEach(k=>{ if(k!==which) _miniDropdownCloseFns[k](); });
     openFn();
   });
   el.addEventListener('mouseleave',()=>{ scheduleMiniDropdownClose(which,closeFn); });
 }
-['statusDropdown','priorityDropdown'].forEach(id=>{
+[['statusDropdown','status'],['priorityDropdown','priority'],['assigneeDropdown','assignee'],['rowMenuDropdown','notes']].forEach(([id,which])=>{
   const el=document.getElementById(id);
   if(!el) return;
-  const which=id==='statusDropdown'?'status':'priority';
-  const closeFn=id==='statusDropdown'?closeStatusDropdown:closePriorityDropdown;
+  const closeFn=which==='status'?closeStatusDropdown:(which==='priority'?closePriorityDropdown:(which==='assignee'?closeAssigneeDropdown:closeRowMenuDropdown));
   el.addEventListener('mouseenter',()=>cancelMiniDropdownClose(which));
   el.addEventListener('mouseleave',()=>scheduleMiniDropdownClose(which,closeFn));
 });
@@ -10402,6 +10405,7 @@ function renderTaskList(){
         if(!canEdit()){notifyViewOnly();return;}
         openAssigneeDropdown(assigneePickerEl, idx);
       };
+      if(canEdit()) attachMiniDropdownTrigger(assigneePickerEl, 'assignee', ()=>openAssigneeDropdown(assigneePickerEl,idx), closeAssigneeDropdown);
     }
 
     const deadlinePickerEl=row.querySelector('.deadline-picker');
@@ -10436,7 +10440,9 @@ function renderTaskList(){
       row.querySelector('.move-up').onclick=e=>{e.stopPropagation();moveTask(activeTab,idx,-1);};
       row.querySelector('.move-down').onclick=e=>{e.stopPropagation();moveTask(activeTab,idx,1);};
       row.querySelector('.delete').onclick=e=>{e.stopPropagation();deleteTask(activeTab,idx);};
-      row.querySelector('.row-menu-trigger').onclick=e=>{e.stopPropagation();openRowMenuDropdown(e.currentTarget,activeTab,idx,null);};
+      const rowMenuTriggerEl=row.querySelector('.row-menu-trigger');
+      rowMenuTriggerEl.onclick=e=>{e.stopPropagation();openRowMenuDropdown(e.currentTarget,activeTab,idx,null);};
+      attachMiniDropdownTrigger(rowMenuTriggerEl, 'notes', ()=>openRowMenuDropdown(rowMenuTriggerEl,activeTab,idx,null), closeRowMenuDropdown);
 
       // Subtask toggle — flips CSS class only, no re-render, so transition plays
       const toggleEl=row.querySelector('.subtask-toggle-btn');
@@ -10696,10 +10702,12 @@ function renderTaskList(){
       const subPrioBtnEl=sRow.querySelector('.priority-badge');
       subPrioBtnEl.onclick=e=>{e.stopPropagation();openPriorityDropdown(e.currentTarget,idx,sIdx);};
       attachMiniDropdownTrigger(subPrioBtnEl, 'priority', ()=>openPriorityDropdown(subPrioBtnEl,idx,sIdx), closePriorityDropdown);
-      sRow.querySelector('.row-menu-trigger').onclick=e=>{
+      const subRowMenuTriggerEl=sRow.querySelector('.row-menu-trigger');
+      subRowMenuTriggerEl.onclick=e=>{
         e.stopPropagation();
         openRowMenuDropdown(e.currentTarget,activeTab,idx,sIdx);
       };
+      attachMiniDropdownTrigger(subRowMenuTriggerEl, 'notes', ()=>openRowMenuDropdown(subRowMenuTriggerEl,activeTab,idx,sIdx), closeRowMenuDropdown);
       const subDeadlinePickerEl=sRow.querySelector('.deadline-picker');
       if(subDeadlinePickerEl){
         const subDeadlineNativeInput=subDeadlinePickerEl.querySelector('.task-deadline-native');
@@ -10721,6 +10729,7 @@ function renderTaskList(){
           e.stopPropagation();
           openAssigneeDropdown(subAssigneePickerEl, idx, sIdx);
         };
+        if(canEdit()) attachMiniDropdownTrigger(subAssigneePickerEl, 'assignee', ()=>openAssigneeDropdown(subAssigneePickerEl,idx,sIdx), closeAssigneeDropdown);
       }
       // Edit inline
       sRow.querySelector('.row-action-btn.edit').onclick=e=>{
