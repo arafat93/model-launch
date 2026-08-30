@@ -1336,8 +1336,11 @@ footer {
 .comment-entry-delete:hover { color: var(--red); }
 .comment-entry-text { font-size: 13px; color: var(--text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 .comment-mention {
-  color: var(--accent1); background: var(--accent1-dim);
+  color: var(--mention-color, var(--accent1));
+  background: var(--accent1-dim);
+  background: color-mix(in srgb, var(--mention-color, var(--accent1)) 16%, transparent);
   padding: 1px 4px; border-radius: 5px; font-weight: 600;
+  margin-right: 5px;
 }
 .comment-mention-chips {
   display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0;
@@ -1376,6 +1379,139 @@ footer {
 }
 .comment-post-btn:hover { filter: brightness(1.08); }
 .comment-post-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* team chat modal — WhatsApp-style: full-height panel, doodle background,
+   colored per-person avatars, grouped consecutive messages, pill input with
+   a round send button. */
+#chatModalBox {
+  display:flex; flex-direction:column; height:min(640px, 82vh); padding:0; overflow:hidden;
+  border-color: rgba(212,175,55,0.22);
+}
+.chat-modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:18px 20px 14px; border-bottom:1px solid var(--border); flex-shrink:0; position: relative; z-index: 1; box-shadow: 0 8px 16px -12px rgba(0,0,0,0.5); }
+.chat-modal-header .modal-title { padding:0; margin:0; }
+.chat-modal-header .modal-subtitle { padding:0; margin:4px 0 0; }
+.chat-modal-title-row { display:flex; align-items:center; gap:12px; }
+.chat-modal-icon {
+  flex-shrink:0; width:36px; height:36px; border-radius:50%;
+  border:1.5px solid var(--accent1);
+  background: linear-gradient(160deg, var(--surface2), var(--bg) 120%);
+  color: var(--accent1);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.chat-modal-title {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--accent1);
+}
+.chat-modal-subtitle { font-size:12.5px; color: var(--text-muted); display:flex; align-items:center; }
+.chat-live-dot {
+  display:inline-block; width:6px; height:6px; border-radius:50%;
+  background: var(--green); margin-right:7px;
+  box-shadow: 0 0 0 0 rgba(16,185,129,0.35);
+  animation: chatLiveDotPulse 2s ease-out infinite;
+}
+@keyframes chatLiveDotPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.55); }
+  70%  { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+  100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+.chat-header-close {
+  flex-shrink:0; width:30px; height:30px; border-radius:50%; border:none;
+  background: var(--surface2); color: var(--text-muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:14px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.chat-header-close:hover { background: var(--accent1-dim); color: var(--accent1); }
+.chat-timeline-wrap {
+  flex:1; min-height:0; overflow-y:auto; padding:16px 16px;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 12% 18%, var(--border) 1.2px, transparent 1.2px),
+    radial-gradient(circle at 62% 42%, var(--border) 1.2px, transparent 1.2px),
+    radial-gradient(circle at 32% 68%, var(--border) 1.2px, transparent 1.2px),
+    radial-gradient(circle at 82% 82%, var(--border) 1.2px, transparent 1.2px),
+    radial-gradient(circle at 88% 22%, var(--border) 1.2px, transparent 1.2px);
+  background-size: 140px 140px;
+  background-repeat: repeat;
+  opacity: 1;
+}
+.chat-date-sep { display:flex; align-items:center; justify-content:center; margin:14px 0 10px; }
+.chat-date-sep span {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--accent1); background: var(--accent1-dim); border: 1px solid rgba(212,175,55,0.25);
+  border-radius: 20px; padding: 4px 13px; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.15));
+}
+.chat-unread-sep { display:flex; align-items:center; gap:10px; margin:16px 0 12px; }
+.chat-unread-sep::before, .chat-unread-sep::after { content:''; flex:1; height:1px; background:rgba(244,63,94,0.28); }
+.chat-unread-sep span {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--red); background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.3);
+  border-radius: 20px; padding: 4px 13px; white-space:nowrap;
+}
+.chat-row { display:flex; gap:8px; margin-bottom:10px; align-items:flex-end; }
+.chat-row.mine { flex-direction: row-reverse; }
+.chat-row.grouped { margin-top: -4px; }
+.chat-avatar {
+  flex-shrink:0; width:28px; height:28px; border-radius:50%;
+  color: #fff; display:flex; align-items:center; justify-content:center;
+  font-size:11.5px; font-weight:700; text-transform:uppercase;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3), 0 0 0 2px var(--bg);
+}
+.chat-avatar.spacer { visibility:hidden; }
+.chat-bubble-col { display:flex; flex-direction:column; max-width:74%; min-width:0; }
+.chat-row.mine .chat-bubble-col { align-items:flex-end; }
+.chat-bubble-author { font-size:10.5px; font-weight:700; letter-spacing:0.2px; margin:0 0 3px 10px; opacity:0.85; }
+.chat-bubble {
+  position:relative; padding:8px 11px 6px; border-radius:16px; word-break:break-word;
+  white-space:pre-wrap; font-size:13.5px; line-height:1.45; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+.chat-row.mine .chat-bubble {
+  background: linear-gradient(155deg, var(--accent1-hover), var(--accent1) 65%);
+  color: #241b06; border-color: transparent; border-bottom-right-radius:4px;
+  box-shadow: 0 3px 10px rgba(212,175,55,0.28);
+}
+.chat-row:not(.mine) .chat-bubble { border-bottom-left-radius:4px; }
+.chat-bubble .comment-mention { background: none; padding: 0 1px; }
+.chat-row.mine .chat-bubble .comment-mention {
+  color: #241b06;
+  color: color-mix(in srgb, var(--mention-color, #241b06) 45%, #241b06 55%);
+  font-weight: 700;
+}
+.chat-bubble-time { display:block; text-align:right; font-size:9.5px; margin-top:2px; opacity:0.65; }
+.chat-bubble-delete {
+  opacity:0; transition: opacity 0.15s ease; cursor:pointer; color: var(--text-muted);
+  font-size:11px; align-self:center; padding:0 2px; flex-shrink:0;
+}
+.chat-row:hover .chat-bubble-delete { opacity:1; }
+.chat-bubble-delete:hover { color: var(--red); }
+.chat-empty { padding: 48px 8px; text-align: center; color: var(--text-dim); font-size: 13px; }
+.chat-input-bar {
+  flex-shrink:0; display:flex; gap:8px; align-items:center;
+  padding:10px 16px 14px; background: var(--surface);
+}
+.chat-footer { flex-shrink:0; background: var(--surface); border-top:1px solid var(--border); }
+.chat-footer .comment-mention-chips { padding:8px 16px 0; margin:0; }
+.chat-input-bar .comment-textarea-wrap { flex:1; }
+.chat-input-bar .chat-textarea {
+  width:100%; min-height:42px; max-height:120px; resize:none; overflow-y:auto;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 22px;
+  padding: 11px 18px; font-family: inherit; font-size: 13.5px; color: var(--text); line-height:1.4;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.chat-input-bar .chat-textarea:focus { outline: none; border-color: var(--accent1); box-shadow: 0 0 0 3px var(--accent1-dim); }
+.chat-send-btn {
+  flex-shrink:0; width:42px; height:42px; border-radius:50%; border:none;
+  background: linear-gradient(155deg, var(--accent1-hover), var(--accent1) 65%); color: #241b06;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow: 0 4px 14px rgba(212,175,55,0.35);
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.chat-send-btn:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(212,175,55,0.45); }
+.chat-send-btn:active { transform: scale(0.92); }
+.chat-send-btn svg { transform: translateX(-1px); }
 
 /* task deadline icon (sits beside notes icon) */
 .task-icons-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -2295,6 +2431,79 @@ footer {
 .modal-btn.danger { background: var(--red); color: #fff; box-shadow: 0 4px 14px rgba(244, 63, 94, 0.3); }
 .modal-btn.danger:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
+/* ── FLOATING TEAM-CHAT BUTTON + DOCKED CHAT PANEL ─────────────────
+   The chat trigger lives outside the header now: a premium round FAB
+   pinned to the bottom-right of the viewport. Its panel (#chatModal)
+   reuses the shared .modal-overlay/.modal-box plumbing but is
+   re-themed below to dock at the top-right with no backdrop, instead
+   of the default centered/dimmed modal treatment. */
+.chat-fab {
+  position: fixed; right: 26px; bottom: 26px; z-index: 260;
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(16,185,129,0.5); padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #0c0c0e;
+  color: var(--green); cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(16,185,129,0.12), 0 0 18px rgba(16,185,129,0.35), 0 10px 24px rgba(0,0,0,0.5);
+  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+.chat-fab::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 32% 24%, rgba(255,255,255,0.1), rgba(255,255,255,0) 58%);
+}
+.chat-fab svg, .chat-fab svg * { pointer-events: none; }
+.chat-fab svg { position: relative; z-index: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
+.chat-fab:hover {
+  transform: translateY(-3px) scale(1.05);
+  border-color: #34d399; color: #34d399;
+  box-shadow: 0 0 0 1px rgba(16,185,129,0.18), 0 0 28px rgba(16,185,129,0.5), 0 14px 30px rgba(0,0,0,0.55);
+}
+.chat-fab:active { transform: translateY(-1px) scale(0.96); }
+.chat-fab::before {
+  content: ''; position: absolute; inset: -6px; border-radius: 50%;
+  border: 2px solid var(--green); opacity: 0; pointer-events: none;
+}
+.chat-fab.has-unread::before { animation: chatFabRing 1.8s ease-out infinite; }
+@keyframes chatFabRing {
+  0%   { opacity: 0.65; transform: scale(0.92); }
+  70%  { opacity: 0;    transform: scale(1.4); }
+  100% { opacity: 0;    transform: scale(1.4); }
+}
+.chat-fab .notif-badge {
+  background: linear-gradient(135deg, #fb5a6a, #e11d48); color: #fff;
+  top: -2px; right: -2px; border-color: var(--bg);
+  box-shadow: 0 0 0 0 rgba(225,29,72,0.55);
+  animation: chatBadgePulse 2.2s ease-out infinite;
+}
+@keyframes chatBadgePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(225,29,72,0.5); }
+  70%  { box-shadow: 0 0 0 6px rgba(225,29,72,0); }
+  100% { box-shadow: 0 0 0 0 rgba(225,29,72,0); }
+}
+.chat-fab .notif-badge.has-mention {
+  background: linear-gradient(135deg, #c4b5fd, #a78bfa); color: #2e1065;
+  box-shadow: 0 0 0 0 rgba(167,139,250,0.55);
+  animation: chatBadgeMentionPulse 2.2s ease-out infinite;
+}
+@keyframes chatBadgeMentionPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(167,139,250,0.5); }
+  70%  { box-shadow: 0 0 0 6px rgba(167,139,250,0); }
+  100% { box-shadow: 0 0 0 0 rgba(167,139,250,0); }
+}
+
+/* Dock the chat panel to the top-right, backdrop-free and click-through
+   everywhere but the panel itself. */
+#chatModal {
+  background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
+  align-items: flex-start; justify-content: flex-end;
+  padding: 84px 26px 0 0; pointer-events: none;
+}
+#chatModal #chatModalBox {
+  pointer-events: auto; margin: 0;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px var(--border);
+  animation: chatDockIn 0.24s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes chatDockIn { from { opacity: 0; transform: translateY(-12px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
 /* ── NOTES: SCREENSHOTS GALLERY ── */
 .notes-shots-section { margin-top: 18px; }
 .notes-shots-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -2680,15 +2889,15 @@ footer {
 
 /* ── TOAST ── */
 .toast {
-  position: fixed; bottom: 32px; right: 32px;
+  position: fixed; bottom: 98px; right: 32px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 16px; padding: 16px 24px; font-size: 14px; font-weight: 500; color: var(--text);
   box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-  transform: translateY(100px); opacity: 0;
+  transform: translateY(100px); opacity: 0; pointer-events: none;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 300; display: flex; align-items: center; gap: 12px; min-width: 240px;
 }
-.toast.show { transform: translateY(0); opacity: 1; }
+.toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
 .toast-icon { font-size: 18px; }
 .toast-undo-btn {
   margin-left: 8px; padding: 6px 12px; border-radius: 10px;
@@ -2874,7 +3083,7 @@ kbd {
   /* Toast: full-width banner instead of a fixed min-width box that can
      clip or sit awkwardly close to the viewport edge. */
   .toast {
-    left: 12px; right: 12px; bottom: 16px;
+    left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom));
     min-width: 0; width: auto;
     padding: 14px 16px;
   }
@@ -2928,7 +3137,7 @@ kbd {
   /* Toast: full-width banner instead of a fixed min-width box that can
      clip or sit awkwardly close to the viewport edge. */
   .toast {
-    left: 12px; right: 12px; bottom: 16px;
+    left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom));
     min-width: 0; width: auto;
     padding: 14px 16px;
   }
@@ -3141,6 +3350,17 @@ kbd {
     left: 0; right: auto;
     max-width: calc(100vw - 48px);
   }
+
+  /* Chat FAB: smaller and tucked inside the safe area on phones. */
+  .chat-fab { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: 40px; height: 40px; }
+
+  /* Chat panel: a fixed top-right dock doesn't work on narrow screens,
+     so fall back to the same dimmed bottom-sheet every other modal uses. */
+  #chatModal {
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    align-items: flex-end; justify-content: center; padding: 12px; pointer-events: auto;
+  }
+  #chatModal #chatModalBox { animation: modalInMobile 0.28s cubic-bezier(0.16,1,0.3,1) both; }
 }
 
 @media (max-width: 480px) {
@@ -3490,6 +3710,25 @@ img { -webkit-user-drag: none; }
   transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
 }
 #teamOverlay.open #teamModal { transform: translateY(0) scale(1); }
+#teamModal { border-color: rgba(212,175,55,0.22); }
+.team-modal-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(160deg, var(--surface2), var(--bg) 120%) !important;
+  border: 1.5px solid var(--accent1) !important;
+  color: var(--accent1);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+  margin-left: auto; margin-right: auto;
+}
+#teamModal .elmodal-title {
+  position: relative; padding-bottom: 12px; margin-bottom: 18px;
+  text-align: center;
+}
+#teamModal .elmodal-title::after {
+  content: ''; position: absolute; left: 50%; bottom: 0; width: 34px; height: 2px;
+  background: var(--accent1); border-radius: 2px;
+  transform: translateX(-50%);
+}
+#teamModal .elmodal-desc { text-align: center; }
 #modelAccessOverlay {
   position: fixed; inset: 0; z-index: 10000;
   background: rgba(0,0,0,0.65);
@@ -3575,19 +3814,26 @@ img { -webkit-user-drag: none; }
 .team-members-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
 .team-member-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 12px;
+  padding: 10px 13px; border-radius: 12px;
   background: var(--surface2); border: 1px solid var(--border);
+  transition: border-color 0.15s ease, background 0.15s ease;
+  overflow: hidden;
 }
+.team-member-row:hover { border-color: rgba(212,175,55,0.3); background: var(--accent1-dim); }
 .team-member-avatar {
-  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
   background: var(--accent1-dim); color: var(--accent1);
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 700;
+  border: 1.5px solid rgba(212,175,55,0.35);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
-.team-member-name { font-size: 13.5px; color: var(--text); font-weight: 500; }
-.team-member-email { font-size: 11.5px; color: var(--text-muted); }
+.team-member-name { font-size: 13.5px; color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-member-email { font-size: 11.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-member-actions { margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+.team-member-info { min-width: 0; flex: 1 1 auto; }
 .team-member-owner-tag {
-  margin-left: auto; font-size: 10.5px; color: var(--accent1);
+  font-size: 10.5px; color: var(--accent1);
   background: var(--accent1-dim); padding: 2px 8px; border-radius: 20px; font-weight: 600;
 }
 /* Tri-state role pill (Viewer / Editor / Admin). Interactive rows are a
@@ -3596,7 +3842,7 @@ img { -webkit-user-drag: none; }
    static, non-interactive span. Color signals rank: muted for Viewer,
    neutral for Editor, gold/accent for Admin. */
 .team-member-role-pill {
-  margin-left: auto; flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
   font-size: 11px; font-weight: 600; white-space: nowrap;
   padding: 4px 10px 4px 8px; border-radius: 20px; cursor: pointer;
   background: var(--surface3); border: 1px solid var(--border); color: var(--text-muted);
@@ -3610,7 +3856,7 @@ img { -webkit-user-drag: none; }
 .team-member-role-pill.is-admin { color: var(--accent1); background: var(--accent1-dim); border-color: transparent; }
 .team-member-role-pill.is-admin:not(.static):hover { background: var(--accent1-dim); filter: brightness(1.15); }
 .team-member-access-btn {
-  flex-shrink: 0; margin-left: auto; font-size: 11px; font-weight: 600; white-space: nowrap;
+  flex-shrink: 0; font-size: 11px; font-weight: 600; white-space: nowrap;
   padding: 4px 10px; border-radius: 20px; cursor: pointer;
   background: var(--surface3); border: 1px solid var(--border); color: var(--text-muted);
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -3657,7 +3903,7 @@ body.viewer-mode .task-checkbox {
   opacity: 0.55; cursor: not-allowed !important;
 }
 .team-member-remove-btn {
-  margin-left: auto; flex-shrink: 0;
+  flex-shrink: 0;
   width: 24px; height: 24px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: transparent; border: 1px solid transparent;
@@ -3671,8 +3917,9 @@ body.viewer-mode .task-checkbox {
 .team-invite-code {
   flex: 1; font-family: 'SF Mono', 'Courier New', monospace;
   font-size: 18px; font-weight: 700; letter-spacing: 3px; text-align: center;
-  padding: 11px; border-radius: 12px; background: var(--surface2);
-  border: 1px dashed var(--border-hover); color: var(--accent1);
+  padding: 11px; border-radius: 12px;
+  background: linear-gradient(160deg, var(--accent1-dim), var(--surface2) 130%);
+  border: 1px dashed rgba(212,175,55,0.45); color: var(--accent1);
 }
 .team-join-input {
   flex: 1; font-family: 'SF Mono', 'Courier New', monospace;
@@ -3682,6 +3929,12 @@ body.viewer-mode .task-checkbox {
 }
 .team-join-input:focus { outline: none; border-color: var(--accent1); }
 .team-join-error { font-size: 12px; color: var(--red); margin-top: 6px; min-height: 14px; }
+#teamModal .team-invite-row .elmodal-export-btn {
+  border-color: rgba(212,175,55,0.4); color: var(--accent1);
+}
+#teamModal .team-invite-row .elmodal-export-btn:hover {
+  background: var(--accent1); color: var(--bg); border-color: var(--accent1);
+}
 
 /* ── FORCE-PORTRAIT LOCK (mobile app view) ───────────────────────────────
    The Screen Orientation API (attempted in JS below) can truly lock
@@ -4509,7 +4762,49 @@ document.addEventListener('keydown', e => {
   </div>
 </div>
 
+<!-- FLOATING TEAM CHAT BUTTON -->
+<button class="chat-fab" id="chatBellBtn" title="Team chat" style="display:none;">
+  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.75c-5.11 0-8.75 3.53-8.75 7.7 0 2.28 1.09 4.31 2.87 5.7-.1.95-.44 2.11-1.28 3.22a.45.45 0 0 0 .48.71c1.63-.42 2.94-1.13 3.9-1.79.9.21 1.85.31 2.78.31 5.11 0 8.75-3.53 8.75-7.7s-3.64-7.65-8.75-7.65z"/>
+  </svg>
+  <span class="notif-badge" id="chatBadge" style="display:none;">0</span>
+</button>
+
 <!-- ACTIVITY LOG / NOTIFICATIONS MODAL -->
+<div class="modal-overlay" id="chatModal">
+  <div class="modal-box" id="chatModalBox" style="width:min(520px, 92vw);">
+    <div class="chat-modal-header">
+      <div class="chat-modal-title-row">
+        <span class="chat-modal-icon" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3.75c-5.11 0-8.75 3.53-8.75 7.7 0 2.28 1.09 4.31 2.87 5.7-.1.95-.44 2.11-1.28 3.22a.45.45 0 0 0 .48.71c1.63-.42 2.94-1.13 3.9-1.79.9.21 1.85.31 2.78.31 5.11 0 8.75-3.53 8.75-7.7s-3.64-7.65-8.75-7.65z"/>
+          </svg>
+        </span>
+        <div>
+          <div class="modal-title chat-modal-title">Team Chat</div>
+          <div class="modal-subtitle chat-modal-subtitle"><span class="chat-live-dot"></span>Live · this workspace</div>
+        </div>
+      </div>
+      <button class="chat-header-close" id="chatCloseBtn" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="chat-timeline-wrap">
+      <div id="chatTimeline"></div>
+    </div>
+    <div class="chat-footer">
+      <div class="comment-mention-chips" id="chatMentionChips"></div>
+      <div class="chat-input-bar">
+        <div class="comment-textarea-wrap">
+          <textarea class="chat-textarea" id="chatInputText" placeholder="Message the team… use @ to mention someone" maxlength="600" rows="1"></textarea>
+          <div class="mention-autocomplete" id="chatMentionAutocomplete" style="display:none;"></div>
+        </div>
+        <button class="chat-send-btn" id="chatPostBtn" title="Send" aria-label="Send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="activityModal">
   <div class="modal-box" id="activityModalBox" style="width:min(560px, 92vw);">
     <div class="modal-title">🕓 Activity Log</div>
@@ -4538,6 +4833,7 @@ document.addEventListener('keydown', e => {
       <div class="shortcut-row"><span>Undo last action</span><span class="shortcut-keys"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd></span></div>
       <div class="shortcut-row"><span>Redo</span><span class="shortcut-keys"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Y</kbd></span></div>
       <div class="shortcut-row"><span>Post a comment</span><span class="shortcut-keys"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></span></div>
+      <div class="shortcut-row"><span>Send a chat message</span><span class="shortcut-keys"><kbd>Enter</kbd></span></div>
       <div class="shortcut-row"><span>Close modal / clear search / clear selection</span><span class="shortcut-keys"><kbd>Esc</kbd></span></div>
       <div class="shortcut-row"><span>Show this shortcuts list</span><span class="shortcut-keys"><kbd>?</kbd></span></div>
     </div>
@@ -5983,6 +6279,7 @@ async function handleAuthState(user){
     badge.style.display='flex';
     loginOpenBtn.style.display='none';
     document.getElementById('notifBellBtn').style.display='';
+    document.getElementById('chatBellBtn').style.display='';
     document.getElementById('archiveViewBtn').style.display='';
     document.getElementById('waitingViewBtn').style.display='';
     document.getElementById('recycleViewBtn').style.display='';
@@ -6045,6 +6342,7 @@ async function handleAuthState(user){
     document.getElementById('lastUpdated').textContent=formatLastUpdated(saved&&saved.updatedAt)||'';
     listenForLastUpdated(currentWorkspaceId);
     listenForActivity(currentWorkspaceId);
+    listenForChat(currentWorkspaceId);
     updateTeamUI();
     resetUndo();
     renderAll();
@@ -6067,7 +6365,9 @@ async function handleAuthState(user){
     // instead of locking the dashboard behind a forced gate.
     if(unsubscribeLastUpdated){ unsubscribeLastUpdated(); unsubscribeLastUpdated=null; }
     if(unsubscribeActivity){ unsubscribeActivity(); unsubscribeActivity=null; }
+    if(unsubscribeChat){ unsubscribeChat(); unsubscribeChat=null; }
     activityFeed=[]; updateNotifBadge();
+    chatFeed=[]; updateChatBadge();
     workspaceOwnerUid=null; workspaceMembers={};
     applyViewOnlyMode();
     // Reset the avatar element to a clean slate on sign-out so the next
@@ -6086,6 +6386,7 @@ async function handleAuthState(user){
     document.getElementById('userBadge').style.display='none';
     document.getElementById('userBadge').classList.remove('menu-open');
     document.getElementById('notifBellBtn').style.display='none';
+    document.getElementById('chatBellBtn').style.display='none';
     document.getElementById('loginOpenBtn').style.display='';
     document.getElementById('archiveViewBtn').style.display='none';
     document.getElementById('waitingViewBtn').style.display='none';
@@ -12006,20 +12307,27 @@ function parseMentions(text){
 function renderCommentTextWithMentions(text,mentionedUids){
   let html=escHtml(text);
   if(!mentionedUids||!mentionedUids.length) return html;
-  const labels=mentionedUids
-    .map(uid=>workspaceMembers[uid]&&(workspaceMembers[uid].displayName||workspaceMembers[uid].email))
-    .filter(Boolean)
-    .sort((a,b)=>b.length-a.length);
-  labels.forEach(label=>{
+  const entries=mentionedUids
+    .map(uid=>({uid,label:workspaceMembers[uid]&&(workspaceMembers[uid].displayName||workspaceMembers[uid].email)}))
+    .filter(e=>e.label)
+    .sort((a,b)=>b.label.length-a.label.length);
+  entries.forEach(({uid,label})=>{
+    const color=colorForAssignee(uid)||'#d4af37';
+    const style=`--mention-color:${color};`;
     const escaped=escHtml(label).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
     const re=new RegExp('@'+escaped+'(?![a-zA-Z0-9])','gi');
-    html=html.replace(re,m=>`<span class="comment-mention">${m}</span>`);
+    let matchedFull=false;
+    html=html.replace(re,m=>{matchedFull=true; return `<span class="comment-mention" style="${style}">${m}</span>`;});
     // Also catch a first-name-only mention actually typed in the text, so
     // the highlight matches whatever parseMentions() actually detected.
+    // Skip this when the full name already matched above — otherwise the
+    // first-name regex re-matches the "@Firstname" substring that's now
+    // sitting inside the span we just inserted, producing a broken nested
+    // highlight (e.g. "@Arafat" double-wrapped inside "@Arafat Hossain").
     const firstWord=escHtml(label).split(' ')[0];
-    if(firstWord && firstWord!==escaped){
+    if(!matchedFull && firstWord && firstWord!==escaped){
       const reFirst=new RegExp('@'+firstWord+'(?![a-zA-Z0-9])','gi');
-      html=html.replace(reFirst,m=>`<span class="comment-mention">${m}</span>`);
+      html=html.replace(reFirst,m=>`<span class="comment-mention" style="${style}">${m}</span>`);
     }
   });
   return html;
@@ -12280,6 +12588,292 @@ document.getElementById('commentInputText').addEventListener('keydown',e=>{
 });
 document.getElementById('commentsCloseBtn').onclick=()=>closeCommentsModal();
 document.getElementById('commentsModal').onclick=e=>{if(e.target===document.getElementById('commentsModal'))closeCommentsModal();};
+
+// ── TEAM CHAT (workspace-wide, real-time — mirrors the per-task comment system,
+// but lives in its own top-level Firestore subcollection instead of hanging
+// off a specific task/subtask) ───────────────────────────────────────────────
+let chatFeed=[]; // [{id,uid,authorName,text,mentionedUids,ts}], newest-last (already re-sorted for display)
+let unsubscribeChat=null;
+function getChatSeenKey(){ return 'mlc_chatSeen_'+(currentWorkspaceId||'none'); }
+function getChatSeenTs(){ return parseInt(localStorage.getItem(getChatSeenKey())||'0',10); }
+function setChatSeenNow(){ localStorage.setItem(getChatSeenKey(), String(Date.now())); }
+function _chatTsMillis(entry){
+  // Same rationale as _activityTsMillis(): serverTimestamp() resolves
+  // asynchronously, so a just-sent message may briefly read null locally.
+  return entry.ts&&entry.ts.toMillis?entry.ts.toMillis():Date.now();
+}
+function listenForChat(workspaceId){
+  if(unsubscribeChat) unsubscribeChat();
+  unsubscribeChat=getWorkspaceDocById(workspaceId).collection('chat')
+    .orderBy('ts','desc').limit(200)
+    .onSnapshot(snap=>{
+      // Stored/fetched newest-first (cheapest way to cap at the most recent
+      // 200 via Firestore's own limit()); reversed here so the timeline
+      // renders in natural oldest-to-newest reading order.
+      chatFeed=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
+      updateChatBadge();
+      if(document.getElementById('chatModal').classList.contains('open')) renderChatFeed();
+    }, err=>console.warn('Chat listener error:',err));
+}
+function updateChatBadge(){
+  const badge=document.getElementById('chatBadge');
+  const bell=document.getElementById('chatBellBtn');
+  if(!badge) return;
+  const seen=getChatSeenTs();
+  const myUid=auth&&auth.currentUser?auth.currentUser.uid:null;
+  const unreadEntries=chatFeed.filter(e=>e.uid!==myUid&&_chatTsMillis(e)>seen);
+  const unread=unreadEntries.length;
+  // If any unread message actually @mentions me (not just an unread message
+  // from someone else), the badge switches to a distinct color so a plain
+  // "new activity" ping and a direct mention don't look the same at a glance.
+  const hasMention=myUid&&unreadEntries.some(e=>Array.isArray(e.mentionedUids)&&e.mentionedUids.includes(myUid));
+  if(unread>0){
+    badge.textContent=unread>99?'99+':String(unread);
+    badge.style.display='flex';
+    badge.classList.toggle('has-mention',!!hasMention);
+    if(bell) bell.classList.add('has-unread');
+  }else{
+    badge.style.display='none';
+    badge.classList.remove('has-mention');
+    if(bell) bell.classList.remove('has-unread');
+  }
+}
+// A fixed, pleasant palette hashed from uid so each person gets a stable
+// color for their avatar/name across sessions (no per-user storage needed).
+const CHAT_AVATAR_COLORS=['#e17055','#0984e3','#00b894','#6c5ce7','#e84393','#fdcb6e','#00cec9','#d63031','#a29bfe','#20bf6b'];
+function chatAvatarColor(uid){
+  if(!uid) return CHAT_AVATAR_COLORS[0];
+  let h=0; for(let i=0;i<uid.length;i++){ h=(h*31+uid.charCodeAt(i))|0; }
+  return CHAT_AVATAR_COLORS[Math.abs(h)%CHAT_AVATAR_COLORS.length];
+}
+function renderChatFeed(scrollToUnread){
+  const timeline=document.getElementById('chatTimeline');
+  const wrap=timeline&&timeline.closest('.chat-timeline-wrap');
+  if(!timeline) return;
+  const myUid=auth&&auth.currentUser?auth.currentUser.uid:null;
+  if(!chatFeed.length){
+    timeline.innerHTML='<div class="chat-empty">No messages yet — say hello to the team.</div>';
+    return;
+  }
+  // Figure out where the "New" divider goes: right before the first message
+  // from someone else that arrived after our last-seen timestamp. Computed
+  // up front (before setChatSeenNow() runs) so opening the chat can drop the
+  // person right where they left off instead of always jumping to the very
+  // bottom.
+  const seenTs=getChatSeenTs();
+  const firstUnreadId=(()=>{
+    const hit=chatFeed.find(c=>c.uid&&c.uid!==myUid&&_chatTsMillis(c)>seenTs);
+    return hit?hit.id:null;
+  })();
+  let html='';
+  let lastLabel=null;
+  let prevUid=null, prevMs=0;
+  // Consecutive messages from the same sender within 5 minutes collapse
+  // into one visual group — no repeated avatar/name, tighter spacing —
+  // mirroring how WhatsApp/Messenger group a person's own run of messages.
+  const GROUP_GAP_MS=5*60*1000;
+  chatFeed.forEach(c=>{
+    const ms=_chatTsMillis(c);
+    const label=fmtCommentDateLabel(ms);
+    if(label!==lastLabel){
+      html+=`<div class="chat-date-sep"><span>${escHtml(label)}</span></div>`;
+      lastLabel=label;
+      prevUid=null; // never group across a date separator
+    }
+    if(firstUnreadId&&c.id===firstUnreadId){
+      html+=`<div class="chat-unread-sep" id="chatUnreadAnchor"><span>New</span></div>`;
+      prevUid=null; // start a fresh visual group right after the divider
+    }
+    const mine=c.uid&&c.uid===myUid;
+    const grouped=c.uid&&c.uid===prevUid&&(ms-prevMs)<GROUP_GAP_MS;
+    const canDelete=mine||myMemberRole()==='admin';
+    const initial=(c.authorName||'?').trim().charAt(0).toUpperCase()||'?';
+    const color=chatAvatarColor(c.uid);
+    html+=`
+      <div class="chat-row${mine?' mine':''}${grouped?' grouped':''}" data-id="${escHtml(c.id)}">
+        ${mine?'':(grouped?'<div class="chat-avatar spacer"></div>':`<div class="chat-avatar" style="background:${color};" title="${escHtml(c.authorName||'Someone')}">${escHtml(initial)}</div>`)}
+        <div class="chat-bubble-col">
+          ${(!mine&&!grouped)?`<div class="chat-bubble-author" style="color:${color};">${escHtml(c.authorName||'Someone')}</div>`:''}
+          <div class="chat-bubble">${renderCommentTextWithMentions(c.text,c.mentionedUids)}<span class="chat-bubble-time">${fmtCommentTime(ms)}</span></div>
+        </div>
+        ${canDelete?`<span class="chat-bubble-delete" data-id="${escHtml(c.id)}" title="Delete message">✕</span>`:''}
+      </div>`;
+    prevUid=c.uid; prevMs=ms;
+  });
+  timeline.innerHTML=html;
+  timeline.querySelectorAll('.chat-bubble-delete').forEach(btn=>{
+    btn.onclick=()=>deleteChatMessage(btn.dataset.id);
+  });
+  const unreadAnchor=firstUnreadId&&document.getElementById('chatUnreadAnchor');
+  if(scrollToUnread&&unreadAnchor){
+    unreadAnchor.scrollIntoView({block:'center'});
+  }else if(wrap){
+    wrap.scrollTop=wrap.scrollHeight;
+  }
+}
+function renderChatMentionChips(){
+  const wrap=document.getElementById('chatMentionChips');
+  if(!wrap) return;
+  const myUid=auth&&auth.currentUser?auth.currentUser.uid:null;
+  const others=Object.entries(workspaceMembers).filter(([uid])=>uid!==myUid);
+  if(!others.length){ wrap.innerHTML=''; wrap.style.display='none'; return; }
+  wrap.style.display='';
+  wrap.innerHTML=others.map(([uid,info])=>{
+    const label=(info.displayName||info.email||'Member').trim();
+    return `<button type="button" class="comment-mention-chip" data-name="${escHtml(label)}">@${escHtml(label)}</button>`;
+  }).join('');
+  wrap.querySelectorAll('.comment-mention-chip').forEach(chip=>{
+    chip.onclick=()=>{
+      const input=document.getElementById('chatInputText');
+      const name=chip.dataset.name;
+      const insert=(input.value&&!input.value.endsWith(' ')?' ':'')+'@'+name+' ';
+      input.value+=insert;
+      input.focus();
+    };
+  });
+}
+// Live "@" autocomplete for the chat input — separate state/elements from the
+// comment modal's so both can't stomp on each other if either is left open.
+let chatMentionAC={active:false,start:-1,query:'',items:[],activeIndex:0};
+function closeChatMentionAutocomplete(){
+  chatMentionAC.active=false;
+  const dropdown=document.getElementById('chatMentionAutocomplete');
+  if(dropdown) dropdown.style.display='none';
+}
+function updateChatMentionAutocomplete(){
+  const input=document.getElementById('chatInputText');
+  const dropdown=document.getElementById('chatMentionAutocomplete');
+  if(!input||!dropdown) return;
+  const cursor=input.selectionStart;
+  const text=input.value;
+  const upto=text.slice(0,cursor);
+  const atIdx=upto.lastIndexOf('@');
+  let trigger=false, query='';
+  if(atIdx!==-1){
+    const before=atIdx===0?'':upto[atIdx-1];
+    const between=upto.slice(atIdx+1,cursor);
+    if((atIdx===0||/\s/.test(before)) && !/[\n@]/.test(between)){
+      trigger=true; query=between;
+    }
+  }
+  if(!trigger){ closeChatMentionAutocomplete(); return; }
+  const items=getMentionCandidates(query);
+  chatMentionAC={active:true,start:atIdx,query,items,activeIndex:0};
+  if(!items.length){
+    dropdown.innerHTML = Object.keys(workspaceMembers).length>1
+      ? `<div class="mention-autocomplete-empty">No matching teammate</div>`
+      : `<div class="mention-autocomplete-empty">Invite teammates to @mention them</div>`;
+    dropdown.style.display='';
+    return;
+  }
+  renderChatMentionAutocompleteList();
+}
+function renderChatMentionAutocompleteList(){
+  const dropdown=document.getElementById('chatMentionAutocomplete');
+  if(!dropdown) return;
+  dropdown.innerHTML=chatMentionAC.items.map((m,i)=>
+    `<div class="mention-autocomplete-item${i===chatMentionAC.activeIndex?' active':''}" data-idx="${i}">${escHtml(m.label)}</div>`
+  ).join('');
+  dropdown.style.display='';
+  dropdown.querySelectorAll('.mention-autocomplete-item').forEach(el=>{
+    el.onmousedown=e=>{ e.preventDefault(); applyChatMention(parseInt(el.dataset.idx,10)); };
+  });
+}
+function applyChatMention(i){
+  const input=document.getElementById('chatInputText');
+  const item=chatMentionAC.items[i];
+  if(!input||!item) return;
+  const text=input.value;
+  const cursor=input.selectionStart;
+  const before=text.slice(0,chatMentionAC.start);
+  const after=text.slice(cursor);
+  const insert='@'+item.label+' ';
+  input.value=before+insert+after;
+  const newPos=(before+insert).length;
+  input.focus();
+  input.setSelectionRange(newPos,newPos);
+  closeChatMentionAutocomplete();
+}
+function openChatModal(){
+  document.getElementById('userBadge').classList.remove('menu-open');
+  document.getElementById('chatInputText').value='';
+  closeChatMentionAutocomplete();
+  renderChatMentionChips();
+  document.getElementById('chatModal').classList.add('open');
+  document.getElementById('chatBellBtn').style.visibility='hidden';
+  renderChatFeed(true);
+  // Opening chat is the "read" action — clear the unread badge, but only
+  // after rendering above so this open still shows the unread highlight once.
+  setChatSeenNow();
+  updateChatBadge();
+  setTimeout(()=>document.getElementById('chatInputText').focus(),100);
+}
+function closeChatModal(){
+  document.getElementById('chatModal').classList.remove('open');
+  document.getElementById('chatBellBtn').style.visibility='';
+  closeChatMentionAutocomplete();
+}
+function postChatMessage(){
+  if(!canEdit()){notifyViewOnly();return;}
+  const input=document.getElementById('chatInputText');
+  const text=input.value.trim();
+  if(!text) return;
+  if(!auth||!auth.currentUser||!db||!currentWorkspaceId) return;
+  const user=auth.currentUser;
+  const authorName=user.displayName||(user.email||'').split('@')[0]||'Someone';
+  const authorUid=user.uid;
+  const mentions=parseMentions(text);
+  const entry={
+    uid:authorUid,
+    authorName,
+    text:text.slice(0,600),
+    mentionedUids:mentions.map(m=>m.uid),
+    ts:firebase.firestore.FieldValue.serverTimestamp()
+  };
+  input.value='';
+  getWorkspaceDoc().collection('chat').add(entry).catch(e=>{
+    console.warn('Chat message send failed:',e);
+    toast('!','Message failed to send — try again',false);
+  });
+  // A separate, filterable Activity Log entry per mentioned person, same
+  // spirit as postComment()'s mention notifications — lets "Mentions of me"
+  // surface chat @mentions too, not just comment ones.
+  mentions.forEach(({uid,label})=>{
+    if(uid===authorUid) return;
+    logActivity('🔔',`mentioned ${label} in team chat`,null,null,{
+      type:'mention', mentionedUid:uid, chatMention:true
+    });
+  });
+}
+function deleteChatMessage(id){
+  if(!auth||!auth.currentUser||!db||!currentWorkspaceId) return;
+  const entry=chatFeed.find(c=>c.id===id);
+  if(!entry) return;
+  const myUid=auth.currentUser.uid;
+  if(entry.uid!==myUid && myMemberRole()!=='admin'){ notifyViewOnly(); return; }
+  getWorkspaceDoc().collection('chat').doc(id).delete().catch(e=>{
+    console.warn('Chat message delete failed:',e);
+    toast('!','Could not delete message — try again',false);
+  });
+}
+document.getElementById('chatBellBtn').onclick=openChatModal;
+document.getElementById('chatCloseBtn').onclick=closeChatModal;
+document.getElementById('chatPostBtn').onclick=postChatMessage;
+document.getElementById('chatModal').onclick=e=>{ if(e.target.id==='chatModal') closeChatModal(); };
+document.getElementById('chatInputText').addEventListener('input',updateChatMentionAutocomplete);
+document.getElementById('chatInputText').addEventListener('click',updateChatMentionAutocomplete);
+document.getElementById('chatInputText').addEventListener('blur',()=>{
+  setTimeout(closeChatMentionAutocomplete,120);
+});
+document.getElementById('chatInputText').addEventListener('keydown',e=>{
+  if(chatMentionAC.active && chatMentionAC.items.length){
+    if(e.key==='ArrowDown'){ e.preventDefault(); chatMentionAC.activeIndex=(chatMentionAC.activeIndex+1)%chatMentionAC.items.length; renderChatMentionAutocompleteList(); return; }
+    if(e.key==='ArrowUp'){ e.preventDefault(); chatMentionAC.activeIndex=(chatMentionAC.activeIndex-1+chatMentionAC.items.length)%chatMentionAC.items.length; renderChatMentionAutocompleteList(); return; }
+    if(e.key==='Enter'||e.key==='Tab'){ e.preventDefault(); applyChatMention(chatMentionAC.activeIndex); return; }
+    if(e.key==='Escape'){ closeChatMentionAutocomplete(); return; }
+  }
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); postChatMessage(); }
+});
 
 // ── MODEL DEADLINE (header "Set Deadline" button) ─────────────────────────────
 // Real, fully-functional <input type="date"> stretched invisibly over the
@@ -14176,6 +14770,8 @@ document.addEventListener('keydown',e=>{
     document.getElementById('overdueModal').classList.remove('open');
     document.getElementById('globalSearchModal').classList.remove('open');
     document.getElementById('activityModal').classList.remove('open');
+    document.getElementById('chatModal').classList.remove('open');
+    closeChatMentionAutocomplete();
     document.getElementById('shortcutsModal').classList.remove('open');
     if(typeof closeVoiceModal==='function') closeVoiceModal();
     if(typeof closeModelAccessModal==='function') closeModelAccessModal();
@@ -14673,7 +15269,9 @@ updateStickyBarPin();
 
 <div id="teamOverlay" role="dialog" aria-modal="true" aria-labelledby="teamModalTitle">
   <div id="teamModal">
-    <div class="elmodal-icon" style="background:var(--accent1-dim);border-color:var(--border-hover);">👥</div>
+    <div class="elmodal-icon team-modal-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
     <div class="elmodal-title" id="teamModalTitle">Team &amp; Workspace</div>
     <div class="elmodal-desc" id="teamWorkspaceDesc">This is your personal workspace — only you can see it.</div>
 
@@ -14823,15 +15421,17 @@ function renderTeamModal(){
       :'';
     return `<div class="team-member-row">
       <div class="team-member-avatar"${info.photo?` style="background-image:url(&quot;${escHtml(info.photo)}&quot;);background-size:cover;background-position:center;"`:''}>${info.photo?'':escHtml(initial)}</div>
-      <div>
+      <div class="team-member-info">
         <div class="team-member-name">${escHtml(info.displayName||info.email||'Unknown')}</div>
         <div class="team-member-email">${escHtml(info.email||'')}</div>
       </div>
-      ${modelAccessBtn}
-      ${roleIndicator}
-      ${showRemove?`<button class="team-member-remove-btn" data-uid="${escHtml(uid)}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="Remove from workspace">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>`:''}
+      <div class="team-member-actions">
+        ${modelAccessBtn}
+        ${roleIndicator}
+        ${showRemove?`<button class="team-member-remove-btn" data-uid="${escHtml(uid)}" data-name="${escHtml(info.displayName||info.email||'this person')}" title="Remove from workspace">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>`:''}
+      </div>
     </div>`;
   }).join('') || '<div class="elmodal-desc" style="margin:0;">No members found.</div>';
 
@@ -15260,6 +15860,7 @@ async function switchToWorkspace(workspaceId){
     document.getElementById('lastUpdated').textContent=formatLastUpdated(saved&&saved.updatedAt)||'';
     listenForLastUpdated(currentWorkspaceId);
     listenForActivity(currentWorkspaceId);
+    listenForChat(currentWorkspaceId);
     resetUndo();
     editingIdx=null; selectedTasks.clear(); selectedSubtasks.clear(); expandedSubtasksSet.clear();
     renderAll();
