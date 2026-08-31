@@ -1481,12 +1481,50 @@ footer {
   font-weight: 700;
 }
 .chat-bubble-time { display:block; text-align:right; font-size:9.5px; margin-top:2px; opacity:0.65; }
-.chat-bubble-delete {
-  opacity:0; transition: opacity 0.15s ease; cursor:pointer; color: var(--text-muted);
-  font-size:11px; align-self:center; padding:0 2px; flex-shrink:0;
+.chat-bubble-actions { display:flex; align-items:center; gap:4px; align-self:center; flex-shrink:0; }
+.chat-bubble-delete, .chat-bubble-reply {
+  opacity:0; transition: opacity 0.15s ease, color 0.15s ease; cursor:pointer; color: var(--text-muted);
+  font-size:11px; padding:3px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
 }
-.chat-row:hover .chat-bubble-delete { opacity:1; }
-.chat-bubble-delete:hover { color: var(--red); }
+.chat-row:hover .chat-bubble-delete, .chat-row:hover .chat-bubble-reply { opacity:0.85; }
+.chat-bubble-delete:hover { color: var(--red); opacity:1; background: var(--accent1-dim); }
+.chat-bubble-reply:hover { color: var(--accent1); opacity:1; background: var(--accent1-dim); }
+@media (hover: none) {
+  .chat-bubble-delete, .chat-bubble-reply { opacity:0.5; }
+}
+/* Quoted-message preview shown inside a bubble when the message is a reply */
+.chat-quote {
+  display:block; margin:-1px -2px 5px; padding:5px 8px; border-left:3px solid var(--accent1);
+  background: rgba(0,0,0,0.14); border-radius:6px; cursor:pointer; transition: filter 0.15s ease;
+}
+.chat-quote:hover { filter:brightness(1.2); }
+.chat-row.mine .chat-quote { background: rgba(0,0,0,0.16); border-left-color: rgba(36,27,6,0.45); }
+.chat-quote-author { display:block; font-size:10.5px; font-weight:700; color: var(--accent1); margin-bottom:1px; }
+.chat-row.mine .chat-quote-author { color:#241b06; opacity:0.8; }
+.chat-quote-text {
+  display:block; font-size:11.5px; color: var(--text-muted); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; max-width:100%;
+}
+.chat-row.mine .chat-quote-text { color:#241b06; opacity:0.75; }
+@keyframes chatHighlightFlash { 0%{ box-shadow:0 0 0 3px var(--accent1-dim); } 100%{ box-shadow:0 0 0 0 transparent; } }
+.chat-row.flash .chat-bubble { animation: chatHighlightFlash 1s ease; }
+/* "Replying to…" strip above the chat input, WhatsApp-style */
+.chat-reply-bar {
+  display:none; align-items:center; gap:8px; margin:8px 16px 0; padding:6px 10px;
+  background: var(--surface2); border-left:3px solid var(--accent1); border-radius:8px;
+}
+.chat-reply-bar.open { display:flex; }
+.chat-reply-bar-content { flex:1; min-width:0; }
+.chat-reply-bar-author { font-size:11px; font-weight:700; color: var(--accent1); }
+.chat-reply-bar-text {
+  font-size:12px; color: var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.chat-reply-bar-cancel {
+  flex-shrink:0; background:none; border:none; color:var(--text-muted); cursor:pointer;
+  font-size:13px; padding:4px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+}
+.chat-reply-bar-cancel:hover { color: var(--red); background: var(--accent1-dim); }
 .chat-empty { padding: 48px 8px; text-align: center; color: var(--text-dim); font-size: 13px; }
 .chat-input-bar {
   flex-shrink:0; display:flex; gap:8px; align-items:center;
@@ -2431,6 +2469,140 @@ footer {
 .modal-btn.danger { background: var(--red); color: #fff; box-shadow: 0 4px 14px rgba(244, 63, 94, 0.3); }
 .modal-btn.danger:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
+/* ── ACTIVITY LOG — polished to match the Team/Profile "elmodal" style ── */
+#activityModal {
+  display: flex; opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding: 20px; box-sizing: border-box;
+}
+#activityModal.open { opacity: 1; pointer-events: all; }
+#activityModalBox.elmodal-style-box {
+  border-color: rgba(212,175,55,0.22);
+  animation: none;
+  transform: translateY(14px) scale(0.97);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1), opacity 0.28s ease;
+  max-height: 82vh; display: flex; flex-direction: column; overflow: hidden;
+  padding: 24px 32px 22px;
+}
+#activityModal.open #activityModalBox.elmodal-style-box { transform: translateY(0) scale(1); opacity: 1; }
+#activityModalBox .activity-modal-icon,
+#activityModalBox .modal-title,
+#activityModalBox .modal-subtitle,
+#activityModalBox .activity-filter-row,
+#activityModalBox .modal-actions { flex-shrink: 0; }
+#activityModalBox .activity-body { flex: 1; min-height: 0; max-height: none; }
+#activityModalBox .activity-modal-icon {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(160deg, var(--surface2), var(--bg) 120%);
+  border: 1.5px solid var(--accent1);
+  color: var(--accent1);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+  margin: 0 auto 10px; font-size: 17px;
+}
+#activityModalBox .modal-title {
+  position: relative; text-align: center; font-size: 18px;
+  padding-bottom: 8px; margin-bottom: 8px;
+}
+#activityModalBox .modal-title::after {
+  content: ''; position: absolute; left: 50%; bottom: 0; width: 30px; height: 2px;
+  background: var(--accent1); border-radius: 2px; transform: translateX(-50%);
+}
+#activityModalBox .modal-subtitle { text-align: center; margin-bottom: 10px; font-size: 12.5px; }
+#activityModalBox .activity-filter-row { justify-content: center; margin: 8px 0 4px; }
+#activityModalBox .elmodal-actions .modal-btn,
+#activityModalBox .elmodal-actions .elmodal-skip-btn { flex: 1; }
+#activityModalBox .activity-modal-actions-sm.modal-actions { gap: 8px; }
+#activityModalBox .activity-modal-actions-sm .modal-btn,
+#activityModalBox .activity-modal-actions-sm.elmodal-actions .elmodal-skip-btn {
+  padding: 7px 14px; font-size: 12.5px; border-radius: 9px;
+}
+
+/* ── GLOBAL SEARCH — polished to match the Team/Activity "elmodal" style ── */
+#globalSearchModal {
+  display: flex; opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding: 20px; box-sizing: border-box;
+}
+#globalSearchModal.open { opacity: 1; pointer-events: all; }
+#globalSearchModalBox.elmodal-style-box {
+  border-color: rgba(212,175,55,0.22);
+  animation: none;
+  transform: translateY(14px) scale(0.97);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1), opacity 0.28s ease;
+  max-height: 82vh; display: flex; flex-direction: column; overflow: hidden;
+  padding: 24px 32px 22px;
+}
+#globalSearchModal.open #globalSearchModalBox.elmodal-style-box { transform: translateY(0) scale(1); opacity: 1; }
+#globalSearchModalBox .search-modal-icon,
+#globalSearchModalBox .modal-title,
+#globalSearchModalBox .modal-subtitle,
+#globalSearchModalBox .gsearch-input-wrap,
+#globalSearchModalBox .modal-actions { flex-shrink: 0; }
+#globalSearchModalBox .gsearch-body { flex: 1; min-height: 0; max-height: none; }
+#globalSearchModalBox .search-modal-icon {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, var(--surface2), var(--bg) 120%);
+  border: 1.5px solid var(--accent1);
+  color: var(--accent1);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+  margin: 0 auto 10px; font-size: 17px;
+}
+#globalSearchModalBox .modal-title {
+  position: relative; text-align: center; font-size: 18px;
+  padding-bottom: 8px; margin-bottom: 8px;
+}
+#globalSearchModalBox .modal-title::after {
+  content: ''; position: absolute; left: 50%; bottom: 0; width: 30px; height: 2px;
+  background: var(--accent1); border-radius: 2px; transform: translateX(-50%);
+}
+#globalSearchModalBox .modal-subtitle { text-align: center; margin-bottom: 10px; font-size: 12.5px; }
+#globalSearchModalBox .elmodal-actions .modal-btn { flex: 1; }
+
+/* ── SHARED "elmodal" POLISH — reused by Bulk Update by Task, Bulk Model
+   Actions, and Voice Assistant, so all three match the Team/Activity/
+   Global Search look without repeating the same rules three times.
+   Compound class selectors (always paired with .modal-overlay / .modal-box)
+   are used so specificity beats the base rules regardless of source order. */
+.modal-overlay.elmodal-overlay-polished {
+  display: flex; opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding: 20px; box-sizing: border-box;
+}
+.modal-overlay.elmodal-overlay-polished.open { opacity: 1; pointer-events: all; }
+.modal-box.elmodal-box-polished {
+  border-color: rgba(212,175,55,0.22);
+  animation: none;
+  transform: translateY(14px) scale(0.97);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.16,1,0.3,1), opacity 0.28s ease;
+}
+.modal-overlay.elmodal-overlay-polished.open .modal-box.elmodal-box-polished { transform: translateY(0) scale(1); opacity: 1; }
+.elmodal-round-icon-gold {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, var(--surface2), var(--bg) 120%);
+  border: 1.5px solid var(--accent1);
+  color: var(--accent1);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+  margin: 0 auto 10px; font-size: 17px;
+  flex-shrink: 0;
+}
+.modal-title.elmodal-title-centered {
+  position: relative; text-align: center; font-size: 18px;
+  padding-bottom: 8px; margin-bottom: 8px; flex-shrink: 0;
+}
+.modal-title.elmodal-title-centered::after {
+  content: ''; position: absolute; left: 50%; bottom: 0; width: 30px; height: 2px;
+  background: var(--accent1); border-radius: 2px; transform: translateX(-50%);
+}
+.modal-subtitle.elmodal-subtitle-centered { text-align: center; margin-bottom: 10px; font-size: 12.5px; flex-shrink: 0; }
+
 /* ── FLOATING TEAM-CHAT BUTTON + DOCKED CHAT PANEL ─────────────────
    The chat trigger lives outside the header now: a premium round FAB
    pinned to the bottom-right of the viewport. Its panel (#chatModal)
@@ -3216,6 +3388,52 @@ kbd {
   .modal-actions .modal-btn { width: 100%; min-height: 46px; }
   .confirm-actions.modal-actions { flex-direction: column-reverse; }
 
+  /* Activity Log uses its own ID-scoped styles (higher specificity than the
+     .modal-overlay/.modal-box rules above), so the generic mobile bottom-sheet
+     treatment needs to be re-applied here explicitly or it gets silently
+     skipped on phones. */
+  #activityModal { align-items: flex-end; padding: 12px; }
+  #activityModalBox.elmodal-style-box {
+    width: 100%; max-width: 100%;
+    max-height: 88vh;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    animation: modalInMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform: none;
+  }
+  #activityModal.open #activityModalBox.elmodal-style-box { transform: none; }
+  #activityModalBox .modal-title { font-size: 18px; }
+  #activityModalBox .modal-actions { flex-direction: column-reverse; gap: 10px; }
+  #activityModalBox .modal-actions .modal-btn,
+  #activityModalBox .modal-actions .elmodal-skip-btn { width: 100%; min-height: 46px; }
+
+  /* Global Search: same ID-scoped-styles situation as Activity Log above —
+     re-apply the mobile bottom-sheet treatment explicitly. */
+  #globalSearchModal { align-items: flex-end; padding: 12px; }
+  #globalSearchModalBox.elmodal-style-box {
+    width: 100%; max-width: 100%;
+    max-height: 88vh;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    animation: modalInMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform: none;
+  }
+  #globalSearchModal.open #globalSearchModalBox.elmodal-style-box { transform: none; }
+  #globalSearchModalBox .modal-title { font-size: 18px; }
+
+  /* Shared elmodal-polished modals (Bulk Update by Task, Bulk Model Actions,
+     Voice Assistant) — same treatment as Global Search / Activity Log above. */
+  .modal-overlay.elmodal-overlay-polished { align-items: flex-end; padding: 12px; }
+  .modal-box.elmodal-box-polished {
+    width: 100%; max-width: 100%;
+    max-height: 88vh;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    animation: modalInMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform: none;
+  }
+  .modal-overlay.elmodal-overlay-polished.open .modal-box.elmodal-box-polished { transform: none; }
+
   /* KPI cards: tighter padding + smaller figure so 2-up rows stay
      comfortable, instead of desktop sizing squeezed into half-width. */
   .kpi-card { padding: 18px 16px; border-radius: 14px; }
@@ -3318,6 +3536,52 @@ kbd {
   .modal-actions .modal-btn { width: 100%; min-height: 46px; }
   .confirm-actions.modal-actions { flex-direction: column-reverse; }
 
+  /* Activity Log uses its own ID-scoped styles (higher specificity than the
+     .modal-overlay/.modal-box rules above), so the generic mobile bottom-sheet
+     treatment needs to be re-applied here explicitly or it gets silently
+     skipped on phones. */
+  #activityModal { align-items: flex-end; padding: 12px; }
+  #activityModalBox.elmodal-style-box {
+    width: 100%; max-width: 100%;
+    max-height: 88vh;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    animation: modalInMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform: none;
+  }
+  #activityModal.open #activityModalBox.elmodal-style-box { transform: none; }
+  #activityModalBox .modal-title { font-size: 18px; }
+  #activityModalBox .modal-actions { flex-direction: column-reverse; gap: 10px; }
+  #activityModalBox .modal-actions .modal-btn,
+  #activityModalBox .modal-actions .elmodal-skip-btn { width: 100%; min-height: 46px; }
+
+  /* Global Search: same ID-scoped-styles situation as Activity Log above —
+     re-apply the mobile bottom-sheet treatment explicitly. */
+  #globalSearchModal { align-items: flex-end; padding: 12px; }
+  #globalSearchModalBox.elmodal-style-box {
+    width: 100%; max-width: 100%;
+    max-height: 88vh;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    animation: modalInMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform: none;
+  }
+  #globalSearchModal.open #globalSearchModalBox.elmodal-style-box { transform: none; }
+  #globalSearchModalBox .modal-title { font-size: 18px; }
+
+  /* Shared elmodal-polished modals (Bulk Update by Task, Bulk Model Actions,
+     Voice Assistant) — same treatment as Global Search / Activity Log above. */
+  .modal-overlay.elmodal-overlay-polished { align-items: flex-end; padding: 12px; }
+  .modal-box.elmodal-box-polished {
+    width: 100%; max-width: 100%;
+    max-height: 88vh;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    animation: modalInMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform: none;
+  }
+  .modal-overlay.elmodal-overlay-polished.open .modal-box.elmodal-box-polished { transform: none; }
+
   /* KPI cards: tighter padding + smaller figure so 2-up rows stay
      comfortable, instead of desktop sizing squeezed into half-width. */
   .kpi-card { padding: 18px 16px; border-radius: 14px; }
@@ -3365,12 +3629,14 @@ kbd {
 
 @media (max-width: 480px) {
   .modal-box { padding: 20px 16px calc(18px + env(safe-area-inset-bottom)); }
+  #activityModalBox.elmodal-style-box { padding: 20px 16px calc(18px + env(safe-area-inset-bottom)); }
   .kpi-value { font-size: 26px; }
   .filter-btn { font-size: 11.5px; padding: 7px 12px; }
 }
 
 @container app-root (max-width: 480px) {
   .modal-box { padding: 20px 16px calc(18px + env(safe-area-inset-bottom)); }
+  #activityModalBox.elmodal-style-box { padding: 20px 16px calc(18px + env(safe-area-inset-bottom)); }
   .kpi-value { font-size: 26px; }
   .filter-btn { font-size: 11.5px; padding: 7px 12px; }
 }
@@ -4791,6 +5057,13 @@ document.addEventListener('keydown', e => {
       <div id="chatTimeline"></div>
     </div>
     <div class="chat-footer">
+      <div class="chat-reply-bar" id="chatReplyBar">
+        <div class="chat-reply-bar-content">
+          <div class="chat-reply-bar-author" id="chatReplyBarAuthor"></div>
+          <div class="chat-reply-bar-text" id="chatReplyBarText"></div>
+        </div>
+        <button type="button" class="chat-reply-bar-cancel" id="chatReplyBarCancel" title="Cancel reply" aria-label="Cancel reply">✕</button>
+      </div>
       <div class="comment-mention-chips" id="chatMentionChips"></div>
       <div class="chat-input-bar">
         <div class="comment-textarea-wrap">
@@ -4806,18 +5079,22 @@ document.addEventListener('keydown', e => {
 </div>
 
 <div class="modal-overlay" id="activityModal">
-  <div class="modal-box" id="activityModalBox" style="width:min(560px, 92vw);">
-    <div class="modal-title">🕓 Activity Log</div>
+  <div class="modal-box elmodal-style-box" id="activityModalBox" style="width:min(560px, 92vw);">
+    <div class="elmodal-icon activity-modal-icon">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+    </div>
+    <div class="modal-title">Activity Log</div>
     <div class="modal-subtitle" id="activitySubtitle">Every change made across your workspace, most recent first.</div>
     <div class="activity-filter-row" id="activityFilterRow">
       <button type="button" class="activity-filter-chip active" data-filter="all">All Activity</button>
       <button type="button" class="activity-filter-chip" data-filter="mentions">🔔 Mentions of Me<span class="activity-filter-badge" id="mentionsFilterBadge" style="display:none;"></span></button>
     </div>
     <div class="activity-body" id="activityBody"></div>
-    <div class="modal-actions" style="margin-top:16px;">
-      <button class="modal-btn secondary" id="activityClearBtn" style="color:var(--red);border-color:rgba(244,63,94,0.25);" title="Permanently delete every entry in this workspace's activity log">Clear Log</button>
+    <div class="modal-actions elmodal-actions activity-modal-actions-sm" style="margin-top:12px;">
+      <button class="elmodal-skip-btn" id="activityClearBtn" title="Permanently delete every entry in this workspace's activity log">Clear Log</button>
       <button class="modal-btn primary" id="activityCloseBtn">Close</button>
     </div>
+
   </div>
 </div>
 
@@ -4845,37 +5122,45 @@ document.addEventListener('keydown', e => {
 
 <!-- GLOBAL SEARCH MODAL -->
 <div class="modal-overlay" id="globalSearchModal">
-  <div class="modal-box" id="globalSearchModalBox" style="width:min(560px, 92vw);">
-    <div class="modal-title">🔍 Global Search</div>
+  <div class="modal-box elmodal-style-box" id="globalSearchModalBox" style="width:min(560px, 92vw);">
+    <div class="elmodal-icon search-modal-icon">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <div class="modal-title">Global Search</div>
     <div class="modal-subtitle">Find any model, task, or sub-task across your entire workspace.</div>
     <div class="gsearch-input-wrap">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="globalSearchInput" placeholder="Search everything…" autocomplete="off">
     </div>
     <div class="gsearch-body" id="globalSearchBody"></div>
-    <div class="modal-actions" style="margin-top:16px;">
+    <div class="modal-actions elmodal-actions" style="margin-top:16px;">
       <button class="modal-btn primary" id="globalSearchCloseBtn">Close</button>
     </div>
   </div>
 </div>
 
 <!-- VOICE ASSISTANT MODAL -->
-<div class="modal-overlay" id="voiceModal">
-  <div class="modal-box" id="voiceModalBox" style="width:min(560px, 92vw);">
-    <div class="modal-title">🎙️ Voice Assistant</div>
-    <div class="modal-subtitle">Speak (or type) several commands at once — new tasks, new subtasks, or status changes — then review and apply them together.</div>
-    <div class="voice-mic-row">
-      <button type="button" class="voice-mic-btn" id="voiceMicBtn" title="Start listening">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-      </button>
-      <div class="voice-mic-status" id="voiceMicStatus">Tap the mic and try: "add task Design homepage mockup" or "mark Create wireframes as done"</div>
+<div class="modal-overlay elmodal-overlay-polished" id="voiceModal">
+  <div class="modal-box elmodal-box-polished" id="voiceModalBox" style="width:min(560px, 92vw); max-height:85vh; display:flex; flex-direction:column; padding-bottom:24px;">
+    <div class="elmodal-icon elmodal-round-icon-gold">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
     </div>
-    <div class="voice-transcript-box" id="voiceTranscriptBox"></div>
-    <div class="voice-fallback-label">Or type commands — one per line, or separated by "and":</div>
-    <textarea class="voice-fallback-textarea" id="voiceFallbackText" placeholder="add task Design homepage mockup&#10;mark Create wireframes as done&#10;add subtask Export assets to Design homepage mockup"></textarea>
-    <button type="button" class="modal-btn secondary voice-parse-btn" id="voiceParseBtn">Parse Commands</button>
-    <div class="voice-review-list" id="voiceReviewList"></div>
-    <div class="modal-actions" style="margin-top:16px;">
+    <div class="modal-title elmodal-title-centered">Voice Assistant</div>
+    <div class="modal-subtitle elmodal-subtitle-centered">Speak (or type) several commands at once — new tasks, new subtasks, or status changes — then review and apply them together.</div>
+    <div class="crossmodal-scroll-body">
+      <div class="voice-mic-row">
+        <button type="button" class="voice-mic-btn" id="voiceMicBtn" title="Start listening">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <div class="voice-mic-status" id="voiceMicStatus">Tap the mic and try: "add task Design homepage mockup" or "mark Create wireframes as done"</div>
+      </div>
+      <div class="voice-transcript-box" id="voiceTranscriptBox"></div>
+      <div class="voice-fallback-label">Or type commands — one per line, or separated by "and":</div>
+      <textarea class="voice-fallback-textarea" id="voiceFallbackText" placeholder="add task Design homepage mockup&#10;mark Create wireframes as done&#10;add subtask Export assets to Design homepage mockup"></textarea>
+      <button type="button" class="modal-btn secondary voice-parse-btn" id="voiceParseBtn">Parse Commands</button>
+      <div class="voice-review-list" id="voiceReviewList"></div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;flex-shrink:0;">
       <button class="modal-btn secondary" id="voiceCloseBtn">Close</button>
       <button class="modal-btn primary" id="voiceApplyBtn" disabled>Apply Selected</button>
     </div>
@@ -4987,10 +5272,13 @@ document.addEventListener('keydown', e => {
 
 <!-- CROSS-MODEL BULK UPDATE MODAL — pick a task name shared across models, choose which
      models to touch, then update status/deadline/priority for all of them in one go. -->
-<div class="modal-overlay" id="crossModelBulkModal">
-  <div class="modal-box" style="width:min(560px, 92vw); max-height:88vh; display:flex; flex-direction:column; padding-bottom:24px;">
-    <div class="modal-title">Bulk Update by Task</div>
-    <div class="modal-subtitle">Pick a task that appears in more than one model, choose which models to update, then set the new status, deadline, or priority.</div>
+<div class="modal-overlay elmodal-overlay-polished" id="crossModelBulkModal">
+  <div class="modal-box elmodal-box-polished" id="crossModelBulkModalBox" style="width:min(560px, 92vw); max-height:88vh; display:flex; flex-direction:column; padding-bottom:24px;">
+    <div class="elmodal-icon elmodal-round-icon-gold">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </div>
+    <div class="modal-title elmodal-title-centered">Bulk Update by Task</div>
+    <div class="modal-subtitle elmodal-subtitle-centered">Pick a task that appears in more than one model, choose which models to update, then set the new status, deadline, or priority.</div>
 
     <div class="crossmodal-scroll-body">
       <div class="crossmodel-field-group" style="margin-top:0;">
@@ -5058,10 +5346,13 @@ document.addEventListener('keydown', e => {
      one go, rather than opening each model card's menu one at a time.
      Distinct from #bulkDeadlineModal above, which bulk-sets task/subtask
      deadlines within a single model. -->
-<div class="modal-overlay" id="allModelsDeadlineModal">
-  <div class="modal-box" style="width:min(480px, 92vw); max-height:88vh; display:flex; flex-direction:column; padding-bottom:24px;">
-    <div class="modal-title" id="allModelsActionTitle">Bulk Model Actions</div>
-    <div class="modal-subtitle" id="allModelsActionSubtitle">Choose which models to update, then apply an action to all of them at once.</div>
+<div class="modal-overlay elmodal-overlay-polished" id="allModelsDeadlineModal">
+  <div class="modal-box elmodal-box-polished" id="allModelsDeadlineModalBox" style="width:min(480px, 92vw); max-height:88vh; display:flex; flex-direction:column; padding-bottom:24px;">
+    <div class="elmodal-icon elmodal-round-icon-gold">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    </div>
+    <div class="modal-title elmodal-title-centered" id="allModelsActionTitle">Bulk Model Actions</div>
+    <div class="modal-subtitle elmodal-subtitle-centered" id="allModelsActionSubtitle">Choose which models to update, then apply an action to all of them at once.</div>
 
     <div class="crossmodal-scroll-body">
       <div class="crossmodel-field-group" style="margin-top:0;">
@@ -12593,6 +12884,36 @@ document.getElementById('commentsModal').onclick=e=>{if(e.target===document.getE
 // but lives in its own top-level Firestore subcollection instead of hanging
 // off a specific task/subtask) ───────────────────────────────────────────────
 let chatFeed=[]; // [{id,uid,authorName,text,mentionedUids,ts}], newest-last (already re-sorted for display)
+let chatReplyTarget=null; // {id,authorName,text} of the message currently being replied to, or null
+function setChatReplyTarget(id){
+  const msg=chatFeed.find(c=>c.id===id);
+  if(!msg) return;
+  chatReplyTarget={id:msg.id,authorName:msg.authorName||'Someone',text:(msg.text||'').slice(0,140)};
+  renderChatReplyBar();
+  const input=document.getElementById('chatInputText');
+  if(input) input.focus();
+}
+function clearChatReplyTarget(){
+  chatReplyTarget=null;
+  renderChatReplyBar();
+}
+function renderChatReplyBar(){
+  const bar=document.getElementById('chatReplyBar');
+  if(!bar) return;
+  if(!chatReplyTarget){ bar.classList.remove('open'); return; }
+  document.getElementById('chatReplyBarAuthor').textContent=chatReplyTarget.authorName;
+  document.getElementById('chatReplyBarText').textContent=chatReplyTarget.text;
+  bar.classList.add('open');
+}
+// Scrolls to and briefly highlights the original message a reply points to,
+// mirroring the "jump to quoted message" tap behavior in WhatsApp.
+function scrollToChatMessage(id){
+  const row=document.querySelector(`.chat-row[data-id="${CSS.escape(id)}"]`);
+  if(!row) return;
+  row.scrollIntoView({block:'center',behavior:'smooth'});
+  row.classList.add('flash');
+  setTimeout(()=>row.classList.remove('flash'),1000);
+}
 let unsubscribeChat=null;
 function getChatSeenKey(){ return 'mlc_chatSeen_'+(currentWorkspaceId||'none'); }
 function getChatSeenTs(){ return parseInt(localStorage.getItem(getChatSeenKey())||'0',10); }
@@ -12689,20 +13010,32 @@ function renderChatFeed(scrollToUnread){
     const canDelete=mine||myMemberRole()==='admin';
     const initial=(c.authorName||'?').trim().charAt(0).toUpperCase()||'?';
     const color=chatAvatarColor(c.uid);
+    const quoteHtml=c.replyTo?`<div class="chat-quote" data-scroll-to="${escHtml(c.replyTo.id)}"><span class="chat-quote-author">${escHtml(c.replyTo.authorName||'Someone')}</span><span class="chat-quote-text">${escHtml(c.replyTo.text||'')}</span></div>`:'';
     html+=`
       <div class="chat-row${mine?' mine':''}${grouped?' grouped':''}" data-id="${escHtml(c.id)}">
         ${mine?'':(grouped?'<div class="chat-avatar spacer"></div>':`<div class="chat-avatar" style="background:${color};" title="${escHtml(c.authorName||'Someone')}">${escHtml(initial)}</div>`)}
         <div class="chat-bubble-col">
           ${(!mine&&!grouped)?`<div class="chat-bubble-author" style="color:${color};">${escHtml(c.authorName||'Someone')}</div>`:''}
-          <div class="chat-bubble">${renderCommentTextWithMentions(c.text,c.mentionedUids)}<span class="chat-bubble-time">${fmtCommentTime(ms)}</span></div>
+          <div class="chat-bubble">${quoteHtml}${renderCommentTextWithMentions(c.text,c.mentionedUids)}<span class="chat-bubble-time">${fmtCommentTime(ms)}</span></div>
         </div>
-        ${canDelete?`<span class="chat-bubble-delete" data-id="${escHtml(c.id)}" title="Delete message">✕</span>`:''}
+        <div class="chat-bubble-actions">
+          <span class="chat-bubble-reply" data-id="${escHtml(c.id)}" title="Reply">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+          </span>
+          ${canDelete?`<span class="chat-bubble-delete" data-id="${escHtml(c.id)}" title="Delete message">✕</span>`:''}
+        </div>
       </div>`;
     prevUid=c.uid; prevMs=ms;
   });
   timeline.innerHTML=html;
   timeline.querySelectorAll('.chat-bubble-delete').forEach(btn=>{
     btn.onclick=()=>deleteChatMessage(btn.dataset.id);
+  });
+  timeline.querySelectorAll('.chat-bubble-reply').forEach(btn=>{
+    btn.onclick=()=>setChatReplyTarget(btn.dataset.id);
+  });
+  timeline.querySelectorAll('.chat-quote').forEach(q=>{
+    q.onclick=()=>scrollToChatMessage(q.dataset.scrollTo);
   });
   const unreadAnchor=firstUnreadId&&document.getElementById('chatUnreadAnchor');
   if(scrollToUnread&&unreadAnchor){
@@ -12797,6 +13130,7 @@ function applyChatMention(i){
 function openChatModal(){
   document.getElementById('userBadge').classList.remove('menu-open');
   document.getElementById('chatInputText').value='';
+  clearChatReplyTarget();
   closeChatMentionAutocomplete();
   renderChatMentionChips();
   document.getElementById('chatModal').classList.add('open');
@@ -12812,6 +13146,7 @@ function closeChatModal(){
   document.getElementById('chatModal').classList.remove('open');
   document.getElementById('chatBellBtn').style.visibility='';
   closeChatMentionAutocomplete();
+  clearChatReplyTarget();
 }
 function postChatMessage(){
   if(!canEdit()){notifyViewOnly();return;}
@@ -12830,7 +13165,11 @@ function postChatMessage(){
     mentionedUids:mentions.map(m=>m.uid),
     ts:firebase.firestore.FieldValue.serverTimestamp()
   };
+  if(chatReplyTarget){
+    entry.replyTo={id:chatReplyTarget.id,authorName:chatReplyTarget.authorName,text:chatReplyTarget.text};
+  }
   input.value='';
+  clearChatReplyTarget();
   getWorkspaceDoc().collection('chat').add(entry).catch(e=>{
     console.warn('Chat message send failed:',e);
     toast('!','Message failed to send — try again',false);
@@ -12859,6 +13198,7 @@ function deleteChatMessage(id){
 document.getElementById('chatBellBtn').onclick=openChatModal;
 document.getElementById('chatCloseBtn').onclick=closeChatModal;
 document.getElementById('chatPostBtn').onclick=postChatMessage;
+document.getElementById('chatReplyBarCancel').onclick=clearChatReplyTarget;
 document.getElementById('chatModal').onclick=e=>{ if(e.target.id==='chatModal') closeChatModal(); };
 document.getElementById('chatInputText').addEventListener('input',updateChatMentionAutocomplete);
 document.getElementById('chatInputText').addEventListener('click',updateChatMentionAutocomplete);
@@ -12872,6 +13212,7 @@ document.getElementById('chatInputText').addEventListener('keydown',e=>{
     if(e.key==='Enter'||e.key==='Tab'){ e.preventDefault(); applyChatMention(chatMentionAC.activeIndex); return; }
     if(e.key==='Escape'){ closeChatMentionAutocomplete(); return; }
   }
+  if(e.key==='Escape'&&chatReplyTarget){ clearChatReplyTarget(); return; }
   if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); postChatMessage(); }
 });
 
