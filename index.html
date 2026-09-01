@@ -4160,7 +4160,11 @@ body.viewer-mode .model-card-action-btn,
 body.viewer-mode #duplicateModelBtn,
 body.viewer-mode #archiveModelBtn,
 body.viewer-mode #waitModelBtn,
-body.viewer-mode #deleteModelBtn {
+body.viewer-mode #deleteModelBtn,
+body.viewer-mode #exportModelDropdown,
+body.viewer-mode #exportAllDropdown,
+body.viewer-mode #importExcelLabel,
+body.viewer-mode #importAllLabel {
   opacity: 0.45; pointer-events: none; filter: grayscale(0.3);
 }
 body.viewer-mode .row-action-btn:not(.team-member-role-pill),
@@ -4560,7 +4564,7 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="restoreBackupBtn" title="No backup yet — use &quot;Backup Now&quot; once to create one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span id="restoreBackupLabel">Restore Last Backup</span></button>
       </div>
     </div>
-    <label class="hdr-btn accent" title="Import from Excel — adds new models/tasks, keeps existing data" style="cursor:pointer;">
+    <label class="hdr-btn accent" id="importAllLabel" title="Import from Excel — adds new models/tasks, keeps existing data" style="cursor:pointer;">
       ↑ <span>Import</span>
       <input type="file" id="importFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none;">
     </label>
@@ -5809,10 +5813,11 @@ function isCurrentWorkspaceOwner(){ return !!auth&&!!auth.currentUser&&workspace
 // 'viewer', stored per-member at members.{uid}.role. The workspace owner is
 // always treated as an admin regardless of what's stored for them. Anyone
 // who joins via an invite code starts out as a 'viewer' (can see everything,
-// can't change anything) until someone with team-management rights grants
-// them more — teammates who were added before this feature existed have no
-// role field at all, so we default a missing role to 'editor' to avoid
-// silently locking out people who already had full access.
+// can't change, import, or export anything) until someone with
+// team-management rights grants them more — teammates who were added before
+// this feature existed have no role field at all, so we default a missing
+// role to 'editor' to avoid silently locking out people who already had
+// full access.
 // Rank: viewer < editor < admin. Admins can do everything editors can, plus
 // manage the team (invite, remove members, change roles, set per-model
 // access) — except they can't touch the Owner's row or another Admin's row;
@@ -5877,9 +5882,14 @@ document.addEventListener('click',e=>{
   if(!document.body.classList.contains('viewer-mode')) return;
   const el=e.target.closest(VIEW_ONLY_BLOCK_SELECTOR);
   if(!el) return;
-  // Team modal (viewing/leaving), theme, export, and other read-safe
-  // controls live outside this selector set, so anything caught here is
-  // an edit action — stop it and explain why.
+  // Team modal (viewing/leaving), theme, and other read-safe controls live
+  // outside this selector set, so anything caught here is an edit action —
+  // stop it and explain why. Import/export controls are handled separately:
+  // they're greyed out via body.viewer-mode CSS (#exportModelDropdown,
+  // #exportAllDropdown, #importExcelLabel, #importAllLabel above), and each
+  // export/import handler also re-checks canEdit() itself as a backstop,
+  // since CSS pointer-events can't stop a programmatic .click() call (e.g.
+  // the "export before you sign out" shortcuts near the logout modal).
   e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
   notifyViewOnly();
 },true);
@@ -14204,6 +14214,7 @@ async function buildAllModelsWorkbook(){
 
 document.getElementById('exportAllExcelBtn').onclick=async()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
   if(!models.length){await showAlert({title:'Nothing to export',message:'Add at least one model before exporting.',tone:'warn'});return;}
   try{ await loadExcelJS(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   const wb=await buildAllModelsWorkbook();
@@ -14742,6 +14753,7 @@ function embedModelImage(wb,ws,dataUrl,anchorCol){
 // ── EXCEL EXPORT (current model's tasks) ──────────────────────────────────────
 document.getElementById('exportExcelBtn').onclick=async()=>{
   document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
   if(activeTab==='Compare Models'){await showAlert({title:'Select a model first',message:'Switch to a model tab before exporting.',tone:'warn'});return;}
   try{ await loadExcelJS(); }catch(e){ await showAlert({title:'Could not load Excel library',message:'Check your internet connection and try again.',tone:'error'}); return; }
   const tasks=state[activeTab];
@@ -14767,30 +14779,36 @@ document.getElementById('exportExcelBtn').onclick=async()=>{
 
 document.getElementById('exportPdfBtn').onclick=()=>{
   document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
   exportChecklistToPdf();
 };
 document.getElementById('exportAllPdfBtn').onclick=()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
   exportAllModelsToPdf();
 };
 
 // ── EXECUTIVE SUMMARY EXPORTS (PDF + PPTX, one page/slide per model) ────────
 document.getElementById('exportExecPdfBtn').onclick=()=>{
   document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
   if(activeTab==='Compare Models'){ toast('⚠','Select a model first to export its summary',false); return; }
   exportExecSummaryPdf(activeTab);
 };
 document.getElementById('exportExecPptxBtn').onclick=()=>{
   document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
   if(activeTab==='Compare Models'){ toast('⚠','Select a model first to export its summary',false); return; }
   exportExecSummaryPptx(activeTab);
 };
 document.getElementById('exportAllExecPdfBtn').onclick=()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
   exportExecSummaryPdfAll();
 };
 document.getElementById('exportAllExecPptxBtn').onclick=()=>{
   document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
   exportExecSummaryPptxAll();
 };
 
