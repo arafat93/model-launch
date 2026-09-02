@@ -1133,6 +1133,17 @@ footer {
 .kanban-col-body.kanban-drop-hover {
   background: var(--accent1-dim); outline: 2px dashed var(--accent1); outline-offset: -6px; border-radius: 10px;
 }
+/* Global Board's column bodies share the exact same look as the per-model
+   Kanban's, but use a different class so their drop-zone JS (bound once,
+   globally, by class selector) never collides with the per-model board's
+   own drop-zone listeners — see the two separate querySelectorAll blocks. */
+.gboard-col-body {
+  flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;
+  min-height: 60px;
+}
+.gboard-col-body.kanban-drop-hover {
+  background: var(--accent1-dim); outline: 2px dashed var(--accent1); outline-offset: -6px; border-radius: 10px;
+}
 .kanban-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 12px; padding: 12px 13px; cursor: grab;
@@ -1141,6 +1152,10 @@ footer {
 }
 .kanban-card:hover { border-color: var(--border-hover); box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
 .kanban-card.dragging { opacity: 0.4; }
+.kanban-card-model-badge {
+  font-size: 10px; font-weight: 700; color: var(--accent1); text-transform: uppercase;
+  letter-spacing: 0.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .kanban-card-title {
   font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4;
   word-break: break-word;
@@ -2437,6 +2452,27 @@ footer {
    above every other modal layer or it opens invisibly behind them. */
 #confirmModal { z-index: 10500; }
 .overdue-modal-body { max-height: 60vh; overflow-y: auto; margin-top: 10px; }
+.backup-history-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface2); margin-bottom: 8px;
+}
+.backup-history-row-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.backup-history-row-date { font-size: 13px; font-weight: 600; color: var(--text); }
+.backup-history-row-meta { font-size: 11.5px; color: var(--text-muted); }
+.backup-history-row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.backup-history-restore-btn {
+  font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 8px;
+  background: var(--accent1-dim); color: var(--accent1); border: 1px solid rgba(212,175,55,0.3);
+  cursor: pointer; transition: filter 0.15s ease;
+}
+.backup-history-restore-btn:hover { filter: brightness(1.15); }
+.backup-history-del-btn {
+  width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--surface3); color: var(--text-muted); cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;
+}
+.backup-history-del-btn:hover { background: rgba(244,63,94,0.12); color: var(--red); border-color: rgba(244,63,94,0.3); }
 .overdue-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
@@ -4630,6 +4666,7 @@ document.addEventListener('keydown', e => {
         <div class="menu-divider"></div>
         <div class="menu-section-label">Workspace</div>
         <button class="menu-item" id="myTasksViewBtn" title="See every task assigned to you across all your models" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>My Tasks</span><span class="archive-count-badge" id="myTasksCountBadge" style="display:none;">0</span></button>
+        <button class="menu-item" id="globalBoardViewBtn" title="See every task across all your models as a Kanban board"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Board</span></button>
         <button class="menu-item" id="calendarViewBtn" title="See every deadline across all your models on one calendar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Calendar</span></button>
         <button class="menu-item" id="analyticsViewBtn" title="Burndown, trends, and overdue analysis"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Analytics</span></button>
         <button class="menu-item" id="activityLogMenuBtn" title="See every change across your workspace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg><span>Activity Log</span></button>
@@ -4680,8 +4717,10 @@ document.addEventListener('keydown', e => {
         <button class="menu-item" id="exportAllExecPdfBtn" title="One page per model — executive summary (PDF)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span>Executive Summaries (PDF)</span></button>
         <button class="menu-item" id="exportAllExecPptxBtn" title="One slide per model — executive summary deck (PowerPoint)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97b3f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="4" width="20" height="14" rx="1.5"/><path d="M8 20h8"/><path d="M6 9l3 3-3 3" stroke-width="1.6"/><path d="M12 15h4" stroke-width="1.6"/></svg><span>Executive Summaries (PPTX)</span></button>
         <div class="menu-divider"></div>
-        <button class="menu-item" id="backupNowBtn" title="Save a local backup right now (replaces the previous one — only the latest is ever kept)"><svg id="backupNowIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="btn-spinner" id="backupNowSpinner" style="display:none;"></span><span id="backupNowLabel">Backup Now</span></button>
-        <button class="menu-item" id="restoreBackupBtn" title="No backup yet — use &quot;Backup Now&quot; once to create one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span id="restoreBackupLabel">Restore Last Backup</span></button>
+        <button class="menu-item" id="exportAllSnapshotBtn" title="A self-contained, read-only HTML file — anyone can open it, no account or invite needed"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M18 8a3 3 0 1 0-2.83-4H15a3 3 0 0 0-.17 1.03L7.09 9.51a3 3 0 1 0 0 4.98l7.74 4.48A3 3 0 1 0 15 17l-7.74-4.48a3 3 0 0 0 0-1.04L15 6.99A2.99 2.99 0 0 0 18 8z"/></svg><span>Share Read-Only Snapshot</span></button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" id="backupNowBtn" title="Save a new backup now — up to the 5 most recent are kept"><svg id="backupNowIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="btn-spinner" id="backupNowSpinner" style="display:none;"></span><span id="backupNowLabel">Backup Now</span></button>
+        <button class="menu-item" id="restoreBackupBtn" title="No backups yet — use &quot;Backup Now&quot; once to create one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg><span id="restoreBackupLabel">Backup History</span></button>
       </div>
     </div>
     <label class="hdr-btn accent" id="importAllLabel" title="Import from Excel — adds new models/tasks, keeps existing data" style="cursor:pointer;">
@@ -4779,6 +4818,8 @@ document.addEventListener('keydown', e => {
         <div class="menu-divider"></div>
         <button class="menu-item" id="exportExecPdfBtn" title="One-page executive summary for this model (PDF)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span>Executive Summary (PDF)</span></button>
         <button class="menu-item" id="exportExecPptxBtn" title="One-slide executive summary for this model (PowerPoint)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97b3f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="4" width="20" height="14" rx="1.5"/><path d="M8 20h8"/><path d="M6 9l3 3-3 3" stroke-width="1.6"/><path d="M12 15h4" stroke-width="1.6"/></svg><span>Executive Summary (PPTX)</span></button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" id="exportSnapshotBtn" title="A self-contained, read-only HTML file — anyone can open it, no account or invite needed"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M18 8a3 3 0 1 0-2.83-4H15a3 3 0 0 0-.17 1.03L7.09 9.51a3 3 0 1 0 0 4.98l7.74 4.48A3 3 0 1 0 15 17l-7.74-4.48a3 3 0 0 0 0-1.04L15 6.99A2.99 2.99 0 0 0 18 8z"/></svg><span>Share Read-Only Snapshot</span></button>
       </div>
     </div>
     <label class="hdr-btn" id="importExcelLabel" title="Import tasks from Excel into the current model" style="cursor:pointer;">
@@ -4961,6 +5002,7 @@ document.addEventListener('keydown', e => {
     <div class="calendar-month-label" id="modelCalendarMonthLabel">—</div>
     <button class="hdr-btn" id="modelCalendarNextBtn" title="Next month">›</button>
     <button class="hdr-btn" id="modelCalendarTodayBtn" title="Jump to this month">⦿ Today</button>
+    <button class="hdr-btn" id="modelCalendarIcsBtn" title="Export this model's deadlines as a .ics file for Google Calendar/Outlook/Apple Calendar">⬇ .ics</button>
   </div>
   <div class="calendar-grid" id="modelCalendarGrid"></div>
   <div class="gantt-empty-state" id="modelCalendarEmptyState" style="display:none;">
@@ -5087,6 +5129,48 @@ document.addEventListener('keydown', e => {
 </div>
 <!-- END MY TASKS VIEW -->
 
+<!-- GLOBAL BOARD VIEW — every task across every active model, laid out as
+     one Kanban board (Pending / In Progress / Done), unlike the per-model
+     Board toggle which only shows the currently open model's tasks. -->
+<div id="globalBoardView" style="display:none;">
+  <div class="models-section-hdr">
+    <div style="flex:1;">
+      <div class="section-label" style="margin-bottom:0;">Board</div>
+      <div class="analytics-panel-sub" id="globalBoardSubtitle" style="margin:4px 0 0;"></div>
+    </div>
+    <select id="globalBoardModelSelect" class="add-task-input" style="width:180px;appearance:none;cursor:pointer;"></select>
+  </div>
+  <div class="kanban-board" id="globalBoardBoard">
+    <div class="kanban-col" data-status="pending">
+      <div class="kanban-col-hdr">
+        <span class="kanban-col-dot pending"></span><span>Pending</span>
+        <span class="kanban-col-count" id="globalBoardCountPending">0</span>
+      </div>
+      <div class="gboard-col-body" id="globalBoardColPending"></div>
+    </div>
+    <div class="kanban-col" data-status="inprogress">
+      <div class="kanban-col-hdr">
+        <span class="kanban-col-dot inprogress"></span><span>In Progress</span>
+        <span class="kanban-col-count" id="globalBoardCountInprogress">0</span>
+      </div>
+      <div class="gboard-col-body" id="globalBoardColInprogress"></div>
+    </div>
+    <div class="kanban-col" data-status="done">
+      <div class="kanban-col-hdr">
+        <span class="kanban-col-dot done"></span><span>Done</span>
+        <span class="kanban-col-count" id="globalBoardCountDone">0</span>
+      </div>
+      <div class="gboard-col-body" id="globalBoardColDone"></div>
+    </div>
+  </div>
+  <div class="empty-state" id="globalBoardEmptyState" style="display:none;">
+    <div class="empty-state-icon">🗂</div>
+    <div class="empty-state-title">No tasks to show yet</div>
+    <div class="empty-state-sub">Add tasks to any model and they'll show up here, grouped by status.</div>
+  </div>
+</div>
+<!-- END GLOBAL BOARD VIEW -->
+
 <!-- CALENDAR VIEW — every model deadline and task deadline, across every
      active model, laid out on one month grid. -->
 <div id="calendarView" style="display:none;">
@@ -5106,6 +5190,7 @@ document.addEventListener('keydown', e => {
       <div class="calendar-month-label" id="calendarMonthLabel">—</div>
       <button class="hdr-btn" id="calendarNextBtn" title="Next month">›</button>
       <button class="hdr-btn" id="calendarTodayBtn" title="Jump to this month">⦿ Today</button>
+      <button class="hdr-btn" id="calendarIcsBtn" title="Export these deadlines as a .ics file for Google Calendar/Outlook/Apple Calendar">⬇ .ics</button>
     </div>
   </div>
   <div class="calendar-grid" id="calendarGrid"></div>
@@ -5388,6 +5473,22 @@ document.addEventListener('keydown', e => {
     <div class="overdue-modal-body" id="overdueModalBody"></div>
     <div class="modal-actions" style="margin-top:16px;">
       <button class="modal-btn primary" id="overdueModalCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP HISTORY MODAL — up to the 5 most recent backups (manual +
+     hourly auto-backup), each restorable independently. -->
+<div class="modal-overlay elmodal-overlay-polished" id="backupHistoryModal">
+  <div class="modal-box elmodal-box-polished" id="backupHistoryModalBox" style="width:min(560px, 92vw); max-height:82vh; display:flex; flex-direction:column; padding-bottom:24px;">
+    <div class="elmodal-icon elmodal-round-icon-gold">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </div>
+    <div class="modal-title elmodal-title-centered">Backup History</div>
+    <div class="modal-subtitle elmodal-subtitle-centered">Up to the 5 most recent backups are kept — pick one to restore, or remove ones you don't need.</div>
+    <div class="crossmodal-scroll-body" id="backupHistoryList"></div>
+    <div class="modal-actions" style="margin-top:16px;flex-shrink:0;">
+      <button class="modal-btn secondary" id="backupHistoryCloseBtn">Close</button>
     </div>
   </div>
 </div>
@@ -6556,6 +6657,9 @@ let calendarViewActive=false;
 let calendarViewYear=null;   // null until first opened, then defaults to today's month
 let calendarViewMonth=null;  // 0-indexed
 let calendarSelectedModel='__all__';
+let globalBoardViewActive=false;
+let globalBoardSelectedModel='__all__';
+let gboardDragItem=null; // {model, idx} — cross-model drag state, kept separate from the per-model kanbanDragIdx
 const RECYCLE_RETENTION_DAYS=30;
 
 // ── MERGE-SAFE PERSISTENCE ────────────────────────────────────────────────────
@@ -8922,6 +9026,11 @@ function setArchiveView(active){
     calendarViewActive=false;
     const calendarBtn=document.getElementById('calendarViewBtn');
     if(calendarBtn) calendarBtn.classList.remove('active-view');
+    const globalBoardViewEl=document.getElementById('globalBoardView');
+    if(globalBoardViewEl) globalBoardViewEl.style.display='none';
+    globalBoardViewActive=false;
+    const globalBoardBtn=document.getElementById('globalBoardViewBtn');
+    if(globalBoardBtn) globalBoardBtn.classList.remove('active-view');
   }
   const footerBarEl=document.getElementById('footerBar');
   if(footerBarEl) footerBarEl.style.display=active?'none':'';
@@ -8966,6 +9075,11 @@ function setWaitingView(active){
     calendarViewActive=false;
     const calendarBtn=document.getElementById('calendarViewBtn');
     if(calendarBtn) calendarBtn.classList.remove('active-view');
+    const globalBoardViewEl=document.getElementById('globalBoardView');
+    if(globalBoardViewEl) globalBoardViewEl.style.display='none';
+    globalBoardViewActive=false;
+    const globalBoardBtn=document.getElementById('globalBoardViewBtn');
+    if(globalBoardBtn) globalBoardBtn.classList.remove('active-view');
   }
   const footerBarEl=document.getElementById('footerBar');
   if(footerBarEl) footerBarEl.style.display=active?'none':'';
@@ -8982,7 +9096,7 @@ document.getElementById('waitingViewBtn').onclick=()=>{
   document.getElementById('userBadge').classList.remove('menu-open');
   setWaitingView(!waitingViewActive);
 };
-document.getElementById('liveBadge').onclick=()=>{ setArchiveView(false); setWaitingView(false); setRecycleView(false); setAnalyticsView(false); setMyTasksView(false); setCalendarView(false); };
+document.getElementById('liveBadge').onclick=()=>{ setArchiveView(false); setWaitingView(false); setRecycleView(false); setAnalyticsView(false); setMyTasksView(false); setCalendarView(false); setGlobalBoardView(false); };
 // ── LOGO EDIT ────────────────────────────────────────────────────────────────
 (function(){
   var modal  = document.getElementById('logoEditModal');
@@ -9201,7 +9315,12 @@ function setRecycleView(active){
     calendarViewActive=false;
     const calendarBtn=document.getElementById('calendarViewBtn');
     if(calendarBtn) calendarBtn.classList.remove('active-view');
-  } else if(mainView && !archiveViewActive && !analyticsViewActive && !myTasksViewActive && !calendarViewActive){
+    const globalBoardViewEl=document.getElementById('globalBoardView');
+    if(globalBoardViewEl) globalBoardViewEl.style.display='none';
+    globalBoardViewActive=false;
+    const globalBoardBtn=document.getElementById('globalBoardViewBtn');
+    if(globalBoardBtn) globalBoardBtn.classList.remove('active-view');
+  } else if(mainView && !archiveViewActive && !analyticsViewActive && !myTasksViewActive && !calendarViewActive && !globalBoardViewActive){
     mainView.style.display='';
   }
   if(recycleViewEl) recycleViewEl.style.display=active?'':'none';
@@ -9246,7 +9365,12 @@ function setAnalyticsView(active){
     calendarViewActive=false;
     const calendarBtn=document.getElementById('calendarViewBtn');
     if(calendarBtn) calendarBtn.classList.remove('active-view');
-  } else if(mainView && !archiveViewActive && !recycleViewActive && !myTasksViewActive && !calendarViewActive){
+    const globalBoardViewEl=document.getElementById('globalBoardView');
+    if(globalBoardViewEl) globalBoardViewEl.style.display='none';
+    globalBoardViewActive=false;
+    const globalBoardBtn=document.getElementById('globalBoardViewBtn');
+    if(globalBoardBtn) globalBoardBtn.classList.remove('active-view');
+  } else if(mainView && !archiveViewActive && !recycleViewActive && !myTasksViewActive && !calendarViewActive && !globalBoardViewActive){
     mainView.style.display='';
   }
   if(analyticsViewEl) analyticsViewEl.style.display=active?'':'none';
@@ -9330,7 +9454,12 @@ function setMyTasksView(active){
     calendarViewActive=false;
     const calendarBtn=document.getElementById('calendarViewBtn');
     if(calendarBtn) calendarBtn.classList.remove('active-view');
-  } else if(mainView && !archiveViewActive && !recycleViewActive && !analyticsViewActive && !calendarViewActive){
+    const globalBoardViewEl=document.getElementById('globalBoardView');
+    if(globalBoardViewEl) globalBoardViewEl.style.display='none';
+    globalBoardViewActive=false;
+    const globalBoardBtn=document.getElementById('globalBoardViewBtn');
+    if(globalBoardBtn) globalBoardBtn.classList.remove('active-view');
+  } else if(mainView && !archiveViewActive && !recycleViewActive && !analyticsViewActive && !calendarViewActive && !globalBoardViewActive){
     mainView.style.display='';
   }
   if(myTasksViewEl) myTasksViewEl.style.display=active?'':'none';
@@ -9349,6 +9478,55 @@ if(document.getElementById('myTasksViewBtn')){
   };
 }
 
+// ── GLOBAL BOARD VIEW ─────────────────────────────────────────────────────────
+function setGlobalBoardView(active){
+  globalBoardViewActive=active;
+  const mainView=document.getElementById('mainDashboardView');
+  const archiveViewEl=document.getElementById('archiveView');
+  const recycleViewEl=document.getElementById('recycleView');
+  const analyticsViewEl=document.getElementById('analyticsView');
+  const myTasksViewEl=document.getElementById('myTasksView');
+  const calendarViewEl=document.getElementById('calendarView');
+  const waitingViewEl=document.getElementById('waitingView');
+  const globalBoardViewEl=document.getElementById('globalBoardView');
+  if(active){
+    if(mainView) mainView.style.display='none';
+    if(archiveViewEl) archiveViewEl.style.display='none';
+    if(recycleViewEl) recycleViewEl.style.display='none';
+    if(analyticsViewEl) analyticsViewEl.style.display='none';
+    if(myTasksViewEl) myTasksViewEl.style.display='none';
+    if(calendarViewEl) calendarViewEl.style.display='none';
+    if(waitingViewEl) waitingViewEl.style.display='none';
+    archiveViewActive=false; recycleViewActive=false; analyticsViewActive=false;
+    myTasksViewActive=false; calendarViewActive=false; waitingViewActive=false;
+    const archiveBtn=document.getElementById('archiveViewBtn');
+    const recycleBtn=document.getElementById('recycleViewBtn');
+    const myTasksBtn=document.getElementById('myTasksViewBtn');
+    const calendarBtn=document.getElementById('calendarViewBtn');
+    const waitingBtn=document.getElementById('waitingViewBtn');
+    if(archiveBtn) archiveBtn.classList.remove('active-view');
+    if(recycleBtn) recycleBtn.classList.remove('active-view');
+    if(myTasksBtn) myTasksBtn.classList.remove('active-view');
+    if(calendarBtn) calendarBtn.classList.remove('active-view');
+    if(waitingBtn) waitingBtn.classList.remove('active-view');
+    setAnalyticsBtnActive(false);
+  } else if(mainView && !archiveViewActive && !recycleViewActive && !analyticsViewActive && !myTasksViewActive && !calendarViewActive && !waitingViewActive){
+    mainView.style.display='';
+  }
+  if(globalBoardViewEl) globalBoardViewEl.style.display=active?'':'none';
+  const footerBarEl=document.getElementById('footerBar');
+  if(footerBarEl) footerBarEl.style.display=(archiveViewActive||recycleViewActive||analyticsViewActive||myTasksViewActive||calendarViewActive||waitingViewActive||active)?'none':'';
+  const btn=document.getElementById('globalBoardViewBtn');
+  if(btn) btn.classList.toggle('active-view',active);
+  window.scrollTo(0,0);
+  if(active) renderGlobalBoardView();
+}
+
+document.getElementById('globalBoardViewBtn').onclick=()=>{
+  document.getElementById('userBadge').classList.remove('menu-open');
+  setGlobalBoardView(!globalBoardViewActive);
+};
+
 // ── CALENDAR VIEW ─────────────────────────────────────────────────────────────
 function setCalendarView(active){
   calendarViewActive=active;
@@ -9359,6 +9537,7 @@ function setCalendarView(active){
   const myTasksViewEl=document.getElementById('myTasksView');
   const calendarViewEl=document.getElementById('calendarView');
   const waitingViewEl=document.getElementById('waitingView');
+  const globalBoardViewEl=document.getElementById('globalBoardView');
   if(active){
     if(mainView) mainView.style.display='none';
     if(archiveViewEl) archiveViewEl.style.display='none';
@@ -9366,23 +9545,26 @@ function setCalendarView(active){
     if(analyticsViewEl) analyticsViewEl.style.display='none';
     if(myTasksViewEl) myTasksViewEl.style.display='none';
     if(waitingViewEl) waitingViewEl.style.display='none';
+    if(globalBoardViewEl) globalBoardViewEl.style.display='none';
     archiveViewActive=false; recycleViewActive=false; analyticsViewActive=false;
-    myTasksViewActive=false; waitingViewActive=false;
+    myTasksViewActive=false; waitingViewActive=false; globalBoardViewActive=false;
     const archiveBtn=document.getElementById('archiveViewBtn');
     const recycleBtn=document.getElementById('recycleViewBtn');
     const myTasksBtn=document.getElementById('myTasksViewBtn');
     const waitingBtn=document.getElementById('waitingViewBtn');
+    const globalBoardBtn=document.getElementById('globalBoardViewBtn');
     if(archiveBtn) archiveBtn.classList.remove('active-view');
     if(recycleBtn) recycleBtn.classList.remove('active-view');
     if(myTasksBtn) myTasksBtn.classList.remove('active-view');
     if(waitingBtn) waitingBtn.classList.remove('active-view');
+    if(globalBoardBtn) globalBoardBtn.classList.remove('active-view');
     setAnalyticsBtnActive(false);
-  } else if(mainView && !archiveViewActive && !recycleViewActive && !analyticsViewActive && !myTasksViewActive && !waitingViewActive){
+  } else if(mainView && !archiveViewActive && !recycleViewActive && !analyticsViewActive && !myTasksViewActive && !waitingViewActive && !globalBoardViewActive){
     mainView.style.display='';
   }
   if(calendarViewEl) calendarViewEl.style.display=active?'':'none';
   const footerBarEl=document.getElementById('footerBar');
-  if(footerBarEl) footerBarEl.style.display=(archiveViewActive||recycleViewActive||analyticsViewActive||myTasksViewActive||waitingViewActive||active)?'none':'';
+  if(footerBarEl) footerBarEl.style.display=(archiveViewActive||recycleViewActive||analyticsViewActive||myTasksViewActive||waitingViewActive||globalBoardViewActive||active)?'none':'';
   const btn=document.getElementById('calendarViewBtn');
   if(btn) btn.classList.toggle('active-view',active);
   window.scrollTo(0,0);
@@ -9437,6 +9619,206 @@ function calendarAllDeadlineItems(onlyModel){
   });
   return out;
 }
+
+// ── .ICS CALENDAR EXPORT ─────────────────────────────────────────────────────
+// Turns a flat list of {date:'YYYY-MM-DD', kind, model, label, done} items
+// (the same shape calendarAllDeadlineItems()/the per-model calendar build)
+// into a standard iCalendar file — importable into Google Calendar, Outlook,
+// or Apple Calendar. Deadlines are all-day events (VALUE=DATE), since none
+// of them carry a time component in this app.
+function icsEscape(str){
+  return String(str==null?'':str).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+}
+function icsUtcStamp(){
+  const d=new Date();
+  const p=n=>String(n).padStart(2,'0');
+  return d.getUTCFullYear()+p(d.getUTCMonth()+1)+p(d.getUTCDate())+'T'+p(d.getUTCHours())+p(d.getUTCMinutes())+p(d.getUTCSeconds())+'Z';
+}
+function buildICS(items,calName){
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Model Launch Dashboard//EN','CALSCALE:GREGORIAN',`X-WR-CALNAME:${icsEscape(calName)}`];
+  const dtstamp=icsUtcStamp();
+  items.forEach((it,i)=>{
+    const compact=it.date.replace(/-/g,''); // 'YYYY-MM-DD' -> 'YYYYMMDD'
+    const summary=it.kind==='model'?`${it.label} — Model Deadline`:(it.model?`${it.label} (${it.model})`:it.label);
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${compact}-${i}-${Math.random().toString(36).slice(2,10)}@model-launch-dashboard`);
+    lines.push(`DTSTAMP:${dtstamp}`);
+    lines.push(`DTSTART;VALUE=DATE:${compact}`);
+    lines.push(`SUMMARY:${icsEscape(it.done?`✓ ${summary}`:summary)}`);
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function downloadICS(items,filename,calName){
+  if(!items.length){ toast('⚠','No deadlines to export',false); return; }
+  const ics=buildICS(items,calName);
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('📅',`Exported ${items.length} deadline${items.length===1?'':'s'} to ${filename}`);
+}
+function slugifyFilename(s){
+  return String(s||'export').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'export';
+}
+
+document.getElementById('calendarIcsBtn').onclick=()=>{
+  const items=calendarAllDeadlineItems(calendarSelectedModel);
+  const name=calendarSelectedModel==='__all__'?'All Models':calendarSelectedModel;
+  downloadICS(items,`${slugifyFilename(name)}-deadlines.ics`,`${name} Deadlines`);
+};
+document.getElementById('modelCalendarIcsBtn').onclick=()=>{
+  if(!activeTab||!state[activeTab]) return;
+  downloadICS(calendarAllDeadlineItems(activeTab),`${slugifyFilename(activeTab)}-deadlines.ics`,`${activeTab} Deadlines`);
+};
+
+// ── READ-ONLY SHARE SNAPSHOT ─────────────────────────────────────────────────
+// Builds a single, fully self-contained HTML file — every task, subtask,
+// note, priority, deadline, and assignee name baked directly into the
+// markup, with its own inline CSS and zero script/edit affordances. Anyone
+// can open it in a browser with no account, no invite, and no connection
+// to this workspace — the honest tradeoff is that it's a point-in-time
+// snapshot, not a live view, since a true live public link would need
+// server-side auth/security-rule changes this client-side app can't make
+// safely on its own. Screenshots/photos are intentionally left out to keep
+// the file small and fast to open.
+function buildReadOnlySnapshotHTML(modelNames){
+  const generatedAt=new Date();
+  const genStr=generatedAt.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})+' at '+generatedAt.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  const prioLabel={high:'High',med:'Medium',low:'Low'};
+  const prioColor={high:'#f43f5e',med:'#f59e0b',low:'#10b981'};
+  const nameFor=uid=>{
+    if(!uid) return '';
+    const m=workspaceMembers[uid];
+    return m?(m.displayName||m.email||''):'';
+  };
+
+  const modelsHtml=modelNames.map(m=>{
+    const s=stats(m);
+    const dl=deadlines[m];
+    const tasks=state[m]||[];
+    const tasksHtml=tasks.map(t=>{
+      const subs=Array.isArray(t.subtasks)?t.subtasks:[];
+      const assigneeName=nameFor(t.assignee);
+      const subsHtml=subs.map(sub=>{
+        const subAssigneeName=nameFor(sub.assignee);
+        return `<div class="snap-subtask">
+          <span class="snap-check">${sub.done?'✓':'○'}</span>
+          <span class="snap-subtask-name${sub.done?' is-done':''}">${escHtml(sub.name)}</span>
+          ${sub.taskDeadline?`<span class="snap-pill">${escHtml(sub.taskDeadline)}</span>`:''}
+          ${subAssigneeName?`<span class="snap-pill snap-assignee">${escHtml(subAssigneeName)}</span>`:''}
+        </div>`;
+      }).join('');
+      return `<div class="snap-task">
+        <div class="snap-task-hdr">
+          <span class="snap-check">${t.done?'✓':'○'}</span>
+          <span class="snap-task-name${t.done?' is-done':''}">${escHtml(t.name)}</span>
+          <span class="snap-prio" style="background:${prioColor[t.priority||'med']}22;color:${prioColor[t.priority||'med']};">${prioLabel[t.priority||'med']}</span>
+          ${t.taskDeadline?`<span class="snap-pill">${escHtml(t.taskDeadline)}</span>`:''}
+          ${assigneeName?`<span class="snap-pill snap-assignee">${escHtml(assigneeName)}</span>`:''}
+        </div>
+        ${t.notes?`<div class="snap-notes">${escHtml(t.notes)}</div>`:''}
+        ${subsHtml?`<div class="snap-subtasks">${subsHtml}</div>`:''}
+      </div>`;
+    }).join('') || `<div class="snap-empty">No tasks in this model yet.</div>`;
+
+    return `<section class="snap-model">
+      <div class="snap-model-hdr">
+        <h2>${escHtml(m)}</h2>
+        ${dl?`<span class="snap-pill snap-model-deadline">◆ Deadline: ${escHtml(dl)}</span>`:''}
+      </div>
+      <div class="snap-progress-wrap">
+        <div class="snap-progress-bar"><div class="snap-progress-fill" style="width:${s.pct}%;"></div></div>
+        <div class="snap-progress-label">${s.done}/${s.total} complete (${s.pct}%)</div>
+      </div>
+      <div class="snap-tasks">${tasksHtml}</div>
+    </section>`;
+  }).join('');
+
+  const titleText=modelNames.length===1?modelNames[0]:'All Models';
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(titleText)} — Read-Only Snapshot</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:0; background:#14151a; color:#e8e9ed; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+  .snap-wrap { max-width: 860px; margin: 0 auto; padding: 32px 20px 80px; }
+  .snap-banner {
+    background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.04));
+    border: 1px solid rgba(212,175,55,0.3); border-radius: 14px;
+    padding: 14px 18px; margin-bottom: 28px; font-size: 13px; color: #d4af37;
+  }
+  .snap-title { font-size: 26px; font-weight: 800; margin: 0 0 4px; }
+  .snap-sub { font-size: 13px; color: #9a9ba5; margin-bottom: 30px; }
+  .snap-model { margin-bottom: 36px; padding-bottom: 28px; border-bottom: 1px solid #2a2b33; }
+  .snap-model:last-child { border-bottom: none; }
+  .snap-model-hdr { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom: 12px; }
+  .snap-model-hdr h2 { font-size: 19px; margin: 0; }
+  .snap-progress-wrap { margin-bottom: 18px; }
+  .snap-progress-bar { height: 8px; border-radius: 999px; background: #23242c; overflow: hidden; }
+  .snap-progress-fill { height: 100%; background: linear-gradient(90deg,#d4af37,#f2d675); border-radius: 999px; }
+  .snap-progress-label { font-size: 11.5px; color: #9a9ba5; margin-top: 6px; }
+  .snap-task { background: #1b1c22; border: 1px solid #2a2b33; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .snap-task-hdr { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .snap-check { font-size: 14px; color: #10b981; flex-shrink:0; width:16px; text-align:center; }
+  .snap-task-name { font-size: 14px; font-weight: 600; }
+  .is-done { text-decoration: line-through; color: #6c6d78; }
+  .snap-prio { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .snap-pill { font-size: 11px; color: #9a9ba5; background: #23242c; border-radius: 999px; padding: 2px 9px; }
+  .snap-pill.snap-model-deadline { color:#d4af37; background: rgba(212,175,55,0.12); font-weight:700; }
+  .snap-pill.snap-assignee { color: #7dd3fc; background: rgba(125,211,252,0.1); }
+  .snap-notes { font-size: 12.5px; color: #c3c4cc; margin-top: 8px; padding: 8px 10px; background: #14151a; border-radius: 8px; white-space: pre-wrap; }
+  .snap-subtasks { margin-top: 10px; padding-left: 24px; display: flex; flex-direction: column; gap: 6px; }
+  .snap-subtask { display: flex; align-items: center; gap: 8px; font-size: 12.5px; flex-wrap: wrap; }
+  .snap-empty { font-size: 13px; color: #6c6d78; font-style: italic; padding: 10px 0; }
+  .snap-footer { text-align:center; font-size:11.5px; color:#5b5c66; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="snap-wrap">
+  <div class="snap-banner">📌 Read-only snapshot — not a live view. Ask the workspace owner for an updated copy or edit access.</div>
+  <div class="snap-title">${escHtml(titleText)}</div>
+  <div class="snap-sub">Generated ${escHtml(genStr)}</div>
+  ${modelsHtml}
+  <div class="snap-footer">Generated from Model Launch Dashboard</div>
+</div>
+</body>
+</html>`;
+}
+
+function downloadReadOnlySnapshot(modelNames){
+  if(!modelNames.length){ toast('⚠','No models to include',false); return; }
+  const html=buildReadOnlySnapshotHTML(modelNames);
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const name=modelNames.length===1?modelNames[0]:'all-models';
+  a.href=url; a.download=`${slugifyFilename(name)}-snapshot.html`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('🔗','Read-only snapshot downloaded — share that file, no account needed to view it');
+}
+
+document.getElementById('exportSnapshotBtn').onclick=()=>{
+  document.getElementById('exportModelDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
+  if(activeTab==='Compare Models'){toast('⚠','Select a model first to share it',false);return;}
+  if(!activeTab||!state[activeTab]){toast('⚠','No model to share',false);return;}
+  downloadReadOnlySnapshot([activeTab]);
+};
+document.getElementById('exportAllSnapshotBtn').onclick=()=>{
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  if(!canEdit()){notifyViewOnly();return;}
+  if(!models.length){toast('⚠','Add at least one model before sharing',false);return;}
+  downloadReadOnlySnapshot([...models]);
+};
 
 function goToModelFromCalendar(modelName){
   setCalendarView(false);
@@ -11024,10 +11406,10 @@ function closePriorityDropdown(){
   if(dd) dd.classList.remove('open');
 }
 let _priorityDropdownOpenedAt=0;
-function openPriorityDropdown(triggerEl, idx, subIdx){
+function openPriorityDropdown(triggerEl, idx, subIdx, modelOverride){
   const dd=document.getElementById('priorityDropdown');
   closeStatusDropdown();
-  const model=activeTab;
+  const model=modelOverride||activeTab;
   const task=(state[model]||[])[idx];
   if(!dd||!task) return;
   const target=subIdx==null?task:(getSubtasks(model,idx)[subIdx]);
@@ -12114,6 +12496,150 @@ document.querySelectorAll('.kanban-col-body').forEach(colBody=>{
     kanbanDragIdx=null;
   });
 });
+
+// Global Board's drop zones use their own class (.gboard-col-body) and drag
+// state (gboardDragItem, holding {model, idx}) rather than the per-model
+// Kanban's .kanban-col-body/kanbanDragIdx — a card here can belong to any
+// model, so the drop handler needs to know which model it came from.
+document.querySelectorAll('.gboard-col-body').forEach(colBody=>{
+  colBody.addEventListener('dragover',e=>{
+    e.preventDefault();
+    if(!canEdit()) return;
+    colBody.classList.add('kanban-drop-hover');
+  });
+  colBody.addEventListener('dragleave',()=>colBody.classList.remove('kanban-drop-hover'));
+  colBody.addEventListener('drop',e=>{
+    e.preventDefault();
+    colBody.classList.remove('kanban-drop-hover');
+    if(!canEdit()){ notifyViewOnly(); gboardDragItem=null; return; }
+    if(!gboardDragItem) return;
+    const newStatus=colBody.closest('.kanban-col').dataset.status;
+    setTaskStatus(gboardDragItem.model,gboardDragItem.idx,newStatus);
+    gboardDragItem=null;
+  });
+});
+
+// Renders every task across every active model (or just one, via the
+// filter dropdown) as a Kanban board — same three columns as the per-model
+// Board toggle, but each card is tagged with its home model so dragging
+// between columns applies setTaskStatus() to the *right* model, not
+// whatever model happens to be open on the main dashboard.
+function renderGlobalBoardView(){
+  const cols={
+    pending:document.getElementById('globalBoardColPending'),
+    inprogress:document.getElementById('globalBoardColInprogress'),
+    done:document.getElementById('globalBoardColDone')
+  };
+  const counts={
+    pending:document.getElementById('globalBoardCountPending'),
+    inprogress:document.getElementById('globalBoardCountInprogress'),
+    done:document.getElementById('globalBoardCountDone')
+  };
+  const board=document.getElementById('globalBoardBoard');
+  const emptyState=document.getElementById('globalBoardEmptyState');
+  const subtitle=document.getElementById('globalBoardSubtitle');
+  if(!board) return;
+
+  // Populate the model filter (same pattern as Calendar's), preserving the
+  // current selection if that model still exists.
+  const sel=document.getElementById('globalBoardModelSelect');
+  const allNames=refreshedActiveModelNames();
+  if(sel){
+    if(!allNames.includes(globalBoardSelectedModel)) globalBoardSelectedModel='__all__';
+    sel.innerHTML='<option value="__all__">All Models</option>'+allNames.map(n=>`<option value="${escHtml(n)}" ${n===globalBoardSelectedModel?'selected':''}>${escHtml(n)}</option>`).join('');
+    sel.onchange=()=>{ globalBoardSelectedModel=sel.value; renderGlobalBoardView(); };
+  }
+
+  Object.values(cols).forEach(c=>{ if(c) c.innerHTML=''; });
+
+  const names=allNames.filter(m=>globalBoardSelectedModel==='__all__'||m===globalBoardSelectedModel);
+  const allItems=[];
+  names.forEach(m=>{
+    (state[m]||[]).forEach((task,idx)=>{ allItems.push({model:m,task,idx}); });
+  });
+
+  if(!allItems.length){
+    board.style.display='none';
+    if(emptyState) emptyState.style.display='';
+    ['pending','inprogress','done'].forEach(k=>{ if(counts[k]) counts[k].textContent='0'; });
+    if(subtitle) subtitle.textContent='';
+    return;
+  }
+  board.style.display='';
+  if(emptyState) emptyState.style.display='none';
+
+  const buckets={pending:[],inprogress:[],done:[]};
+  allItems.forEach(({model,task,idx})=>{
+    const isSettlingDone=pendingDoneTimers.has(task);
+    const isSettlingPending=pendingRevertTimers.has(task);
+    const showAsDone=task.done||isSettlingDone||isSettlingPending;
+    const status=showAsDone?'done':(task.status==='inprogress'?'inprogress':'pending');
+    buckets[status].push({model,task,idx,showAsDone});
+  });
+
+  const modelCount=new Set(allItems.map(i=>i.model)).size;
+  if(subtitle) subtitle.textContent=`${allItems.length} task${allItems.length===1?'':'s'} across ${modelCount} model${modelCount===1?'':'s'}`;
+
+  const prioMap={high:'HIGH',med:'MED',low:'LOW'};
+  const prioClass={high:'prio-high',med:'prio-med',low:'prio-low'};
+
+  ['pending','inprogress','done'].forEach(status=>{
+    const col=cols[status];
+    if(counts[status]) counts[status].textContent=String(buckets[status].length);
+    if(!col) return;
+    if(!buckets[status].length){
+      col.innerHTML=`<div class="kanban-empty-col-hint">No tasks here</div>`;
+      return;
+    }
+    buckets[status].forEach(({model,task,idx,showAsDone})=>{
+      const subs=getSubtasks(model,idx);
+      const subsDone=subs.filter(s=>s.done).length;
+      const subsTotal=subs.length;
+      const assigneeMember=task.assignee?workspaceMembers[task.assignee]:null;
+      const assigneeColor=task.assignee?colorForAssignee(task.assignee):null;
+
+      const card=document.createElement('div');
+      card.className='kanban-card';
+      card.draggable=true;
+      card.dataset.idx=idx;
+      card.dataset.model=model;
+      card.innerHTML=`
+        <div class="kanban-card-model-badge">${escHtml(model)}</div>
+        <div class="kanban-card-title${showAsDone?' done-name':''}">${escHtml(task.name)}</div>
+        <div class="kanban-card-meta">
+          <button class="priority-badge ${prioClass[task.priority||'med']}" title="Change priority">${prioMap[task.priority||'med']}</button>
+          ${kanbanDueBadge(task,showAsDone)}
+          ${subsTotal>0?`<span class="kanban-card-sub-pill">${subsDone}/${subsTotal} sub</span>`:''}
+          ${assigneeMember?`<span class="kanban-card-avatar" title="Assigned to ${escHtml(assigneeMember.displayName||assigneeMember.email||'')}"${assigneeColor?` style="background:linear-gradient(145deg, ${assigneeColor}dd, ${assigneeColor});"`:''}>${escHtml(((assigneeMember.displayName||assigneeMember.email||'?')[0]||'?').toUpperCase())}</span>`:''}
+        </div>`;
+
+      card.addEventListener('dragstart',e=>{
+        if(!canEdit()){ e.preventDefault(); return; }
+        gboardDragItem={model,idx}; card.classList.add('dragging');
+      });
+      card.addEventListener('dragend',()=>{
+        card.classList.remove('dragging');
+        document.querySelectorAll('.gboard-col-body.kanban-drop-hover').forEach(el=>el.classList.remove('kanban-drop-hover'));
+      });
+      // Clicking the card itself (not the priority badge, which has its
+      // own handler) jumps to that model in List view with the task
+      // pinpointed — the board can't show full task details (notes,
+      // screenshots, subtasks) inline since it spans every model.
+      card.addEventListener('click',e=>{
+        if(e.target.closest('.priority-badge')) return;
+        setGlobalBoardView(false);
+        jumpToOverdueTask(model,idx,undefined);
+      });
+      const prioBtnEl=card.querySelector('.priority-badge');
+      prioBtnEl.onclick=e=>{
+        e.stopPropagation();
+        if(!canEdit()){notifyViewOnly();return;}
+        openPriorityDropdown(prioBtnEl,idx,null,model);
+      };
+      col.appendChild(card);
+    });
+  });
+}
 
 // Renders a month grid scoped to just the current model — its own deadline
 // (if set) plus every task/subtask deadline in it. Reuses the same
@@ -15197,13 +15723,17 @@ document.getElementById('importFile').onchange=async e=>{
 // Captures a full snapshot of everything on the dashboard — every model's
 // tasks and subtasks (including notes and attached screenshots), model
 // photos, model deadlines, archived/pinned/deleted-model flags, and model
-// order. Saved to the person's Firestore account (dashboards/{uid}/meta/lastBackup)
-// so it's available from any device they sign into — not just this browser.
-// Each new backup overwrites that same document, so only the most recent
-// backup is ever kept. If nobody's signed in (preview mode) or the network
-// write fails, it falls back to localStorage on this device so a backup
-// always exists somewhere rather than silently failing.
-const LAST_BACKUP_KEY='mlc_lastFullBackup';
+// order. Saved to the person's Firestore account
+// (workspaces/{id}/backups/{ts}) so it's available from any device they
+// sign into — not just this browser. Up to the 5 most recent backups are
+// kept (manual "Backup Now" clicks and the hourly auto-backup both count
+// toward that 5 — older ones are pruned automatically after each new one).
+// If nobody's signed in (preview mode) or the network write fails, it
+// falls back to localStorage on this device so a backup always exists
+// somewhere rather than silently failing.
+const BACKUP_HISTORY_KEY='mlc_backupHistory';
+const LEGACY_LAST_BACKUP_KEY='mlc_lastFullBackup'; // pre-versioning single-backup key, migrated on first read
+const BACKUP_HISTORY_LIMIT=5;
 
 function buildFullBackupPayload(){
   return {
@@ -15220,26 +15750,65 @@ function buildFullBackupPayload(){
   };
 }
 
-function getBackupDocRef(){
+function getBackupsCollectionRef(){
   if(!auth || !auth.currentUser || !db || !currentWorkspaceId) return null;
-  return db.collection('workspaces').doc(currentWorkspaceId).collection('meta').doc('lastBackup');
+  return db.collection('workspaces').doc(currentWorkspaceId).collection('backups');
 }
 
-async function saveLastBackup(){
+// Reads whatever's under the old single-object local key (if anything) and
+// wraps it as a one-item history array, so people who backed up before
+// this feature existed don't lose that backup when the key format changes.
+function readLocalBackupHistory(){
+  try{
+    const raw=localStorage.getItem(BACKUP_HISTORY_KEY);
+    if(raw){ const arr=JSON.parse(raw); return Array.isArray(arr)?arr:[]; }
+  }catch(e){}
+  try{
+    const legacyRaw=localStorage.getItem(LEGACY_LAST_BACKUP_KEY);
+    if(legacyRaw){
+      const legacy=JSON.parse(legacyRaw);
+      if(legacy) return [legacy];
+    }
+  }catch(e){}
+  return [];
+}
+function writeLocalBackupHistory(arr){
+  try{
+    localStorage.setItem(BACKUP_HISTORY_KEY,JSON.stringify(arr.slice(0,BACKUP_HISTORY_LIMIT)));
+    localStorage.removeItem(LEGACY_LAST_BACKUP_KEY); // fully migrated now
+  }catch(err){
+    console.warn('Could not save local backup history (data may be too large for localStorage — try removing some photos):',err);
+  }
+}
+
+async function saveBackup(){
   const payload=buildFullBackupPayload();
   const modelsCount=models.length;
   const tasksCount=models.reduce((n,m)=>n+((state[m]||[]).length),0);
-  const record={payload,ts:Date.now(),models:modelsCount,tasks:tasksCount};
+  const ts=Date.now();
+  const record={payload,ts,models:modelsCount,tasks:tasksCount};
 
-  const ref=getBackupDocRef();
-  if(ref){
+  const col=getBackupsCollectionRef();
+  if(col){
     try{
-      await ref.set({...record,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      await col.doc(String(ts)).set({...record,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      // Prune anything past the 5 most recent so the history never grows
+      // unbounded — one extra read, but backups are infrequent (hourly at
+      // most) so the cost is negligible.
+      const snap=await col.orderBy('ts','desc').get();
+      const extras=snap.docs.slice(BACKUP_HISTORY_LIMIT);
+      if(extras.length){
+        const batch=db.batch();
+        extras.forEach(d=>batch.delete(d.ref));
+        await batch.commit();
+      }
       record.cloud=true;
-      // Mirror locally too, purely so the Restore button can show status
-      // instantly and a backup still exists if this device goes offline
-      // right after — the cloud copy above remains the source of truth.
-      try{ localStorage.setItem(LAST_BACKUP_KEY,JSON.stringify(record)); }catch(e){}
+      // Mirror locally too, purely so the Backup History panel can show
+      // status instantly and a backup still exists if this device goes
+      // offline right after — the cloud copy above remains the source of
+      // truth.
+      const localArr=[record,...readLocalBackupHistory()].slice(0,BACKUP_HISTORY_LIMIT);
+      writeLocalBackupHistory(localArr);
       await updateRestoreBackupBtn();
       return true;
     }catch(err){
@@ -15249,49 +15818,60 @@ async function saveLastBackup(){
   // Not signed in, or the cloud write failed — still back up locally so
   // something is always recoverable.
   record.cloud=false;
-  try{
-    localStorage.setItem(LAST_BACKUP_KEY,JSON.stringify(record));
-  }catch(err){
-    console.warn('Could not save local backup (data may be too large for localStorage — try removing some photos):',err);
-  }
+  const localArr=[record,...readLocalBackupHistory()].slice(0,BACKUP_HISTORY_LIMIT);
+  writeLocalBackupHistory(localArr);
   await updateRestoreBackupBtn();
-  return !!ref; // true only if we had a cloud ref but its write failed
+  return !!col; // true only if we had a cloud ref but its write failed
 }
 
-async function getLastBackup(){
-  const ref=getBackupDocRef();
-  if(ref){
+// Returns up to the 5 most recent backups, newest first.
+async function getBackupHistory(){
+  const col=getBackupsCollectionRef();
+  if(col){
     try{
-      const snap=await ref.get();
-      if(snap.exists) return snap.data();
+      const snap=await col.orderBy('ts','desc').limit(BACKUP_HISTORY_LIMIT).get();
+      if(!snap.empty) return snap.docs.map(d=>d.data());
     }catch(err){
-      console.warn('Could not read cloud backup, checking for a local one instead:',err);
+      console.warn('Could not read cloud backup history, checking for a local one instead:',err);
     }
   }
-  try{
-    const raw=localStorage.getItem(LAST_BACKUP_KEY);
-    return raw?JSON.parse(raw):null;
-  }catch(err){ return null; }
+  return readLocalBackupHistory();
+}
+async function getLastBackup(){
+  const history=await getBackupHistory();
+  return history[0]||null;
+}
+// Deletes one backup by its timestamp — used by the "×" on each row in the
+// Backup History panel. Cloud-signed-in accounts delete from Firestore;
+// otherwise it's removed from the local array.
+async function deleteBackup(ts){
+  const col=getBackupsCollectionRef();
+  if(col){
+    try{ await col.doc(String(ts)).delete(); }catch(err){ console.warn('Could not delete cloud backup:',err); }
+  }
+  writeLocalBackupHistory(readLocalBackupHistory().filter(b=>b.ts!==ts));
+  await updateRestoreBackupBtn();
 }
 
 async function updateRestoreBackupBtn(){
   const btn=document.getElementById('restoreBackupBtn');
   const label=document.getElementById('restoreBackupLabel');
   if(!btn) return;
-  const backup=await getLastBackup();
-  if(!backup){
+  const history=await getBackupHistory();
+  if(!history.length){
     btn.disabled=true;
-    btn.title='No backup yet — use "Backup Now" once to create one';
-    if(label) label.textContent='Restore Last Backup';
+    btn.title='No backups yet — use "Backup Now" once to create one';
+    if(label) label.textContent='Backup History';
     return;
   }
   btn.disabled=false;
+  const backup=history[0];
   const d=new Date(backup.ts);
   const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
   const whereStr=backup.cloud?'saved to your account':'saved on this device only — sign in to back up online';
   const sizeStr=formatBackupSize(backup.payload);
-  btn.title=`Full backup taken ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'} (incl. photos, notes, deadlines) — ${sizeStr} — ${whereStr}`;
-  if(label) label.textContent=`Restore Last Backup (${dateStr} · ${sizeStr})`;
+  btn.title=`${history.length} backup${history.length===1?'':'s'} kept — most recent ${dateStr} — ${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'} (incl. photos, notes, deadlines) — ${sizeStr} — ${whereStr}`;
+  if(label) label.textContent=`Backup History (${history.length})`;
 }
 // Human-readable size of a backup payload (photos/screenshots are the bulk
 // of it, so this is the number people actually care about — e.g. whether
@@ -15404,7 +15984,7 @@ document.getElementById('backupNowBtn').onclick=async()=>{
   spinner.style.display='inline-block';
   label.textContent='Backing up…';
   try{
-    const wentToCloud=await saveLastBackup();
+    const wentToCloud=await saveBackup();
     // Restart the hourly timer from now, so this manual backup counts as
     // this cycle's backup instead of leaving one due again in a few minutes.
     startAutoBackup();
@@ -15422,46 +16002,105 @@ document.getElementById('backupNowBtn').onclick=async()=>{
   }
 };
 
-document.getElementById('restoreBackupBtn').onclick=async()=>{
-  if(!canEdit()){notifyViewOnly();return;}
-  document.getElementById('exportAllDropdown').classList.remove('menu-open');
-  const backup=await getLastBackup();
-  if(!backup){await showAlert({title:'No backup found',message:'Use "Backup Now" at least once to create a backup you can restore from.',tone:'warn'});return;}
-  const d=new Date(backup.ts);
-  const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' at '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
-  const whereStr=backup.cloud?'from your account':'from this device';
-  const ok=await showConfirm({
-    title:'Restore from last backup?',
-    message:`This will merge in the full backup ${whereStr}, taken on ${dateStr} (${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}, incl. photos & notes). Existing tasks and models are kept as-is — only what's missing from your current dashboard is added back.`,
-    confirmText:'Restore',
-    icon:'↺'
-  });
-  if(!ok) return;
-  try{
-    const stats=mergeFullBackupIntoState(backup.payload);
-    if(!stats.modelsAdded && !stats.modelsUpdated && !stats.subtasksAdded && !stats.extrasRestored){await showAlert({title:'Nothing to restore',message:'Your current dashboard already has everything from that backup.',tone:'warn'});return;}
-    refreshModelsList();
-    if(!activeTab && models.length) activeTab=models[0];
-    save();renderAll();
-    toast('↺',`Restored from backup: ${fullBackupStatsToMessage(stats).join(', ')}`);
-  }catch(err){
-    await showAlert({title:'Could not read backup',message:'The stored backup appears to be corrupted.',tone:'error'});
+// ── BACKUP HISTORY MODAL ──────────────────────────────────────────────────────
+async function renderBackupHistoryModal(){
+  const list=document.getElementById('backupHistoryList');
+  if(!list) return;
+  const history=await getBackupHistory();
+  if(!history.length){
+    list.innerHTML=`<div class="empty-state" style="padding:30px 10px;">
+      <div class="empty-state-icon">💾</div>
+      <div class="empty-state-title">No backups yet</div>
+      <div class="empty-state-sub">Use "Backup Now" to create your first one.</div>
+    </div>`;
+    return;
   }
+  list.innerHTML=history.map(b=>{
+    const d=new Date(b.ts);
+    const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' at '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+    const whereStr=b.cloud?'in your account':'on this device only';
+    const sizeStr=formatBackupSize(b.payload);
+    return `<div class="backup-history-row" data-ts="${b.ts}">
+      <div class="backup-history-row-info">
+        <div class="backup-history-row-date">${escHtml(dateStr)}</div>
+        <div class="backup-history-row-meta">${b.models} model${b.models===1?'':'s'}, ${b.tasks} task${b.tasks===1?'':'s'} · ${sizeStr} · ${whereStr}</div>
+      </div>
+      <div class="backup-history-row-actions">
+        <button class="backup-history-restore-btn" data-ts="${b.ts}">Restore</button>
+        <button class="backup-history-del-btn" data-ts="${b.ts}" title="Delete this backup">×</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.backup-history-restore-btn').forEach(btn=>{
+    btn.onclick=async()=>{
+      if(!canEdit()){notifyViewOnly();return;}
+      const ts=Number(btn.dataset.ts);
+      const backup=history.find(b=>b.ts===ts);
+      if(!backup) return;
+      const d=new Date(backup.ts);
+      const dateStr=d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' at '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+      const whereStr=backup.cloud?'from your account':'from this device';
+      const ok=await showConfirm({
+        title:'Restore from this backup?',
+        message:`This will merge in the full backup ${whereStr}, taken on ${dateStr} (${backup.models} model${backup.models===1?'':'s'}, ${backup.tasks} task${backup.tasks===1?'':'s'}, incl. photos & notes). Existing tasks and models are kept as-is — only what's missing from your current dashboard is added back.`,
+        confirmText:'Restore',
+        icon:'↺'
+      });
+      if(!ok) return;
+      try{
+        const stats=mergeFullBackupIntoState(backup.payload);
+        if(!stats.modelsAdded && !stats.modelsUpdated && !stats.subtasksAdded && !stats.extrasRestored){await showAlert({title:'Nothing to restore',message:'Your current dashboard already has everything from that backup.',tone:'warn'});return;}
+        refreshModelsList();
+        if(!activeTab && models.length) activeTab=models[0];
+        save();renderAll();
+        toast('↺',`Restored from backup: ${fullBackupStatsToMessage(stats).join(', ')}`);
+        closeBackupHistoryModal();
+      }catch(err){
+        await showAlert({title:'Could not read backup',message:'The stored backup appears to be corrupted.',tone:'error'});
+      }
+    };
+  });
+  list.querySelectorAll('.backup-history-del-btn').forEach(btn=>{
+    btn.onclick=async()=>{
+      if(!canEdit()){notifyViewOnly();return;}
+      const ts=Number(btn.dataset.ts);
+      const ok=await showConfirm({title:'Delete this backup?',message:'This only removes this one backup — it does not touch your live models or tasks.',confirmText:'Delete',danger:true,icon:'🗑'});
+      if(!ok) return;
+      await deleteBackup(ts);
+      renderBackupHistoryModal();
+    };
+  });
+}
+function openBackupHistoryModal(){
+  renderBackupHistoryModal();
+  document.getElementById('backupHistoryModal').classList.add('open');
+}
+function closeBackupHistoryModal(){
+  document.getElementById('backupHistoryModal').classList.remove('open');
+}
+document.getElementById('restoreBackupBtn').onclick=()=>{
+  document.getElementById('exportAllDropdown').classList.remove('menu-open');
+  openBackupHistoryModal();
 };
+document.getElementById('backupHistoryCloseBtn').onclick=closeBackupHistoryModal;
+document.getElementById('backupHistoryModal').addEventListener('click',e=>{
+  if(e.target.id==='backupHistoryModal') closeBackupHistoryModal();
+});
 
 updateRestoreBackupBtn();
 
 // ── HOURLY AUTO-BACKUP ────────────────────────────────────────────────────────
 // Keeps the cloud backup fresh even if the person forgets to back up
-// manually: snapshots the full current state once an hour and overwrites
-// the single stored backup document via saveLastBackup — so the old backup
-// is always discarded and only the newest copy is ever kept.
+// manually: snapshots the full current state once an hour via saveBackup(),
+// which keeps up to the 5 most recent backups (manual + auto combined) and
+// prunes anything older.
 const AUTO_BACKUP_INTERVAL_MS=60*60*1000; // 1 hour
 
 async function runAutoBackup(){
   if(!models.length) return; // nothing to back up yet
   try{
-    await saveLastBackup();
+    await saveBackup();
   }catch(err){
     console.warn('Auto-backup failed:',err);
   }
@@ -16115,6 +16754,7 @@ function renderAll(){
   if(analyticsViewActive) renderAnalyticsView();
   if(myTasksViewActive) renderMyTasksView();
   if(calendarViewActive) renderCalendarView();
+  if(globalBoardViewActive) renderGlobalBoardView();
 }
 
 // ── FRESH START ───────────────────────────────────────────────────────────────
@@ -16152,6 +16792,7 @@ async function freshStart(){
   setRecycleView(false);
   setAnalyticsView(false);
   setCalendarView(false);
+  setGlobalBoardView(false);
   refreshModelsList();
   resetUndo();
 
