@@ -472,6 +472,7 @@ footer {
 .analytics-kpi-card .kpi-value { font-size: 32px; font-weight: 300; font-variant-numeric: tabular-nums; color: var(--accent1); line-height:1; margin-bottom:6px; }
 .analytics-kpi-card .kpi-sub { font-size: 12px; color: var(--text-muted); font-weight: 300; }
 .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.analytics-panel-wide { grid-column: 1 / -1; }
 @media (max-width: 980px){ .analytics-grid{ grid-template-columns: 1fr; } .analytics-kpi-grid{ grid-template-columns: repeat(2,1fr); } }
 
 @container app-root (max-width: 980px) { .analytics-grid{ grid-template-columns: 1fr; } .analytics-kpi-grid{ grid-template-columns: repeat(2,1fr); } }
@@ -5148,6 +5149,14 @@ document.addEventListener('keydown', e => {
         <div class="analytics-panel-sub">Open tasks per teammate — shows who's overloaded</div>
       </div>
       <div class="workload-list" id="workloadList"></div>
+    </div>
+
+    <div class="analytics-panel analytics-panel-wide" id="panelWorkloadTrend">
+      <div class="analytics-panel-hdr">
+        <div class="analytics-panel-title">📈 Workload Trend</div>
+        <div class="analytics-panel-sub">Open tasks per teammate over time, last 4 weeks — <span id="workloadTrendModelLabel">All Models</span></div>
+      </div>
+      <div class="analytics-chart-wrap" id="workloadTrendChartWrap"></div>
     </div>
   </div>
 </div>
@@ -10325,6 +10334,24 @@ function refreshedActiveModelNames(){
   return Object.keys(state).filter(m=>!archivedModelsSet.has(m)&&!waitingModelsSet.has(m)&&isModelVisibleToMe(m));
 }
 
+// Every task across every launch the user can see (including archived and
+// waiting models, since a launch being archived shouldn't erase it from
+// its history), optionally narrowed to a single model — same modelFilter
+// convention as analyticsAllTasks ('__all__' or a specific model name).
+// Includes subtasks (which carry their own assignee) alongside top-level
+// tasks, since either can carry someone's workload.
+function workloadTrendTasks(modelFilter){
+  const names = modelFilter && modelFilter!=='__all__' ? [modelFilter] : Object.keys(state).filter(isModelVisibleToMe);
+  let out=[];
+  names.forEach(m=>{
+    (state[m]||[]).forEach(t=>{
+      out.push(t);
+      (Array.isArray(t.subtasks)?t.subtasks:[]).forEach(s=>out.push(s));
+    });
+  });
+  return out;
+}
+
 function fmtShortDate(d){ return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
 function startOfDay(ts){ const d=new Date(ts); d.setHours(0,0,0,0); return d.getTime(); }
 
@@ -10344,6 +10371,7 @@ function renderAnalyticsView(){
   renderWeeklyChart();
   renderOverdueAnalysis();
   renderTeamWorkload();
+  renderWorkloadTrendChart();
   renderKPIs();
 }
 
@@ -10407,6 +10435,81 @@ function renderTeamWorkload(){
       </div>
     </div>`;
   }).join('');
+}
+
+// Workload Trend — reconstructs, for each of the last 4 weeks, how many
+// tasks each teammate had open (assigned to them, created by that point,
+// not yet completed) at that moment. Unlike the Team Workload panel
+// (a snapshot of right now), this looks back over time using each task's
+// own createdAt/completedAt timestamps, the same technique the burndown
+// chart uses to reconstruct history from a live-state data model rather
+// than a stored time series. A task missing createdAt is treated as
+// having always existed (it likely predates this field being added); a
+// task missing completedAt is treated as still open. Respects the same
+// model filter as the rest of the Analytics view — "All Models" pulls in
+// every launch the user can see, including archived ones, so a launch
+// wrapping up doesn't erase its history from the trend.
+function renderWorkloadTrendChart(){
+  const wrap=document.getElementById('workloadTrendChartWrap');
+  const label=document.getElementById('workloadTrendModelLabel');
+  if(!wrap) return;
+  const modelFilter=analyticsSelectedModel;
+  if(label) label.textContent = modelFilter==='__all__' ? 'All Models' : modelFilter;
+
+  const memberUids=Object.keys(workspaceMembers||{});
+  if(memberUids.length<2){
+    wrap.innerHTML='<div class="analytics-empty">Invite teammates to see workload trends.</div>';
+    return;
+  }
+
+  const tasks=workloadTrendTasks(modelFilter).filter(t=>t.assignee);
+  if(!tasks.length){
+    wrap.innerHTML='<div class="analytics-empty">No assigned tasks yet — this fills in as work gets assigned.</div>';
+    return;
+  }
+
+  const todayStart=startOfDay(Date.now());
+  const weeks=[]; for(let i=3;i>=0;i--) weeks.push(todayStart-i*7*86400000);
+
+  const rows=memberUids.map(uid=>{
+    const name=(workspaceMembers[uid]&&(workspaceMembers[uid].displayName||workspaceMembers[uid].email))||'Member';
+    const own=tasks.filter(t=>t.assignee===uid);
+    const points=weeks.map(weekEndTs=>{
+      const cutoff=weekEndTs+86399999; // end of that day
+      return own.filter(t=>{
+        const created=t.createdAt||0;
+        const completed=t.completedAt||Infinity;
+        return created<=cutoff && completed>cutoff;
+      }).length;
+    });
+    return {uid, name, points, peak:Math.max(...points), last:points[points.length-1]};
+  }).filter(r=>r.peak>0)
+    .sort((a,b)=>b.last-a.last || b.peak-a.peak);
+
+  if(!rows.length){
+    wrap.innerHTML='<div class="analytics-empty">No assigned tasks yet — this fills in as work gets assigned.</div>';
+    return;
+  }
+
+  const yMax=Math.max(3, ...rows.map(r=>r.peak));
+  const series=rows.map(r=>({name:r.name, points:r.points, color:colorForAssignee(r.uid)||'#a1a1aa', dashed:false}));
+
+  wrap.innerHTML = buildLineChartSvg({ days:weeks, series, yMax, yLabel:'Open Tasks' });
+
+  // Flag anyone whose open-task count has stayed at or above the group's
+  // average for most of the tracked weeks — "consistently" overloaded,
+  // as opposed to just having a busy week right now.
+  const weekAvgs=weeks.map((_,i)=>{
+    const vals=rows.map(r=>r.points[i]);
+    return vals.reduce((s,v)=>s+v,0)/vals.length;
+  });
+  const consistent=rows.filter(r=>{
+    const weeksAbove=r.points.filter((v,i)=>v>0 && v>=weekAvgs[i]*1.3).length;
+    return weeksAbove>=Math.ceil(weeks.length*0.6);
+  });
+  if(consistent.length){
+    wrap.innerHTML += `<div class="analytics-panel-sub" style="margin-top:12px;">🔥 Consistently above the team average: ${consistent.map(r=>escHtml(r.name)).join(', ')}</div>`;
+  }
 }
 
 function renderAnalyticsKpis(){
